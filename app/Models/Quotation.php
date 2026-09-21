@@ -79,8 +79,10 @@ class Quotation extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    // workOrder() relationship is added once the WorkOrder model exists,
-    // the column is already on the table, waiting for it.
+    public function workOrder(): BelongsTo
+    {
+        return $this->belongsTo(WorkOrder::class, 'converted_work_order_id');
+    }
 
     public function itemsSubtotalMinor(): int
     {

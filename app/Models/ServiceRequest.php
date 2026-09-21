@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class ServiceRequest extends Model
 {
@@ -48,6 +49,11 @@ class ServiceRequest extends Model
     public function loggedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'logged_by_id');
+    }
+
+    public function workOrder(): HasOne
+    {
+        return $this->hasOne(WorkOrder::class, 'source_service_request_id');
     }
 
     // Step 1 of the two-step flow: assign a technician, status flips to

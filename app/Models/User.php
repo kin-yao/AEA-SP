@@ -20,6 +20,7 @@ class User extends Authenticatable
         'email',
         'password',
         'branch_id',
+        'customer_id',
         'phone',
         'status',
     ];
@@ -29,9 +30,6 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    // Match the DB column default here in PHP too, same lesson as
-    // Quotation's vat_rate, so a freshly created record is correct in
-    // memory immediately, not just after a ->fresh() round-trip.
     protected $attributes = [
         'status' => 'Active',
     ];
@@ -47,6 +45,13 @@ class User extends Authenticatable
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    // Only meaningful for users with the Customer role, null for everyone
+    // else, same pattern as branch() being null for Super Admin.
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
     }
 
     public function assignedRequests(): HasMany

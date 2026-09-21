@@ -28,9 +28,6 @@ class Customer extends Model
         'has_active_contract' => 'boolean',
     ];
 
-    // Match the DB column defaults here in PHP too, same lesson as
-    // Quotation's vat_rate, so a freshly created record is correct in
-    // memory immediately, not just after a ->fresh() round-trip.
     protected $attributes = [
         'has_active_contract' => false,
         'balance_minor' => 0,
@@ -69,6 +66,14 @@ class Customer extends Model
     public function invoices(): HasMany
     {
         return $this->hasMany(Invoice::class);
+    }
+
+    // The portal login accounts belonging to this customer, e.g. their main
+    // contact, distinct from main_contact_name/email/phone above, which are
+    // just contact details, not necessarily someone with a login.
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
     }
 
     public function balanceFormatted(): string

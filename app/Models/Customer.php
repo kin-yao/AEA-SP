@@ -48,6 +48,11 @@ class Customer extends Model
         return $this->hasMany(ServiceRequest::class);
     }
 
+    public function quotations(): HasMany
+    {
+        return $this->hasMany(Quotation::class);
+    }
+
     public function balanceFormatted(): string
     {
         return number_format($this->balance_minor / 100, 2);

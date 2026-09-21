@@ -71,12 +71,17 @@ class WorkOrder extends Model
         return $this->belongsTo(Quotation::class, 'source_quotation_id');
     }
 
-        public function documents(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function documents(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Document::class);
     }
 
-        public function stockMovements(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function invoices(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
+    public function stockMovements(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(StockMovement::class);
     }

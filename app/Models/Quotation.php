@@ -39,11 +39,6 @@ class Quotation extends Model
         'vat_rate' => 'decimal:3',
     ];
 
-    // PHP-level defaults, matching the database column defaults exactly.
-    // Needed because Eloquent doesn't pull DB-generated defaults back into
-    // the in-memory object after create(), so without these, a freshly
-    // created (not yet ->fresh()'d) Quotation would have vat_rate = null
-    // and totalMinor() would silently compute VAT as zero.
     protected $attributes = [
         'validity_days' => 30,
         'labour_minor' => 0,
@@ -112,5 +107,22 @@ class Quotation extends Model
 
         $this->approval_threshold = $manager ? 'Manager' : 'Supervisor';
         $this->status = $manager ? 'Awaiting Manager' : 'Awaiting Supervisor';
+    }
+
+    // The missing transition: whoever the policy says may approve this
+    // (Supervisor or Manager, matching approval_threshold) actually does
+    // so here. Status moves from Awaiting X to Approved, which is what
+    // makes logLpo() in QuotationPolicy a reachable state, not a dead
+    // check against a status nothing could ever produce.
+    public function approve(): void
+    {
+        $this->status = 'Approved';
+        $this->save();
+    }
+
+    public function sendBack(): void
+    {
+        $this->status = 'Sent back';
+        $this->save();
     }
 }

@@ -46,4 +46,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(ServiceRequest::class, 'assigned_technician_id');
     }
+
+    public function technicianDocuments(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(TechnicianDocument::class, 'technician_id');
+    }
 }

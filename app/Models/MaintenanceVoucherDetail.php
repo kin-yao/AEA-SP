@@ -29,7 +29,8 @@ class MaintenanceVoucherDetail extends Model
         return $this->belongsTo(User::class, 'technician_id');
     }
 
-    // contract() relationship gets added once the Contract model exists,
-    // next step, same deferred pattern as the missing foreign key
-    // constraint on contract_id in the migration.
+        public function contract(): BelongsTo
+    {
+        return $this->belongsTo(Contract::class);
+    }
 }

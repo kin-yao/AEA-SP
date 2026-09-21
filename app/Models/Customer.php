@@ -28,6 +28,14 @@ class Customer extends Model
         'has_active_contract' => 'boolean',
     ];
 
+    // Match the DB column defaults here in PHP too, same lesson as
+    // Quotation's vat_rate, so a freshly created record is correct in
+    // memory immediately, not just after a ->fresh() round-trip.
+    protected $attributes = [
+        'has_active_contract' => false,
+        'balance_minor' => 0,
+    ];
+
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
@@ -53,12 +61,12 @@ class Customer extends Model
         return $this->hasMany(Quotation::class);
     }
 
-        public function contracts(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function contracts(): HasMany
     {
         return $this->hasMany(Contract::class);
     }
 
-        public function invoices(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function invoices(): HasMany
     {
         return $this->hasMany(Invoice::class);
     }

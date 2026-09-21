@@ -43,6 +43,11 @@ class Customer extends Model
         return $this->hasMany(Equipment::class);
     }
 
+    public function serviceRequests(): HasMany
+    {
+        return $this->hasMany(ServiceRequest::class);
+    }
+
     public function balanceFormatted(): string
     {
         return number_format($this->balance_minor / 100, 2);

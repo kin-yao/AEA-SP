@@ -61,8 +61,10 @@ class Invoice extends Model
         return $this->belongsTo(User::class, 'raised_by');
     }
 
-    // payments() HasMany relationship gets added once the Payment model
-    // exists, our next step.
+    public function payments(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
 
     public function balanceMinor(): int
     {

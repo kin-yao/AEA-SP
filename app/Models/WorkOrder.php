@@ -75,4 +75,9 @@ class WorkOrder extends Model
     {
         return $this->hasMany(Document::class);
     }
+
+        public function stockMovements(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(StockMovement::class);
+    }
 }

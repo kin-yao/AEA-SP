@@ -49,10 +49,14 @@ class Document extends Model
         return $this->hasOne(CertificateDetail::class);
     }
 
-    // lpoDetail(), voucherDetail(), and deliveryNoteDetail() HasOne
-    // relationships get added one at a time as we build each remaining
-    // *_details table.
-    
+        public function lpoDetail(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(LpoDetail::class);
+    }
+
+    // voucherDetail() and deliveryNoteDetail() HasOne relationships get
+    // added as we build the remaining two *_details tables.
+
     // Which document types a role may see, mirrors DOCSCOPE in the
     // prototype, this is where "a technician never sees an LPO" gets
     // enforced later, at the query layer.

@@ -71,7 +71,8 @@ class WorkOrder extends Model
         return $this->belongsTo(Quotation::class, 'source_quotation_id');
     }
 
-    // documents(), invoices(), and stockMovements() HasMany relationships
-    // get added once those tables/models exist, same deferred pattern as
-    // Quotation::workOrder() below.
+        public function documents(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Document::class);
+    }
 }

@@ -25,9 +25,16 @@
                 </a>
                 @can('viewAny', \App\Models\ServiceRequest::class)
                     <a href="/requests" wire:navigate
-                       class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium {{ request()->is('requests') ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-100' }}">
+                       class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium {{ request()->is('requests*') ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-100' }}">
                         <x-icon name="envelope" class="h-4 w-4" />
                         Requests
+                    </a>
+                @endcan
+                @can('viewAny', \App\Models\WorkOrder::class)
+                    <a href="/jobs" wire:navigate
+                       class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium {{ request()->is('jobs*') ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-100' }}">
+                        <x-icon name="tools" class="h-4 w-4" />
+                        Jobs
                     </a>
                 @endcan
             </nav>
@@ -75,9 +82,16 @@
         </a>
         @can('viewAny', \App\Models\ServiceRequest::class)
             <a href="/requests" wire:navigate
-               class="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs {{ request()->is('requests') ? 'text-primary-600' : 'text-gray-500' }}">
+               class="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs {{ request()->is('requests*') ? 'text-primary-600' : 'text-gray-500' }}">
                 <x-icon name="envelope" class="h-5 w-5" />
                 Requests
+            </a>
+        @endcan
+        @can('viewAny', \App\Models\WorkOrder::class)
+            <a href="/jobs" wire:navigate
+               class="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs {{ request()->is('jobs*') ? 'text-primary-600' : 'text-gray-500' }}">
+                <x-icon name="tools" class="h-5 w-5" />
+                Jobs
             </a>
         @endcan
     </nav>

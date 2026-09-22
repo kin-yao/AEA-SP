@@ -23,6 +23,14 @@ Route::livewire('/requests/{request}', 'requests.show')
     ->middleware('auth')
     ->name('requests.show');
 
+Route::livewire('/jobs', 'jobs')
+    ->middleware('auth')
+    ->name('jobs');
+
+Route::livewire('/jobs/{job}', 'jobs.show')
+    ->middleware('auth')
+    ->name('jobs.show');
+
 Route::post('/logout', function () {
     Auth::logout();
     request()->session()->invalidate();

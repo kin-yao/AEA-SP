@@ -8,4 +8,38 @@
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* AEA brand colors */
+    --color-primary-50: #fef2f2;
+    --color-primary-100: #fde3e3;
+    --color-primary-200: #fbcbcb;
+    --color-primary-300: #f7a5a5;
+    --color-primary-400: #f17171;
+    --color-primary-500: #e31e24;
+    --color-primary-600: #cc1a20;
+    --color-primary-700: #a8151a;
+    --color-primary-800: #8b1418;
+    --color-primary-900: #74151a;
+
+    --color-gold-50: #fdf8ec;
+    --color-gold-100: #f9edc9;
+    --color-gold-200: #f3d98e;
+    --color-gold-300: #ecc158;
+    --color-gold-400: #e6ac35;
+    --color-gold-500: #d99424;
+    --color-gold-600: #bc721c;
+    --color-gold-700: #96521a;
+    --color-gold-800: #7c421c;
+    --color-gold-900: #69381c;
+
+    --color-info-50: #eff6ff;
+    --color-info-100: #dbeafe;
+    --color-info-200: #bfdbfe;
+    --color-info-300: #93c5fd;
+    --color-info-400: #60a5fa;
+    --color-info-500: #3b82f6;
+    --color-info-600: #2563eb;
+    --color-info-700: #1d4ed8;
+    --color-info-800: #1e40af;
+    --color-info-900: #1e3a8a;
 }

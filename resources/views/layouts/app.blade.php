@@ -23,6 +23,13 @@
                     <x-icon name="house" class="h-4 w-4" />
                     Overview
                 </a>
+                @can('viewAny', \App\Models\ServiceRequest::class)
+                    <a href="/requests" wire:navigate
+                       class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium {{ request()->is('requests') ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-100' }}">
+                        <x-icon name="envelope" class="h-4 w-4" />
+                        Requests
+                    </a>
+                @endcan
             </nav>
 
             <div class="border-t border-gray-200 p-3">
@@ -66,6 +73,13 @@
             <x-icon name="house" class="h-5 w-5" />
             Overview
         </a>
+        @can('viewAny', \App\Models\ServiceRequest::class)
+            <a href="/requests" wire:navigate
+               class="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs {{ request()->is('requests') ? 'text-primary-600' : 'text-gray-500' }}">
+                <x-icon name="envelope" class="h-5 w-5" />
+                Requests
+            </a>
+        @endcan
     </nav>
 
     @livewireScripts

@@ -15,6 +15,14 @@ Route::livewire('/dashboard', 'dashboard')
     ->middleware('auth')
     ->name('dashboard');
 
+Route::livewire('/requests', 'requests')
+    ->middleware('auth')
+    ->name('requests');
+
+Route::livewire('/requests/{request}', 'requests.show')
+    ->middleware('auth')
+    ->name('requests.show');
+
 Route::post('/logout', function () {
     Auth::logout();
     request()->session()->invalidate();

@@ -7,11 +7,6 @@ use App\Models\User;
 
 class DocumentPolicy
 {
-    // Uses the confirmed type-visibility rule already sitting in
-    // Document::scopeForRole(), a technician never sees an LPO, Finance
-    // only sees LPOs, a customer sees reports/certs/vouchers/delivery
-    // notes but never LPOs. This just wires that existing list into an
-    // actual permission check, it wasn't enforcing anything on its own.
     public function viewAny(User $user): bool
     {
         return $user->roles->isNotEmpty();
@@ -33,14 +28,9 @@ class DocumentPolicy
             return $user->customer_id === $document->customer_id;
         }
 
-        return true; // Manager, Supervisor, Service Admin, Finance, already type-checked above
+        return true;
     }
 
-    // Only Service Admin uploads a document directly (a scanned hard copy
-    // against an existing record). Reports, vouchers, and delivery notes
-    // aren't "created" through this, they come from Technician actions
-    // elsewhere (submitReport() and friends), those aren't gated by this
-    // policy at all, they're a different action on a different model.
     public function create(User $user): bool
     {
         return $user->hasRole('Service Admin');
@@ -49,6 +39,16 @@ class DocumentPolicy
     public function update(User $user, Document $document): bool
     {
         return $user->hasRole('Service Admin');
+    }
+
+    // Confirmed role split: Supervisor reviews reports. Only meaningful on
+    // a report type document that's actually sitting in Awaiting review,
+    // not on certificates, LPOs, or anything already past that stage.
+    public function review(User $user, Document $document): bool
+    {
+        return $user->hasRole('Supervisor')
+            && $document->type === Document::TYPE_REPORT
+            && $document->status === 'Awaiting review';
     }
 
     public function delete(User $user, Document $document): bool

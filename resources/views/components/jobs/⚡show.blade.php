@@ -14,13 +14,11 @@ new #[Layout('layouts.app', ['title' => 'Job'])] class extends Component
         $this->job = $job;
     }
 
-    // The stages a technician moves a job through while actually doing the
-    // work. Review and closing are a separate stage, staff-only below,
-    // matching the same "technicians don't decide, they're assigned" line
-    // you drew for Requests, they don't approve their own work either.
+    // Technician's own progression stops at "On site", the move to
+    // "Awaiting review" only happens by actually filing a report, see the
+    // Report component. Review and closing are staff-only.
     protected array $technicianStages = [
         'Assigned' => 'On site',
-        'On site' => 'Awaiting review',
     ];
 
     protected array $staffStages = [
@@ -111,17 +109,20 @@ new #[Layout('layouts.app', ['title' => 'Job'])] class extends Component
         @endif
     </div>
 
-    @can('updateStatus', $job)
-        @if ($this->nextStatus)
-            <div class="rounded-xl border border-gray-200 bg-white p-5">
-                <p class="mb-3 text-sm text-gray-600">
-                    Next stage: <span class="font-medium text-gray-900">{{ $this->nextStatus }}</span>
-                </p>
-                <button wire:click="advanceStatus" wire:loading.attr="disabled" wire:target="advanceStatus"
-                        class="rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white hover:bg-primary-600">
-                    Move to {{ $this->nextStatus }}
-                </button>
-            </div>
-        @endif
-    @endcan
+    @if ($job->status === 'On site' && auth()->id() === $job->assigned_technician_id)
+        <a href="/jobs/{{ $job->id }}/report" wire:navigate
+           class="block rounded-xl bg-primary-500 px-4 py-3 text-center text-sm font-medium text-white hover:bg-primary-600">
+            File service report
+        </a>
+    @elseif ($this->nextStatus)
+        <div class="rounded-xl border border-gray-200 bg-white p-5">
+            <p class="mb-3 text-sm text-gray-600">
+                Next stage: <span class="font-medium text-gray-900">{{ $this->nextStatus }}</span>
+            </p>
+            <button wire:click="advanceStatus" wire:loading.attr="disabled" wire:target="advanceStatus"
+                    class="rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white hover:bg-primary-600">
+                Move to {{ $this->nextStatus }}
+            </button>
+        </div>
+    @endif
 </div>

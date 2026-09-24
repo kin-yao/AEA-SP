@@ -5,15 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Quotation extends Model
 {
     use SoftDeletes;
 
-    // Below this, Supervisor approves. At or above, it routes to Manager.
-    // Confirmed independently by two survey respondents, treat this as a
-    // business constant, not a per-quotation setting.
     public const APPROVAL_THRESHOLD_MINOR = 300_000_000; // KES 3,000,000 in minor units
 
     protected $fillable = [
@@ -79,6 +77,11 @@ class Quotation extends Model
         return $this->belongsTo(WorkOrder::class, 'converted_work_order_id');
     }
 
+    public function lpoDetail(): HasOne
+    {
+        return $this->hasOne(LpoDetail::class);
+    }
+
     public function itemsSubtotalMinor(): int
     {
         return $this->items->sum(fn (QuotationItem $item) => $item->quantity * $item->rate_minor);
@@ -99,8 +102,6 @@ class Quotation extends Model
         return $this->subtotalMinor() + $this->vatMinor();
     }
 
-    // Call this after items/labour are finalised, before saving, to set the
-    // correct approval route and starting status.
     public function routeApproval(): void
     {
         $manager = $this->totalMinor() >= self::APPROVAL_THRESHOLD_MINOR;
@@ -109,11 +110,6 @@ class Quotation extends Model
         $this->status = $manager ? 'Awaiting Manager' : 'Awaiting Supervisor';
     }
 
-    // The missing transition: whoever the policy says may approve this
-    // (Supervisor or Manager, matching approval_threshold) actually does
-    // so here. Status moves from Awaiting X to Approved, which is what
-    // makes logLpo() in QuotationPolicy a reachable state, not a dead
-    // check against a status nothing could ever produce.
     public function approve(): void
     {
         $this->status = 'Approved';
@@ -124,5 +120,57 @@ class Quotation extends Model
     {
         $this->status = 'Sent back';
         $this->save();
+    }
+
+    // Now takes an actual uploaded file path, nullable, since a customer
+    // might send the LPO by hand before the scanned copy follows, that's
+    // still a real, correctly-logged LPO, just without the file attached
+    // yet.
+    public function logLpo(string $reference, string $receivedVia, int $loggedById, ?string $filePath = null): Document
+    {
+        $document = Document::create([
+            'reference' => $reference,
+            'type' => Document::TYPE_LPO,
+            'customer_id' => $this->customer_id,
+            'status' => 'On file',
+            'filed_by' => $loggedById,
+        ]);
+
+        $document->lpoDetail()->create([
+            'quotation_id' => $this->id,
+            'received_via' => $receivedVia,
+            'file_path' => $filePath,
+        ]);
+
+        $this->update([
+            'lpo_status' => 'On file',
+            'lpo_reference' => $reference,
+            'status' => 'Accepted',
+        ]);
+
+        return $document;
+    }
+
+    public function convertToJob(int $technicianId, string $dueDate, string $reference): WorkOrder
+    {
+        $workOrder = WorkOrder::create([
+            'reference' => $reference,
+            'customer_id' => $this->customer_id,
+            'customer_site_id' => $this->customer_site_id,
+            'nature_of_visit' => $this->scope,
+            'assigned_technician_id' => $technicianId,
+            'due_date' => $dueDate,
+            'source_quotation_id' => $this->id,
+            'value_type' => 'chargeable',
+            'value_minor' => $this->totalMinor(),
+            'currency_code' => $this->currency_code,
+        ]);
+
+        $this->update([
+            'converted_work_order_id' => $workOrder->id,
+            'status' => 'Converted',
+        ]);
+
+        return $workOrder;
     }
 }

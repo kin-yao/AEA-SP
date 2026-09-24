@@ -21,10 +21,18 @@ new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
         $this->document->update(['status' => 'Checked, ready to post']);
         $this->document->refresh();
 
-        // The report review is what genuinely completes this stage, so the
-        // job moves to Approved here, not from a generic button on the
-        // job's own page that had no real check behind it.
         $this->document->workOrder?->update(['status' => 'Approved']);
+    }
+
+    // Releasing the report is what makes the job visible to Finance as
+    // ready to invoice, see Invoices/Create, which only lists jobs with a
+    // Released report and no invoice yet.
+    public function post(): void
+    {
+        $this->authorize('post', $this->document);
+
+        $this->document->update(['status' => 'Released']);
+        $this->document->refresh();
     }
 };
 ?>
@@ -134,6 +142,13 @@ new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
         <button wire:click="approve" wire:loading.attr="disabled" wire:target="approve"
                 class="w-full rounded-lg bg-primary-500 py-2.5 text-sm font-medium text-white hover:bg-primary-600">
             Approve and move job forward
+        </button>
+    @endcan
+
+    @can('post', $document)
+        <button wire:click="post" wire:loading.attr="disabled" wire:target="post"
+                class="w-full rounded-lg bg-primary-500 py-2.5 text-sm font-medium text-white hover:bg-primary-600">
+            Post to Finance
         </button>
     @endcan
 </div>

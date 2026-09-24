@@ -109,7 +109,6 @@ new #[Layout('layouts.app', ['title' => 'Request'])] class extends Component
     @if ($generatedReference)
         <div class="mb-4 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
             Job <strong>{{ $generatedReference }}</strong> created and assigned to {{ $request->technician->name }}.
-            The Jobs screen to view it directly isn't built yet, the record itself is real.
         </div>
     @endif
 

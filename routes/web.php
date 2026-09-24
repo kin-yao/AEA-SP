@@ -43,6 +43,30 @@ Route::livewire('/documents/{document}', 'documents.show')
     ->middleware('auth')
     ->name('documents.show');
 
+Route::livewire('/invoices', 'invoices')
+    ->middleware('auth')
+    ->name('invoices');
+
+Route::livewire('/invoices/create/{job}', 'invoices.create')
+    ->middleware('auth')
+    ->name('invoices.create');
+
+Route::livewire('/invoices/{invoice}', 'invoices.show')
+    ->middleware('auth')
+    ->name('invoices.show');
+
+Route::livewire('/quotations', 'quotations')
+    ->middleware('auth')
+    ->name('quotations');
+
+Route::livewire('/quotations/create', 'quotations.create')
+    ->middleware('auth')
+    ->name('quotations.create');
+
+Route::livewire('/quotations/{quotation}', 'quotations.show')
+    ->middleware('auth')
+    ->name('quotations.show');
+
 Route::post('/logout', function () {
     Auth::logout();
     request()->session()->invalidate();

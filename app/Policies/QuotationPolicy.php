@@ -27,22 +27,17 @@ class QuotationPolicy
         return $user->hasRole('Service Admin');
     }
 
-    // Judgment call, not from the prototype: a quotation's line items,
-    // labour, and scope should only be editable while it's still awaiting
-    // a decision. Once someone's approved it, sent it back, or the
-    // customer's accepted it, rewriting the numbers underneath that
-    // decision is a real integrity hole, not something the prototype had
-    // to think about since it never had real state to protect.
+    // Line items, labour, and scope only editable while still awaiting a
+    // decision, not after someone's approved, sent back, or the customer's
+    // accepted it.
     public function update(User $user, Quotation $quotation): bool
     {
         return $user->hasRole('Service Admin')
             && str_starts_with($quotation->status, 'Awaiting');
     }
 
-    // Whoever it's routed to approves it, Supervisor for the Supervisor
-    // threshold, Manager for the Manager threshold, checked against
-    // approval_threshold, not against the total directly, that column is
-    // the actual routing decision Quotation::routeApproval() already made.
+    // Whoever it's routed to approves it, checked against approval_threshold,
+    // the actual routing decision routeApproval() already made.
     public function approve(User $user, Quotation $quotation): bool
     {
         return match ($quotation->approval_threshold) {
@@ -57,10 +52,20 @@ class QuotationPolicy
         return $this->approve($user, $quotation);
     }
 
-    // Logging an LPO against an approved quotation, Service Admin's job.
+    // Logging the customer's LPO against an approved quotation, Service
+    // Admin's job.
     public function logLpo(User $user, Quotation $quotation): bool
     {
         return $user->hasRole('Service Admin') && $quotation->status === 'Approved';
+    }
+
+    // The second real entry point into a job, only once the LPO's actually
+    // on file and nothing's been generated from this quotation yet.
+    public function convertToJob(User $user, Quotation $quotation): bool
+    {
+        return $user->hasRole('Service Admin')
+            && $quotation->status === 'Accepted'
+            && $quotation->converted_work_order_id === null;
     }
 
     public function delete(User $user, Quotation $quotation): bool

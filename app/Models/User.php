@@ -47,8 +47,6 @@ class User extends Authenticatable
         return $this->belongsTo(Branch::class);
     }
 
-    // Only meaningful for users with the Customer role, null for everyone
-    // else, same pattern as branch() being null for Super Admin.
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
@@ -57,6 +55,13 @@ class User extends Authenticatable
     public function assignedRequests(): HasMany
     {
         return $this->hasMany(ServiceRequest::class, 'assigned_technician_id');
+    }
+
+    // The one that was actually missing, this is what the technician
+    // picker's open-job count relies on.
+    public function assignedWorkOrders(): HasMany
+    {
+        return $this->hasMany(WorkOrder::class, 'assigned_technician_id');
     }
 
     public function technicianDocuments(): HasMany

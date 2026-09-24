@@ -41,14 +41,23 @@ class DocumentPolicy
         return $user->hasRole('Service Admin');
     }
 
-    // Confirmed role split: Supervisor reviews reports. Only meaningful on
-    // a report type document that's actually sitting in Awaiting review,
-    // not on certificates, LPOs, or anything already past that stage.
+    // Supervisor reviews a report. Only meaningful while it's actually
+    // sitting in Awaiting review.
     public function review(User $user, Document $document): bool
     {
         return $user->hasRole('Supervisor')
             && $document->type === Document::TYPE_REPORT
             && $document->status === 'Awaiting review';
+    }
+
+    // Service Admin releases a checked report to Finance. Only meaningful
+    // once Supervisor has actually reviewed it, this is the next real
+    // handoff in the chain, not something Service Admin can skip to.
+    public function post(User $user, Document $document): bool
+    {
+        return $user->hasRole('Service Admin')
+            && $document->type === Document::TYPE_REPORT
+            && $document->status === 'Checked, ready to post';
     }
 
     public function delete(User $user, Document $document): bool

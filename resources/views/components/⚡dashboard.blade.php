@@ -22,6 +22,10 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
             return $this->supervisorStats();
         }
 
+        if ($user->hasRole('Technician')) {
+            return $this->technicianStats();
+        }
+
         return null;
     }
 
@@ -87,6 +91,34 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
             'overdueJobs' => WorkOrder::where('due_date', '<', now())->whereNotIn('status', ['Closed'])->count(),
             'approvalsThisWeek' => Quotation::where('updated_at', '>=', now()->startOfWeek())
                 ->whereIn('status', ['Approved', 'Sent back', 'Accepted', 'Converted'])
+                ->count(),
+        ];
+    }
+
+    private function technicianStats(): array
+    {
+        $user = auth()->user();
+
+        $myJobs = WorkOrder::with('customer')
+            ->where('assigned_technician_id', $user->id)
+            ->whereNotIn('status', ['Closed'])
+            ->orderBy('due_date')
+            ->get();
+
+        $dueTodayOrOverdue = $myJobs->filter(fn (WorkOrder $job) => $job->due_date->lte(today()));
+
+        return [
+            'role' => 'Technician',
+            'myJobs' => $myJobs,
+            'dueTodayOrOverdue' => $dueTodayOrOverdue,
+            'statusCounts' => $myJobs->countBy('status'),
+            'reportsFiledThisWeek' => Document::where('type', 'rep')
+                ->where('filed_by', $user->id)
+                ->where('created_at', '>=', now()->startOfWeek())
+                ->count(),
+            'jobsClosedThisMonth' => WorkOrder::where('assigned_technician_id', $user->id)
+                ->where('status', 'Closed')
+                ->where('updated_at', '>=', now()->startOfMonth())
                 ->count(),
         ];
     }
@@ -328,6 +360,77 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
                         <p class="text-sm text-gray-500">Nothing awaiting review.</p>
                     @endforelse
                 </div>
+            </div>
+        </div>
+
+    @elseif ($this->stats['role'] === 'Technician')
+        <div class="mb-4 grid items-start gap-4 lg:grid-cols-12">
+            <div class="bg-gray-900 p-6 shadow-sm lg:col-span-7">
+                <div class="flex items-start justify-between gap-6">
+                    <div class="shrink-0">
+                        <p class="text-[11px] font-semibold uppercase tracking-widest text-white/40">My active jobs</p>
+                        <p class="mt-1.5 text-5xl font-bold leading-none text-white">{{ $this->stats['myJobs']->count() }}</p>
+                        <p class="mt-2 text-xs text-white/40">{{ $this->stats['jobsClosedThisMonth'] }} closed this month</p>
+                        <a href="/jobs" wire:navigate class="mt-4 inline-block border border-white/20 px-3.5 py-2 text-xs font-semibold text-white hover:bg-white hover:text-gray-900">
+                            View all &rarr;
+                        </a>
+                    </div>
+                    <div class="flex-1 border-l border-white/10 pl-6">
+                        <p class="mb-2.5 text-[11px] font-semibold uppercase tracking-widest text-white/30">By stage</p>
+                        @foreach (['Assigned', 'On site', 'Awaiting review', 'Approved'] as $status)
+                            <div class="flex items-center justify-between border-b border-white/5 py-1.5 text-sm last:border-0">
+                                <span class="text-white/60">{{ $status }}</span>
+                                <span class="font-semibold text-white">{{ $this->stats['statusCounts']->get($status, 0) }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-l-4 border-primary-500 bg-white p-5 shadow-sm lg:col-span-5">
+                <span class="flex h-9 w-9 items-center justify-center bg-primary-500 text-white">
+                    <x-icon name="tools" class="h-4 w-4" />
+                </span>
+                <p class="mt-3 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Due today or overdue</p>
+                <p class="mt-1 text-4xl font-bold leading-none text-gray-900">{{ $this->stats['dueTodayOrOverdue']->count() }}</p>
+                <a href="/jobs" wire:navigate class="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-primary-600 hover:text-primary-700">
+                    View jobs <x-icon name="arrow-right" class="h-3.5 w-3.5" />
+                </a>
+            </div>
+        </div>
+
+        <div class="mb-4 grid grid-cols-2 gap-3">
+            <div class="border-l-4 border-success-500 bg-white p-4 shadow-sm">
+                <p class="text-3xl font-bold text-gray-900">{{ $this->stats['reportsFiledThisWeek'] }}</p>
+                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Reports filed this week</p>
+            </div>
+            <div class="border-l-4 border-info-400 bg-white p-4 shadow-sm">
+                <p class="text-3xl font-bold text-gray-900">{{ $this->stats['jobsClosedThisMonth'] }}</p>
+                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Closed this month</p>
+            </div>
+        </div>
+
+        <div class="border border-gray-200 bg-white p-5 shadow-sm">
+            <h2 class="mb-3 text-sm font-semibold text-gray-900">My jobs</h2>
+            <div class="space-y-0.5">
+                @forelse ($this->stats['myJobs'] as $job)
+                    <a href="/jobs/{{ $job->id }}" wire:navigate class="flex items-center justify-between border-b border-gray-50 py-2 text-sm last:border-0 hover:text-primary-600">
+                        <span class="text-gray-900">{{ $job->reference }} &middot; {{ $job->customer->name }}</span>
+                        <span class="flex items-center gap-3">
+                            <span class="text-xs text-gray-400">Due {{ $job->due_date->format('d M') }}</span>
+                            <span @class([
+                                'px-2 py-0.5 text-[11px] font-semibold',
+                                'bg-gray-100 text-gray-600' => $job->status === 'Assigned',
+                                'bg-info-50 text-info-700' => in_array($job->status, ['On site', 'Awaiting review']),
+                                'bg-success-50 text-success-700' => $job->status === 'Approved',
+                            ])>
+                                {{ $job->status }}
+                            </span>
+                        </span>
+                    </a>
+                @empty
+                    <p class="text-sm text-gray-500">Nothing assigned right now.</p>
+                @endforelse
             </div>
         </div>
     @endif

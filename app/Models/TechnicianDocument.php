@@ -7,27 +7,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TechnicianDocument extends Model
 {
-    protected $fillable = [
-        'technician_id',
-        'document_type',
-        'issued_at',
-        'validity_months',
-        'file_path',
-    ];
+    protected $fillable = ['technician_id', 'document_type', 'issued_at', 'validity_months', 'file_path'];
 
-    protected $casts = [
-        'issued_at' => 'date',
-    ];
+    protected $casts = ['issued_at' => 'date'];
 
     public function technician(): BelongsTo
     {
         return $this->belongsTo(User::class, 'technician_id');
     }
 
-    // Same maths as Contract::percentOfTermUsed(): elapsed days over total
-    // validity days (validity_months * 30.4), as a whole percentage,
-    // uncapped above 100 so "112% used" still reads correctly for
-    // something already expired.
     public function percentUsed(): int
     {
         $totalDays = $this->validity_months * 30.4;
@@ -36,11 +24,23 @@ class TechnicianDocument extends Model
         return max(0, (int) round($elapsedDays / $totalDays * 100));
     }
 
-    public function status(): string
+    public function percentUsedCapped(): int
+    {
+        return min($this->percentUsed(), 100);
+    }
+
+    // Same four-stage system as Contract::expiryStage(), same thresholds,
+    // same meaning, one shared component can render either.
+    public function expiryStage(): string
     {
         $pct = $this->percentUsed();
 
-        return $pct >= 90 ? 'Overdue' : ($pct >= 75 ? 'Due soon' : 'Active');
+        return match (true) {
+            $pct >= 100 => 'critical',
+            $pct >= 75 => 'urgent',
+            $pct >= 50 => 'warn',
+            default => 'fresh',
+        };
     }
 
     public function dueLabel(): string

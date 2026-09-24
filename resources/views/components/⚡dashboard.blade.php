@@ -7,6 +7,8 @@ use App\Models\Document;
 use App\Models\Quotation;
 use App\Models\WorkOrder;
 use App\Models\Customer;
+use App\Models\Contract;
+use App\Models\TechnicianDocument;
 
 new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
 {
@@ -22,11 +24,31 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
             return $this->supervisorStats();
         }
 
+        if ($user->hasRole('Manager')) {
+            return $this->managerStats();
+        }
+
         if ($user->hasRole('Technician')) {
             return $this->technicianStats();
         }
 
         return null;
+    }
+
+    private function contractsNeedingAttention()
+    {
+        return Contract::with('customer')->get()
+            ->filter(fn (Contract $c) => $c->expiryStage() !== 'fresh')
+            ->sortByDesc(fn (Contract $c) => $c->percentOfTermUsed())
+            ->values();
+    }
+
+    private function techDocsNeedingAttention()
+    {
+        return TechnicianDocument::with('technician')->get()
+            ->filter(fn (TechnicianDocument $d) => $d->expiryStage() !== 'fresh')
+            ->sortByDesc(fn (TechnicianDocument $d) => $d->percentUsed())
+            ->values();
     }
 
     private function serviceAdminStats(): array
@@ -68,6 +90,8 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
             'jobTotal' => $jobCounts->sum(),
             'recentRequests' => ServiceRequest::with('customer')->latest()->limit(5)->get(),
             'recentReports' => Document::with('customer')->where('type', 'rep')->latest()->limit(5)->get(),
+            'contractsNeedingAttention' => $this->contractsNeedingAttention(),
+            'techDocsNeedingAttention' => $this->techDocsNeedingAttention(),
         ];
     }
 
@@ -92,6 +116,26 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
             'approvalsThisWeek' => Quotation::where('updated_at', '>=', now()->startOfWeek())
                 ->whereIn('status', ['Approved', 'Sent back', 'Accepted', 'Converted'])
                 ->count(),
+            'contractsNeedingAttention' => $this->contractsNeedingAttention(),
+        ];
+    }
+
+    private function managerStats(): array
+    {
+        $quotationsAwaiting = Quotation::with(['customer', 'items'])
+            ->where('status', 'Awaiting Manager')
+            ->latest()
+            ->get();
+
+        return [
+            'role' => 'Manager',
+            'quotationsAwaiting' => $quotationsAwaiting,
+            'pipelineValueMinor' => $quotationsAwaiting->sum(fn (Quotation $q) => $q->totalMinor()),
+            'contractsNeedingAttention' => $this->contractsNeedingAttention(),
+            'totalCustomers' => Customer::count(),
+            'activeContracts' => Contract::where('status', 'Active')->count(),
+            'overdueJobs' => WorkOrder::where('due_date', '<', now())->whereNotIn('status', ['Closed'])->count(),
+            'totalTechnicians' => \App\Models\User::role('Technician')->count(),
         ];
     }
 
@@ -120,6 +164,7 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
                 ->where('status', 'Closed')
                 ->where('updated_at', '>=', now()->startOfMonth())
                 ->count(),
+            'myDocuments' => TechnicianDocument::where('technician_id', $user->id)->get(),
         ];
     }
 };
@@ -245,6 +290,41 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
             </div>
         </div>
 
+        {{-- Compliance: contracts and technician documents nearing or
+             past expiry, the piece that was genuinely missing. --}}
+        <p class="mb-2 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Compliance</p>
+        <div class="mb-4 grid items-start gap-4 lg:grid-cols-2">
+            <div class="border border-gray-200 bg-white p-5 shadow-sm">
+                <h2 class="mb-3 text-sm font-semibold text-gray-900">Contracts nearing expiry</h2>
+                <div class="space-y-3">
+                    @forelse ($this->stats['contractsNeedingAttention'] as $contract)
+                        <x-expiry-ring
+                            :percent="$contract->percentOfTermUsedCapped()"
+                            :stage="$contract->expiryStage()"
+                            :title="$contract->reference.' — '.$contract->customer->name"
+                            :subtitle="$contract->percentOfTermUsedCapped().'% of term elapsed'" />
+                    @empty
+                        <p class="text-sm text-gray-500">No contracts need attention right now.</p>
+                    @endforelse
+                </div>
+            </div>
+
+            <div class="border border-gray-200 bg-white p-5 shadow-sm">
+                <h2 class="mb-3 text-sm font-semibold text-gray-900">Technician certificates</h2>
+                <div class="space-y-3">
+                    @forelse ($this->stats['techDocsNeedingAttention'] as $doc)
+                        <x-expiry-ring
+                            :percent="$doc->percentUsedCapped()"
+                            :stage="$doc->expiryStage()"
+                            :title="$doc->technician->name.' — '.$doc->document_type"
+                            :subtitle="$doc->dueLabel()" />
+                    @empty
+                        <p class="text-sm text-gray-500">All technician documents are current.</p>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+
         <div class="grid items-start gap-4 lg:grid-cols-2">
             <div class="border border-gray-200 bg-white p-5 shadow-sm">
                 <h2 class="mb-3 text-sm font-semibold text-gray-900">Customer intake, today</h2>
@@ -333,6 +413,22 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
             </div>
         </div>
 
+        <p class="mb-2 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Compliance</p>
+        <div class="mb-4 border border-gray-200 bg-white p-5 shadow-sm">
+            <h2 class="mb-3 text-sm font-semibold text-gray-900">Contracts nearing expiry</h2>
+            <div class="grid gap-3 md:grid-cols-2">
+                @forelse ($this->stats['contractsNeedingAttention'] as $contract)
+                    <x-expiry-ring
+                        :percent="$contract->percentOfTermUsedCapped()"
+                        :stage="$contract->expiryStage()"
+                        :title="$contract->reference.' — '.$contract->customer->name"
+                        :subtitle="$contract->percentOfTermUsedCapped().'% of term elapsed'" />
+                @empty
+                    <p class="text-sm text-gray-500">No contracts need attention right now.</p>
+                @endforelse
+            </div>
+        </div>
+
         <div class="grid items-start gap-4 lg:grid-cols-2">
             <div class="border border-gray-200 bg-white p-5 shadow-sm">
                 <h2 class="mb-3 text-sm font-semibold text-gray-900">Quotations awaiting approval</h2>
@@ -360,6 +456,67 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
                         <p class="text-sm text-gray-500">Nothing awaiting review.</p>
                     @endforelse
                 </div>
+            </div>
+        </div>
+
+    @elseif ($this->stats['role'] === 'Manager')
+        <div class="mb-4 grid items-start gap-4 lg:grid-cols-12">
+            <div class="bg-gray-900 p-6 shadow-sm lg:col-span-7">
+                <div class="flex items-start justify-between gap-6">
+                    <div class="shrink-0">
+                        <p class="text-[11px] font-semibold uppercase tracking-widest text-white/40">Awaiting your approval</p>
+                        <p class="mt-1.5 text-5xl font-bold leading-none text-white">{{ $this->stats['quotationsAwaiting']->count() }}</p>
+                        <p class="mt-2 text-xs text-white/40">quotations at or above KES 3,000,000</p>
+                        <a href="/quotations" wire:navigate class="mt-4 inline-block border border-white/20 px-3.5 py-2 text-xs font-semibold text-white hover:bg-white hover:text-gray-900">
+                            View all &rarr;
+                        </a>
+                    </div>
+                    <div class="flex-1 border-l border-white/10 pl-6">
+                        <p class="mb-2 text-[11px] font-semibold uppercase tracking-widest text-white/30">Pipeline value</p>
+                        <p class="text-3xl font-bold text-white">KES {{ number_format($this->stats['pipelineValueMinor'] / 100, 0) }}</p>
+                        <p class="mt-2 text-xs text-white/50">Total across quotations waiting on your decision</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-l-4 border-urgent-500 bg-white p-5 shadow-sm lg:col-span-5">
+                <span class="flex h-9 w-9 items-center justify-center bg-urgent-500 text-white">
+                    <x-icon name="journal-text" class="h-4 w-4" />
+                </span>
+                <p class="mt-3 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Contracts nearing expiry</p>
+                <p class="mt-1 text-4xl font-bold leading-none text-gray-900">{{ $this->stats['contractsNeedingAttention']->count() }}</p>
+                <p class="mt-3 text-sm text-gray-500">Out of {{ $this->stats['activeContracts'] }} active contracts</p>
+            </div>
+        </div>
+
+        <div class="mb-4 grid grid-cols-3 gap-3">
+            <div class="border-l-4 border-success-500 bg-white p-4 shadow-sm">
+                <p class="text-3xl font-bold text-gray-900">{{ $this->stats['totalCustomers'] }}</p>
+                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Customers</p>
+            </div>
+            <div class="border-l-4 border-info-400 bg-white p-4 shadow-sm">
+                <p class="text-3xl font-bold text-gray-900">{{ $this->stats['totalTechnicians'] }}</p>
+                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Technicians</p>
+            </div>
+            <div class="border-l-4 border-primary-500 bg-white p-4 shadow-sm">
+                <p class="text-3xl font-bold text-gray-900">{{ $this->stats['overdueJobs'] }}</p>
+                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Overdue jobs</p>
+            </div>
+        </div>
+
+        <p class="mb-2 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Compliance</p>
+        <div class="border border-gray-200 bg-white p-5 shadow-sm">
+            <h2 class="mb-3 text-sm font-semibold text-gray-900">Contracts nearing expiry</h2>
+            <div class="grid gap-3 md:grid-cols-2">
+                @forelse ($this->stats['contractsNeedingAttention'] as $contract)
+                    <x-expiry-ring
+                        :percent="$contract->percentOfTermUsedCapped()"
+                        :stage="$contract->expiryStage()"
+                        :title="$contract->reference.' — '.$contract->customer->name"
+                        :subtitle="$contract->percentOfTermUsedCapped().'% of term elapsed'" />
+                @empty
+                    <p class="text-sm text-gray-500">No contracts need attention right now.</p>
+                @endforelse
             </div>
         </div>
 
@@ -407,6 +564,21 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
             <div class="border-l-4 border-info-400 bg-white p-4 shadow-sm">
                 <p class="text-3xl font-bold text-gray-900">{{ $this->stats['jobsClosedThisMonth'] }}</p>
                 <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Closed this month</p>
+            </div>
+        </div>
+
+        <p class="mb-2 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Your compliance documents</p>
+        <div class="mb-4 border border-gray-200 bg-white p-5 shadow-sm">
+            <div class="grid gap-3 md:grid-cols-2">
+                @forelse ($this->stats['myDocuments'] as $doc)
+                    <x-expiry-ring
+                        :percent="$doc->percentUsedCapped()"
+                        :stage="$doc->expiryStage()"
+                        :title="$doc->document_type"
+                        :subtitle="$doc->dueLabel()" />
+                @empty
+                    <p class="text-sm text-gray-500">No documents on file.</p>
+                @endforelse
             </div>
         </div>
 

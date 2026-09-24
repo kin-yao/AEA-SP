@@ -9,7 +9,7 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 
-    /* AEA brand colors, exact values given, no gold anymore */
+    /* AEA brand colors */
     --color-primary-50: #fef2f2;
     --color-primary-100: #fde3e3;
     --color-primary-200: #fbcbcb;
@@ -21,7 +21,6 @@
     --color-primary-800: #8b1418;
     --color-primary-900: #74151a;
 
-    /* Blue, exact base #1e25e3 */
     --color-info-50: #eef0fd;
     --color-info-100: #dde1fb;
     --color-info-200: #b8c0f7;
@@ -33,7 +32,6 @@
     --color-info-800: #11157f;
     --color-info-900: #0d1060;
 
-    /* Green, exact base #25e31e */
     --color-success-50: #eefdec;
     --color-success-100: #d7fad1;
     --color-success-200: #aef5a3;
@@ -44,11 +42,29 @@
     --color-success-700: #189913;
     --color-success-800: #14760f;
     --color-success-900: #0f5c0c;
+
+    /* Expiry status system, four stages, exact colors given: under 50%
+       elapsed, ~50%, ~75%, and expired/100%. Used for contracts and
+       technician compliance documents only, a distinct, deliberately
+       separate palette from the main UI colors above, this one carries
+       a specific meaning (time remaining), not brand identity. */
+    --color-fresh-50: #e9f7ec;
+    --color-fresh-500: #28a745;
+    --color-fresh-700: #1e7e34;
+
+    --color-warn-50: #fff8e1;
+    --color-warn-500: #ffc107;
+    --color-warn-800: #856404;
+
+    --color-urgent-50: #fff0e1;
+    --color-urgent-500: #fd7e14;
+    --color-urgent-700: #c15d0a;
+
+    --color-critical-50: #fbe9eb;
+    --color-critical-500: #dc3545;
+    --color-critical-700: #a71d2a;
 }
 
-/* Sharp corners throughout, per explicit instruction. Overriding globally
-   here rather than hunting down every rounded-* utility across every
-   screen individually, that approach risks missing some, this doesn't. */
 * {
     border-radius: 0 !important;
 }

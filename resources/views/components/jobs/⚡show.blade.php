@@ -14,15 +14,11 @@ new #[Layout('layouts.app', ['title' => 'Job'])] class extends Component
         $this->job = $job;
     }
 
-    // Technician's own progression stops at "On site", the move to
-    // "Awaiting review" only happens by actually filing a report, see the
-    // Report component. Review and closing are staff-only.
     protected array $technicianStages = [
         'Assigned' => 'On site',
     ];
 
     protected array $staffStages = [
-        'Awaiting review' => 'Approved',
         'Approved' => 'Closed',
     ];
 
@@ -41,6 +37,15 @@ new #[Layout('layouts.app', ['title' => 'Job'])] class extends Component
         }
 
         return null;
+    }
+
+    public function getPendingReportProperty()
+    {
+        if ($this->job->status !== 'Awaiting review') {
+            return null;
+        }
+
+        return $this->job->documents()->where('type', 'rep')->latest()->first();
     }
 
     public function advanceStatus(): void
@@ -71,18 +76,17 @@ new #[Layout('layouts.app', ['title' => 'Job'])] class extends Component
             <p class="text-sm text-gray-500">{{ $job->customer->name }}</p>
         </div>
         <span @class([
-            'shrink-0 rounded-full px-2.5 py-1 text-xs font-medium',
-            'bg-blue-50 text-blue-700' => $job->status === 'Assigned',
-            'bg-amber-50 text-amber-700' => $job->status === 'On site',
-            'bg-primary-50 text-primary-700' => $job->status === 'Awaiting review',
-            'bg-green-50 text-green-700' => in_array($job->status, ['Approved', 'Closed']),
-            'bg-red-50 text-red-700' => $job->status === 'Overdue',
+            'shrink-0 px-2.5 py-1 text-xs font-medium',
+            'bg-gray-100 text-gray-600' => $job->status === 'Assigned',
+            'bg-info-50 text-info-700' => in_array($job->status, ['On site', 'Awaiting review']),
+            'bg-success-50 text-success-700' => in_array($job->status, ['Approved', 'Closed']),
+            'bg-primary-50 text-primary-700' => $job->status === 'Overdue',
         ])>
             {{ $job->status }}
         </span>
     </div>
 
-    <div class="mb-4 rounded-xl border border-gray-200 bg-white p-5">
+    <div class="mb-4 border border-gray-200 bg-white p-5">
         <dl class="grid grid-cols-2 gap-4 text-sm">
             <div>
                 <dt class="text-gray-500">Nature of visit</dt>
@@ -111,16 +115,21 @@ new #[Layout('layouts.app', ['title' => 'Job'])] class extends Component
 
     @if ($job->status === 'On site' && auth()->id() === $job->assigned_technician_id)
         <a href="/jobs/{{ $job->id }}/report" wire:navigate
-           class="block rounded-xl bg-primary-500 px-4 py-3 text-center text-sm font-medium text-white hover:bg-primary-600">
+           class="block bg-primary-500 px-4 py-3 text-center text-sm font-medium text-white hover:bg-primary-600">
             File service report
         </a>
+    @elseif ($this->pendingReport)
+        <a href="/documents/{{ $this->pendingReport->id }}" wire:navigate
+           class="block border border-gray-200 bg-white px-4 py-3 text-center text-sm font-medium text-gray-900 hover:border-gray-300">
+            View report awaiting review
+        </a>
     @elseif ($this->nextStatus)
-        <div class="rounded-xl border border-gray-200 bg-white p-5">
+        <div class="border border-gray-200 bg-white p-5">
             <p class="mb-3 text-sm text-gray-600">
                 Next stage: <span class="font-medium text-gray-900">{{ $this->nextStatus }}</span>
             </p>
             <button wire:click="advanceStatus" wire:loading.attr="disabled" wire:target="advanceStatus"
-                    class="rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white hover:bg-primary-600">
+                    class="bg-primary-500 px-4 py-2 text-sm font-medium text-white hover:bg-primary-600">
                 Move to {{ $this->nextStatus }}
             </button>
         </div>

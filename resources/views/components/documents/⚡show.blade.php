@@ -24,9 +24,6 @@ new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
         $this->document->workOrder?->update(['status' => 'Approved']);
     }
 
-    // Releasing the report is what makes the job visible to Finance as
-    // ready to invoice, see Invoices/Create, which only lists jobs with a
-    // Released report and no invoice yet.
     public function post(): void
     {
         $this->authorize('post', $this->document);
@@ -49,17 +46,16 @@ new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
             <p class="text-sm text-gray-500">{{ $document->customer->name }} &middot; {{ $document->workOrder?->reference }}</p>
         </div>
         <span @class([
-            'shrink-0 rounded-full px-2.5 py-1 text-xs font-medium',
-            'bg-primary-50 text-primary-700' => $document->status === 'Awaiting review',
-            'bg-blue-50 text-blue-700' => $document->status === 'Checked, ready to post',
-            'bg-green-50 text-green-700' => $document->status === 'Released',
+            'shrink-0 px-2.5 py-1 text-xs font-medium',
+            'bg-info-50 text-info-700' => in_array($document->status, ['Awaiting review', 'Checked, ready to post']),
+            'bg-success-50 text-success-700' => $document->status === 'Released',
         ])>
             {{ $document->status }}
         </span>
     </div>
 
     @if ($document->reportDetail)
-        <div class="mb-4 rounded-xl border border-gray-200 bg-white p-5">
+        <div class="mb-4 border border-gray-200 bg-white p-5">
             <dl class="grid grid-cols-2 gap-4 text-sm">
                 <div>
                     <dt class="text-gray-500">Contact</dt>
@@ -80,7 +76,7 @@ new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
             </dl>
         </div>
 
-        <div class="mb-4 rounded-xl border border-gray-200 bg-white p-5">
+        <div class="mb-4 border border-gray-200 bg-white p-5">
             <h2 class="mb-3 text-sm font-medium text-gray-900">Job details</h2>
             <dl class="space-y-3 text-sm">
                 <div>
@@ -103,7 +99,7 @@ new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
         </div>
 
         @if ($document->reportDetail->parts->isNotEmpty())
-            <div class="mb-4 rounded-xl border border-gray-200 bg-white p-5">
+            <div class="mb-4 border border-gray-200 bg-white p-5">
                 <h2 class="mb-3 text-sm font-medium text-gray-900">Parts used</h2>
                 <div class="space-y-2 text-sm">
                     @foreach ($document->reportDetail->parts as $part)
@@ -117,13 +113,13 @@ new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
         @endif
 
         @if ($document->reportDetail->incident_type !== 'None')
-            <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-5">
-                <h2 class="mb-2 text-sm font-medium text-amber-900">Incident: {{ $document->reportDetail->incident_type }}</h2>
-                <p class="text-sm text-amber-800">{{ $document->reportDetail->incident_description }}</p>
+            <div class="mb-4 border border-primary-200 bg-primary-50 p-5">
+                <h2 class="mb-2 text-sm font-medium text-primary-900">Incident: {{ $document->reportDetail->incident_type }}</h2>
+                <p class="text-sm text-primary-800">{{ $document->reportDetail->incident_description }}</p>
             </div>
         @endif
 
-        <div class="mb-4 rounded-xl border border-gray-200 bg-white p-5">
+        <div class="mb-4 border border-gray-200 bg-white p-5">
             <h2 class="mb-3 text-sm font-medium text-gray-900">Sign off</h2>
             <dl class="grid grid-cols-2 gap-4 text-sm">
                 <div>
@@ -140,14 +136,14 @@ new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
 
     @can('review', $document)
         <button wire:click="approve" wire:loading.attr="disabled" wire:target="approve"
-                class="w-full rounded-lg bg-primary-500 py-2.5 text-sm font-medium text-white hover:bg-primary-600">
+                class="w-full bg-primary-500 py-2.5 text-sm font-medium text-white hover:bg-primary-600">
             Approve and move job forward
         </button>
     @endcan
 
     @can('post', $document)
         <button wire:click="post" wire:loading.attr="disabled" wire:target="post"
-                class="w-full rounded-lg bg-primary-500 py-2.5 text-sm font-medium text-white hover:bg-primary-600">
+                class="w-full bg-primary-500 py-2.5 text-sm font-medium text-white hover:bg-primary-600">
             Post to Finance
         </button>
     @endcan

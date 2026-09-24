@@ -41,7 +41,7 @@ new #[Layout('layouts.app', ['title' => 'Documents'])] class extends Component
 
     <div class="space-y-3">
         @forelse ($documents as $document)
-            <a href="/documents/{{ $document->id }}" wire:navigate class="block rounded-xl border border-gray-200 bg-white p-4 hover:border-gray-300">
+            <a href="/documents/{{ $document->id }}" wire:navigate class="block border border-gray-200 bg-white p-4 hover:border-gray-300">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
                         <p class="text-sm font-medium text-gray-900">{{ $document->reference }}</p>
@@ -49,10 +49,9 @@ new #[Layout('layouts.app', ['title' => 'Documents'])] class extends Component
                         <p class="mt-1 text-xs text-gray-400">{{ ucfirst($document->type === 'rep' ? 'Service report' : $document->type) }}</p>
                     </div>
                     <span @class([
-                        'shrink-0 rounded-full px-2.5 py-1 text-xs font-medium',
-                        'bg-primary-50 text-primary-700' => $document->status === 'Awaiting review',
-                        'bg-blue-50 text-blue-700' => $document->status === 'Checked, ready to post',
-                        'bg-green-50 text-green-700' => $document->status === 'Released',
+                        'shrink-0 px-2.5 py-1 text-xs font-medium',
+                        'bg-info-50 text-info-700' => in_array($document->status, ['Awaiting review', 'Checked, ready to post']),
+                        'bg-success-50 text-success-700' => $document->status === 'Released',
                         'bg-gray-100 text-gray-600' => ! in_array($document->status, ['Awaiting review', 'Checked, ready to post', 'Released']),
                     ])>
                         {{ $document->status }}
@@ -60,7 +59,7 @@ new #[Layout('layouts.app', ['title' => 'Documents'])] class extends Component
                 </div>
             </a>
         @empty
-            <div class="rounded-xl border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">
+            <div class="border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">
                 No documents yet.
             </div>
         @endforelse

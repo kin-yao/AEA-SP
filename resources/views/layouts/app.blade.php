@@ -11,63 +11,63 @@
 <body class="min-h-screen bg-gray-50 antialiased">
 
     <div class="md:flex md:min-h-screen">
-        <aside class="hidden md:flex md:w-56 md:flex-col md:border-r md:border-gray-200 md:bg-white">
-            <div class="flex h-16 items-center gap-2 border-b border-gray-200 px-5">
-                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-500 text-xs font-bold text-white">AEA</div>
-                <span class="text-sm font-semibold text-gray-900">Service Portal</span>
+        <aside class="hidden md:flex md:w-56 md:flex-col md:bg-primary-500">
+            <div class="flex h-16 items-center gap-2 border-b border-white/15 px-5">
+                <div class="flex h-8 w-8 items-center justify-center bg-white text-xs font-bold text-primary-600">AEA</div>
+                <span class="text-sm font-semibold text-white">Service Portal</span>
             </div>
 
             <nav class="flex-1 space-y-1 px-3 py-4">
                 <a href="/dashboard" wire:navigate
-                   class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium {{ request()->is('dashboard') ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-100' }}">
+                   class="flex items-center gap-3 px-3 py-2 text-sm font-medium {{ request()->is('dashboard') ? 'bg-info-500 text-white' : 'text-white/85 hover:bg-white/10' }}">
                     <x-icon name="house" class="h-4 w-4" />
                     Overview
                 </a>
                 @can('viewAny', \App\Models\ServiceRequest::class)
                     <a href="/requests" wire:navigate
-                       class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium {{ request()->is('requests*') ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-100' }}">
+                       class="flex items-center gap-3 px-3 py-2 text-sm font-medium {{ request()->is('requests*') ? 'bg-info-500 text-white' : 'text-white/85 hover:bg-white/10' }}">
                         <x-icon name="envelope" class="h-4 w-4" />
                         Requests
                     </a>
                 @endcan
                 @can('viewAny', \App\Models\Quotation::class)
                     <a href="/quotations" wire:navigate
-                       class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium {{ request()->is('quotations*') ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-100' }}">
+                       class="flex items-center gap-3 px-3 py-2 text-sm font-medium {{ request()->is('quotations*') ? 'bg-info-500 text-white' : 'text-white/85 hover:bg-white/10' }}">
                         <x-icon name="journal-text" class="h-4 w-4" />
                         Quotations
                     </a>
                 @endcan
                 @can('viewAny', \App\Models\WorkOrder::class)
                     <a href="/jobs" wire:navigate
-                       class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium {{ request()->is('jobs*') ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-100' }}">
+                       class="flex items-center gap-3 px-3 py-2 text-sm font-medium {{ request()->is('jobs*') ? 'bg-info-500 text-white' : 'text-white/85 hover:bg-white/10' }}">
                         <x-icon name="tools" class="h-4 w-4" />
                         Jobs
                     </a>
                 @endcan
                 @can('viewAny', \App\Models\Document::class)
                     <a href="/documents" wire:navigate
-                       class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium {{ request()->is('documents*') ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-100' }}">
+                       class="flex items-center gap-3 px-3 py-2 text-sm font-medium {{ request()->is('documents*') ? 'bg-info-500 text-white' : 'text-white/85 hover:bg-white/10' }}">
                         <x-icon name="folder" class="h-4 w-4" />
                         Documents
                     </a>
                 @endcan
                 @can('viewAny', \App\Models\Invoice::class)
                     <a href="/invoices" wire:navigate
-                       class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium {{ request()->is('invoices*') ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-100' }}">
+                       class="flex items-center gap-3 px-3 py-2 text-sm font-medium {{ request()->is('invoices*') ? 'bg-info-500 text-white' : 'text-white/85 hover:bg-white/10' }}">
                         <x-icon name="receipt" class="h-4 w-4" />
                         Invoices
                     </a>
                 @endcan
             </nav>
 
-            <div class="border-t border-gray-200 p-3">
+            <div class="border-t border-white/15 p-3">
                 <div class="mb-2 px-2">
-                    <p class="truncate text-sm font-medium text-gray-900">{{ auth()->user()->name }}</p>
-                    <p class="truncate text-xs text-gray-500">{{ auth()->user()->getRoleNames()->first() }}</p>
+                    <p class="truncate text-sm font-medium text-white">{{ auth()->user()->name }}</p>
+                    <p class="truncate text-xs text-white/70">{{ auth()->user()->getRoleNames()->first() }}</p>
                 </div>
                 <form action="/logout" method="POST">
                     @csrf
-                    <button type="submit" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100">
+                    <button type="submit" class="flex w-full items-center gap-2 px-3 py-2 text-sm text-white/85 hover:bg-white/10">
                         <x-icon name="box-arrow-right" class="h-4 w-4" />
                         Sign out
                     </button>
@@ -76,14 +76,14 @@
         </aside>
 
         <div class="flex min-h-screen flex-1 flex-col">
-            <header class="flex h-14 items-center justify-between border-b border-gray-200 bg-white px-4 md:hidden">
+            <header class="flex h-14 items-center justify-between bg-primary-500 px-4 md:hidden">
                 <div class="flex items-center gap-2">
-                    <div class="flex h-7 w-7 items-center justify-center rounded-md bg-primary-500 text-[10px] font-bold text-white">AEA</div>
-                    <span class="text-sm font-semibold text-gray-900">{{ $title ?? 'Service Portal' }}</span>
+                    <div class="flex h-7 w-7 items-center justify-center bg-white text-[10px] font-bold text-primary-600">AEA</div>
+                    <span class="text-sm font-semibold text-white">{{ $title ?? 'Service Portal' }}</span>
                 </div>
                 <form action="/logout" method="POST">
                     @csrf
-                    <button type="submit" class="text-gray-500">
+                    <button type="submit" class="text-white/85">
                         <x-icon name="box-arrow-right" class="h-5 w-5" />
                     </button>
                 </form>
@@ -95,47 +95,49 @@
         </div>
     </div>
 
-    <nav class="fixed inset-x-0 bottom-0 z-10 flex border-t border-gray-200 bg-white md:hidden" style="padding-bottom: env(safe-area-inset-bottom, 0px)">
-        <a href="/dashboard" wire:navigate
-           class="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs {{ request()->is('dashboard') ? 'text-primary-600' : 'text-gray-500' }}">
-            <x-icon name="house" class="h-5 w-5" />
-            Overview
-        </a>
-        @can('viewAny', \App\Models\ServiceRequest::class)
-            <a href="/requests" wire:navigate
-               class="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs {{ request()->is('requests*') ? 'text-primary-600' : 'text-gray-500' }}">
-                <x-icon name="envelope" class="h-5 w-5" />
-                Requests
+    <nav class="fixed inset-x-0 bottom-0 z-10 flex bg-primary-500" style="padding-bottom: env(safe-area-inset-bottom, 0px)">
+        <div class="flex w-full md:hidden">
+            <a href="/dashboard" wire:navigate
+               class="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs {{ request()->is('dashboard') ? 'bg-info-500 text-white' : 'text-white/70' }}">
+                <x-icon name="house" class="h-5 w-5" />
+                Overview
             </a>
-        @endcan
-        @can('viewAny', \App\Models\Quotation::class)
-            <a href="/quotations" wire:navigate
-               class="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs {{ request()->is('quotations*') ? 'text-primary-600' : 'text-gray-500' }}">
-                <x-icon name="journal-text" class="h-5 w-5" />
-                Quotes
-            </a>
-        @endcan
-        @can('viewAny', \App\Models\WorkOrder::class)
-            <a href="/jobs" wire:navigate
-               class="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs {{ request()->is('jobs*') ? 'text-primary-600' : 'text-gray-500' }}">
-                <x-icon name="tools" class="h-5 w-5" />
-                Jobs
-            </a>
-        @endcan
-        @can('viewAny', \App\Models\Document::class)
-            <a href="/documents" wire:navigate
-               class="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs {{ request()->is('documents*') ? 'text-primary-600' : 'text-gray-500' }}">
-                <x-icon name="folder" class="h-5 w-5" />
-                Docs
-            </a>
-        @endcan
-        @can('viewAny', \App\Models\Invoice::class)
-            <a href="/invoices" wire:navigate
-               class="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs {{ request()->is('invoices*') ? 'text-primary-600' : 'text-gray-500' }}">
-                <x-icon name="receipt" class="h-5 w-5" />
-                Invoices
-            </a>
-        @endcan
+            @can('viewAny', \App\Models\ServiceRequest::class)
+                <a href="/requests" wire:navigate
+                   class="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs {{ request()->is('requests*') ? 'bg-info-500 text-white' : 'text-white/70' }}">
+                    <x-icon name="envelope" class="h-5 w-5" />
+                    Requests
+                </a>
+            @endcan
+            @can('viewAny', \App\Models\Quotation::class)
+                <a href="/quotations" wire:navigate
+                   class="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs {{ request()->is('quotations*') ? 'bg-info-500 text-white' : 'text-white/70' }}">
+                    <x-icon name="journal-text" class="h-5 w-5" />
+                    Quotes
+                </a>
+            @endcan
+            @can('viewAny', \App\Models\WorkOrder::class)
+                <a href="/jobs" wire:navigate
+                   class="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs {{ request()->is('jobs*') ? 'bg-info-500 text-white' : 'text-white/70' }}">
+                    <x-icon name="tools" class="h-5 w-5" />
+                    Jobs
+                </a>
+            @endcan
+            @can('viewAny', \App\Models\Document::class)
+                <a href="/documents" wire:navigate
+                   class="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs {{ request()->is('documents*') ? 'bg-info-500 text-white' : 'text-white/70' }}">
+                    <x-icon name="folder" class="h-5 w-5" />
+                    Docs
+                </a>
+            @endcan
+            @can('viewAny', \App\Models\Invoice::class)
+                <a href="/invoices" wire:navigate
+                   class="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs {{ request()->is('invoices*') ? 'bg-info-500 text-white' : 'text-white/70' }}">
+                    <x-icon name="receipt" class="h-5 w-5" />
+                    Invoices
+                </a>
+            @endcan
+        </div>
     </nav>
 
     @livewireScripts

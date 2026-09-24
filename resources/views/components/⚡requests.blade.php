@@ -17,7 +17,6 @@ new #[Layout('layouts.app', ['title' => 'Requests'])] class extends Component
 
         $query = ServiceRequest::with(['customer', 'technician'])->latest();
 
-        // Customer role only sees their own, per ServiceRequestPolicy::view()
         if ($user->hasRole('Customer')) {
             $query->where('customer_id', $user->customer_id);
         }
@@ -39,7 +38,7 @@ new #[Layout('layouts.app', ['title' => 'Requests'])] class extends Component
 
     <div class="space-y-3">
         @forelse ($requests as $request)
-            <a href="/requests/{{ $request->id }}" wire:navigate class="block rounded-xl border border-gray-200 bg-white p-4 hover:border-gray-300">
+            <a href="/requests/{{ $request->id }}" wire:navigate class="block border border-gray-200 bg-white p-4 hover:border-gray-300">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
                         <p class="text-sm font-medium text-gray-900">{{ $request->reference }}</p>
@@ -50,19 +49,18 @@ new #[Layout('layouts.app', ['title' => 'Requests'])] class extends Component
                         @endif
                     </div>
                     <span @class([
-                        'shrink-0 rounded-full px-2.5 py-1 text-xs font-medium',
-                        'bg-amber-50 text-amber-700' => $request->status === 'Open',
-                        'bg-blue-50 text-blue-700' => $request->status === 'Assigned',
-                        'bg-primary-50 text-primary-700' => $request->status === 'Quoted',
-                        'bg-green-50 text-green-700' => $request->status === 'Converted',
-                        'bg-gray-100 text-gray-600' => $request->status === 'Declined',
+                        'shrink-0 px-2.5 py-1 text-xs font-medium',
+                        'bg-gray-100 text-gray-600' => $request->status === 'Open',
+                        'bg-info-50 text-info-700' => in_array($request->status, ['Assigned', 'Quoted']),
+                        'bg-success-50 text-success-700' => $request->status === 'Converted',
+                        'bg-primary-50 text-primary-700' => $request->status === 'Declined',
                     ])>
                         {{ $request->status }}
                     </span>
                 </div>
             </a>
         @empty
-            <div class="rounded-xl border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">
+            <div class="border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">
                 No requests yet.
             </div>
         @endforelse

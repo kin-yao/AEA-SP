@@ -9,7 +9,7 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 
-    /* AEA brand colors */
+    /* AEA brand colors, exact values given, no gold anymore */
     --color-primary-50: #fef2f2;
     --color-primary-100: #fde3e3;
     --color-primary-200: #fbcbcb;
@@ -21,25 +21,34 @@
     --color-primary-800: #8b1418;
     --color-primary-900: #74151a;
 
-    --color-gold-50: #fdf8ec;
-    --color-gold-100: #f9edc9;
-    --color-gold-200: #f3d98e;
-    --color-gold-300: #ecc158;
-    --color-gold-400: #e6ac35;
-    --color-gold-500: #d99424;
-    --color-gold-600: #bc721c;
-    --color-gold-700: #96521a;
-    --color-gold-800: #7c421c;
-    --color-gold-900: #69381c;
+    /* Blue, exact base #1e25e3 */
+    --color-info-50: #eef0fd;
+    --color-info-100: #dde1fb;
+    --color-info-200: #b8c0f7;
+    --color-info-300: #8f9cf2;
+    --color-info-400: #5c69ea;
+    --color-info-500: #1e25e3;
+    --color-info-600: #1a20cb;
+    --color-info-700: #151aa8;
+    --color-info-800: #11157f;
+    --color-info-900: #0d1060;
 
-    --color-info-50: #eff6ff;
-    --color-info-100: #dbeafe;
-    --color-info-200: #bfdbfe;
-    --color-info-300: #93c5fd;
-    --color-info-400: #60a5fa;
-    --color-info-500: #3b82f6;
-    --color-info-600: #2563eb;
-    --color-info-700: #1d4ed8;
-    --color-info-800: #1e40af;
-    --color-info-900: #1e3a8a;
+    /* Green, exact base #25e31e */
+    --color-success-50: #eefdec;
+    --color-success-100: #d7fad1;
+    --color-success-200: #aef5a3;
+    --color-success-300: #7bec6c;
+    --color-success-400: #4de942;
+    --color-success-500: #25e31e;
+    --color-success-600: #1ec418;
+    --color-success-700: #189913;
+    --color-success-800: #14760f;
+    --color-success-900: #0f5c0c;
+}
+
+/* Sharp corners throughout, per explicit instruction. Overriding globally
+   here rather than hunting down every rounded-* utility across every
+   screen individually, that approach risks missing some, this doesn't. */
+* {
+    border-radius: 0 !important;
 }

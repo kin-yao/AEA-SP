@@ -73,24 +73,23 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
             <p class="text-sm text-gray-500">{{ $invoice->customer->name }}</p>
         </div>
         <span @class([
-            'shrink-0 rounded-full px-2.5 py-1 text-xs font-medium',
+            'shrink-0 px-2.5 py-1 text-xs font-medium',
             'bg-gray-100 text-gray-600' => $invoice->status === 'Draft',
-            'bg-amber-50 text-amber-700' => $invoice->status === 'Unpaid',
-            'bg-blue-50 text-blue-700' => $invoice->status === 'Part paid',
-            'bg-green-50 text-green-700' => $invoice->status === 'Paid',
-            'bg-red-50 text-red-700' => $invoice->status === 'Overdue',
+            'bg-info-50 text-info-700' => in_array($invoice->status, ['Unpaid', 'Part paid']),
+            'bg-success-50 text-success-700' => $invoice->status === 'Paid',
+            'bg-primary-50 text-primary-700' => $invoice->status === 'Overdue',
         ])>
             {{ $invoice->status }}
         </span>
     </div>
 
     @if ($invoice->workOrder)
-        <div class="mb-4 rounded-xl border border-gray-200 bg-white p-5">
+        <div class="mb-4 border border-gray-200 bg-white p-5">
             <h2 class="mb-3 text-sm font-medium text-gray-900">Where this came from</h2>
             <div class="space-y-3 text-sm">
                 <div class="flex items-center justify-between">
                     <span class="text-gray-500">Job</span>
-                    <a href="/jobs/{{ $invoice->workOrder->id }}" wire:navigate class="font-medium text-primary-600 hover:text-primary-700">
+                    <a href="/jobs/{{ $invoice->workOrder->id }}" wire:navigate class="font-medium text-info-700 hover:text-info-800">
                         {{ $invoice->workOrder->reference }}
                     </a>
                 </div>
@@ -98,7 +97,7 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
                 @if ($invoice->workOrder->sourceRequest)
                     <div class="flex items-center justify-between">
                         <span class="text-gray-500">Request</span>
-                        <a href="/requests/{{ $invoice->workOrder->sourceRequest->id }}" wire:navigate class="font-medium text-primary-600 hover:text-primary-700">
+                        <a href="/requests/{{ $invoice->workOrder->sourceRequest->id }}" wire:navigate class="font-medium text-info-700 hover:text-info-800">
                             {{ $invoice->workOrder->sourceRequest->reference }}
                         </a>
                     </div>
@@ -107,7 +106,7 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
                 @if ($invoice->workOrder->sourceQuotation)
                     <div class="flex items-center justify-between">
                         <span class="text-gray-500">Quotation</span>
-                        <a href="/quotations/{{ $invoice->workOrder->sourceQuotation->id }}" wire:navigate class="font-medium text-primary-600 hover:text-primary-700">
+                        <a href="/quotations/{{ $invoice->workOrder->sourceQuotation->id }}" wire:navigate class="font-medium text-info-700 hover:text-info-800">
                             {{ $invoice->workOrder->sourceQuotation->reference }}
                         </a>
                     </div>
@@ -127,7 +126,7 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
         </div>
     @endif
 
-    <div class="mb-4 rounded-xl border border-gray-200 bg-white p-5">
+    <div class="mb-4 border border-gray-200 bg-white p-5">
         <dl class="grid grid-cols-2 gap-4 text-sm">
             <div>
                 <dt class="text-gray-500">Amount</dt>
@@ -150,13 +149,13 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
 
     @can('issue', $invoice)
         <button wire:click="issue" wire:loading.attr="disabled" wire:target="issue"
-                class="mb-4 w-full rounded-lg bg-primary-500 py-2.5 text-sm font-medium text-white hover:bg-primary-600">
+                class="mb-4 w-full bg-primary-500 py-2.5 text-sm font-medium text-white hover:bg-primary-600">
             Issue invoice
         </button>
     @endcan
 
     @if ($invoice->payments->isNotEmpty())
-        <div class="mb-4 rounded-xl border border-gray-200 bg-white p-5">
+        <div class="mb-4 border border-gray-200 bg-white p-5">
             <h2 class="mb-3 text-sm font-medium text-gray-900">Payments</h2>
             <div class="space-y-2 text-sm">
                 @foreach ($invoice->payments as $payment)
@@ -170,24 +169,24 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
     @endif
 
     @can('recordPayment', $invoice)
-        <div class="rounded-xl border border-gray-200 bg-white p-5">
+        <div class="border border-gray-200 bg-white p-5">
             <h2 class="mb-3 text-sm font-medium text-gray-900">Record a payment</h2>
             <div class="mb-3">
                 <label class="mb-1.5 block text-xs font-medium text-gray-700">Amount, KES</label>
                 <input wire:model="paymentAmount" type="text" inputmode="decimal" placeholder="0.00"
-                       class="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                       class="w-full border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 @error('paymentAmount') <p class="mt-1 text-xs text-primary-600">{{ $message }}</p> @enderror
             </div>
             <div class="mb-4">
                 <label class="mb-1.5 block text-xs font-medium text-gray-700">Method</label>
-                <select wire:model="paymentMethod" class="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                <select wire:model="paymentMethod" class="w-full border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                     <option>Bank transfer</option>
                     <option>M-Pesa</option>
                     <option>Cheque</option>
                 </select>
             </div>
             <button wire:click="recordPayment" wire:loading.attr="disabled" wire:target="recordPayment"
-                    class="w-full rounded-lg bg-primary-500 py-2.5 text-sm font-medium text-white hover:bg-primary-600">
+                    class="w-full bg-primary-500 py-2.5 text-sm font-medium text-white hover:bg-primary-600">
                 Record payment
             </button>
         </div>

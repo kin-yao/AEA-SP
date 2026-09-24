@@ -95,18 +95,17 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
             <p class="text-sm text-gray-500">{{ $quotation->customer->name }}</p>
         </div>
         <span @class([
-            'shrink-0 rounded-full px-2.5 py-1 text-xs font-medium',
-            'bg-amber-50 text-amber-700' => str_starts_with($quotation->status, 'Awaiting'),
-            'bg-blue-50 text-blue-700' => $quotation->status === 'Approved',
-            'bg-primary-50 text-primary-700' => $quotation->status === 'Accepted',
-            'bg-green-50 text-green-700' => $quotation->status === 'Converted',
-            'bg-gray-100 text-gray-600' => $quotation->status === 'Sent back',
+            'shrink-0 px-2.5 py-1 text-xs font-medium',
+            'bg-gray-100 text-gray-600' => str_starts_with($quotation->status, 'Awaiting'),
+            'bg-info-50 text-info-700' => in_array($quotation->status, ['Approved', 'Accepted']),
+            'bg-success-50 text-success-700' => $quotation->status === 'Converted',
+            'bg-primary-50 text-primary-700' => $quotation->status === 'Sent back',
         ])>
             {{ $quotation->status }}
         </span>
     </div>
 
-    <div class="mb-4 rounded-xl border border-gray-200 bg-white p-5">
+    <div class="mb-4 border border-gray-200 bg-white p-5">
         <p class="mb-1 text-xs text-gray-500">Scope</p>
         <p class="mb-4 text-sm font-medium text-gray-900">{{ $quotation->scope }}</p>
 
@@ -167,23 +166,23 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
     @can('approve', $quotation)
         <div class="mb-4 flex gap-2">
             <button wire:click="approve" wire:loading.attr="disabled" wire:target="approve"
-                    class="flex-1 rounded-lg bg-primary-500 py-2.5 text-sm font-medium text-white hover:bg-primary-600">
+                    class="flex-1 bg-primary-500 py-2.5 text-sm font-medium text-white hover:bg-primary-600">
                 Approve
             </button>
             <button wire:click="sendBack" wire:loading.attr="disabled" wire:target="sendBack"
-                    class="flex-1 rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    class="flex-1 border border-gray-300 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
                 Send back
             </button>
         </div>
     @endcan
 
     @if ($quotation->lpoDetail)
-        <div class="mb-4 rounded-xl border border-gray-200 bg-white p-5">
+        <div class="mb-4 border border-gray-200 bg-white p-5">
             <p class="mb-1 flex items-center gap-1 text-xs text-gray-500"><x-icon name="cart-check" class="h-3 w-3" /> LPO on file</p>
             <p class="text-sm font-medium text-gray-900">{{ $quotation->lpo_reference }}</p>
             <p class="text-xs text-gray-500">Received via {{ $quotation->lpoDetail->received_via }}</p>
             @if ($quotation->lpoDetail->file_path)
-                <a href="{{ Storage::url($quotation->lpoDetail->file_path) }}" target="_blank" class="mt-2 inline-block text-xs font-medium text-primary-600 hover:text-primary-700">
+                <a href="{{ Storage::url($quotation->lpoDetail->file_path) }}" target="_blank" class="mt-2 inline-block text-xs font-medium text-info-700 hover:text-info-800">
                     View uploaded document
                 </a>
             @else
@@ -192,17 +191,17 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
         </div>
     @else
         @can('logLpo', $quotation)
-            <div class="mb-4 rounded-xl border border-gray-200 bg-white p-5">
+            <div class="mb-4 border border-gray-200 bg-white p-5">
                 <h2 class="mb-3 flex items-center gap-1.5 text-sm font-medium text-gray-900"><x-icon name="cart-check" class="h-4 w-4" /> Log the customer's LPO</h2>
                 <div class="mb-3">
                     <label class="mb-1.5 block text-xs font-medium text-gray-700">LPO reference</label>
                     <input wire:model="lpoReference" type="text" placeholder="e.g. KSM-LPO-2291"
-                           class="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="w-full border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                     @error('lpoReference') <p class="mt-1 text-xs text-primary-600">{{ $message }}</p> @enderror
                 </div>
                 <div class="mb-3">
                     <label class="mb-1.5 block text-xs font-medium text-gray-700">Received via</label>
-                    <select wire:model="lpoReceivedVia" class="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                    <select wire:model="lpoReceivedVia" class="w-full border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                         <option>E-mail</option>
                         <option>Hand delivered</option>
                         <option>Post</option>
@@ -211,12 +210,12 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
                 <div class="mb-4">
                     <label class="mb-1.5 block text-xs font-medium text-gray-700">Scanned document, optional</label>
                     <input wire:model="lpoFile" type="file" accept=".pdf,.jpg,.jpeg,.png"
-                           class="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:text-xs file:font-medium">
+                           class="w-full border border-gray-300 py-2 px-3 text-sm file:mr-3 file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:text-xs file:font-medium">
                     <div wire:loading wire:target="lpoFile" class="mt-1 text-xs text-gray-500">Uploading...</div>
                     @error('lpoFile') <p class="mt-1 text-xs text-primary-600">{{ $message }}</p> @enderror
                 </div>
                 <button wire:click="logLpo" wire:loading.attr="disabled" wire:target="logLpo,lpoFile"
-                        class="w-full rounded-lg bg-primary-500 py-2.5 text-sm font-medium text-white hover:bg-primary-600">
+                        class="w-full bg-primary-500 py-2.5 text-sm font-medium text-white hover:bg-primary-600">
                     Log LPO
                 </button>
             </div>
@@ -224,19 +223,19 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
     @endif
 
     @if ($quotation->workOrder)
-        <div class="mb-4 rounded-xl border border-gray-200 bg-white p-5">
+        <div class="mb-4 border border-gray-200 bg-white p-5">
             <p class="mb-1 text-xs text-gray-500">Job</p>
-            <a href="/jobs/{{ $quotation->workOrder->id }}" wire:navigate class="text-sm font-medium text-primary-600 hover:text-primary-700">
+            <a href="/jobs/{{ $quotation->workOrder->id }}" wire:navigate class="text-sm font-medium text-info-700 hover:text-info-800">
                 {{ $quotation->workOrder->reference }}
             </a>
         </div>
     @else
         @can('convertToJob', $quotation)
-            <div class="rounded-xl border border-gray-200 bg-white p-5">
+            <div class="border border-gray-200 bg-white p-5">
                 <h2 class="mb-3 text-sm font-medium text-gray-900">Generate the job</h2>
                 <div class="mb-3">
                     <label class="mb-1.5 block text-xs font-medium text-gray-700">Technician</label>
-                    <select wire:model="jobTechnicianId" class="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                    <select wire:model="jobTechnicianId" class="w-full border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                         <option value="">Select a technician</option>
                         @foreach ($this->technicians as $technician)
                             <option value="{{ $technician->id }}">{{ $technician->name }}</option>
@@ -247,11 +246,11 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
                 <div class="mb-4">
                     <label class="mb-1.5 block text-xs font-medium text-gray-700">Due date</label>
                     <input wire:model="jobDueDate" type="date"
-                           class="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="w-full border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                     @error('jobDueDate') <p class="mt-1 text-xs text-primary-600">{{ $message }}</p> @enderror
                 </div>
                 <button wire:click="convertToJob" wire:loading.attr="disabled" wire:target="convertToJob"
-                        class="w-full rounded-lg bg-primary-500 py-2.5 text-sm font-medium text-white hover:bg-primary-600">
+                        class="w-full bg-primary-500 py-2.5 text-sm font-medium text-white hover:bg-primary-600">
                     Generate job
                 </button>
             </div>

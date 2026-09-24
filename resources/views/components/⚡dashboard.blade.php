@@ -9,6 +9,8 @@ use App\Models\WorkOrder;
 use App\Models\Customer;
 use App\Models\Contract;
 use App\Models\TechnicianDocument;
+use App\Models\Invoice;
+use App\Models\Payment;
 
 new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
 {
@@ -30,6 +32,10 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
 
         if ($user->hasRole('Technician')) {
             return $this->technicianStats();
+        }
+
+        if ($user->hasRole('Finance')) {
+            return $this->financeStats();
         }
 
         return null;
@@ -167,6 +173,23 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
             'myDocuments' => TechnicianDocument::where('technician_id', $user->id)->get(),
         ];
     }
+
+    private function financeStats(): array
+    {
+        $outstanding = Invoice::whereIn('status', ['Unpaid', 'Part paid'])->get();
+
+        return [
+            'role' => 'Finance',
+            'readyToInvoice' => WorkOrder::whereHas('documents', fn ($q) => $q->where('type', 'rep')->where('status', 'Released'))
+                ->whereDoesntHave('invoices')
+                ->count(),
+            'outstandingBalanceMinor' => $outstanding->sum(fn (Invoice $i) => $i->balanceMinor()),
+            'overdueInvoices' => Invoice::with('customer')->where('due_at', '<', now())->whereIn('status', ['Unpaid', 'Part paid'])->get(),
+            'paidThisMonthMinor' => Payment::where('paid_at', '>=', now()->startOfMonth())->sum('amount_minor'),
+            'recentInvoices' => Invoice::with('customer')->latest()->limit(6)->get(),
+            'recentPayments' => Payment::with('customer')->latest()->limit(6)->get(),
+        ];
+    }
 };
 ?>
 
@@ -290,8 +313,6 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
             </div>
         </div>
 
-        {{-- Compliance: contracts and technician documents nearing or
-             past expiry, the piece that was genuinely missing. --}}
         <p class="mb-2 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Compliance</p>
         <div class="mb-4 grid items-start gap-4 lg:grid-cols-2">
             <div class="border border-gray-200 bg-white p-5 shadow-sm">
@@ -603,6 +624,98 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
                 @empty
                     <p class="text-sm text-gray-500">Nothing assigned right now.</p>
                 @endforelse
+            </div>
+        </div>
+
+    @elseif ($this->stats['role'] === 'Finance')
+        {{-- Money carries its own meaning here: red is what's owed to us,
+             green is what's actually landed. Not accent colors, the
+             figures themselves. --}}
+        <div class="mb-4 grid items-start gap-4 lg:grid-cols-2">
+            <div class="border-l-4 border-critical-500 bg-white p-6 shadow-sm">
+                <div class="flex items-center gap-2">
+                    <span class="flex h-9 w-9 items-center justify-center bg-critical-50 text-critical-700">
+                        <x-icon name="receipt" class="h-4 w-4" />
+                    </span>
+                    <p class="text-[11px] font-semibold uppercase tracking-widest text-critical-700">Outstanding</p>
+                </div>
+                <p class="mt-3 text-4xl font-bold leading-none text-critical-700">KES {{ number_format($this->stats['outstandingBalanceMinor'] / 100, 0) }}</p>
+                <p class="mt-2 text-xs text-gray-500">Across every unpaid and part-paid invoice on file</p>
+            </div>
+
+            <div class="border-l-4 border-fresh-500 bg-white p-6 shadow-sm">
+                <div class="flex items-center gap-2">
+                    <span class="flex h-9 w-9 items-center justify-center bg-fresh-50 text-fresh-700">
+                        <x-icon name="cart-check" class="h-4 w-4" />
+                    </span>
+                    <p class="text-[11px] font-semibold uppercase tracking-widest text-fresh-700">Collected</p>
+                </div>
+                <p class="mt-3 text-4xl font-bold leading-none text-fresh-700">KES {{ number_format($this->stats['paidThisMonthMinor'] / 100, 0) }}</p>
+                <p class="mt-2 text-xs text-gray-500">In payments recorded so far this month</p>
+            </div>
+        </div>
+
+        <div class="mb-4 grid grid-cols-2 gap-3">
+            <a href="/invoices" wire:navigate class="border-l-4 border-info-500 bg-white p-4 shadow-sm hover:bg-info-50">
+                <p class="text-3xl font-bold text-gray-900">{{ $this->stats['readyToInvoice'] }}</p>
+                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Ready to invoice</p>
+            </a>
+            <div class="border-l-4 border-urgent-500 bg-white p-4 shadow-sm">
+                <p class="text-3xl font-bold text-urgent-700">{{ $this->stats['overdueInvoices']->count() }}</p>
+                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Overdue invoices</p>
+            </div>
+        </div>
+
+        @if ($this->stats['overdueInvoices']->isNotEmpty())
+            <div class="mb-4 border border-critical-200 bg-critical-50 p-5">
+                <h2 class="mb-3 flex items-center gap-1.5 text-sm font-semibold text-critical-800">
+                    <x-icon name="exclamation-circle" class="h-4 w-4" /> Overdue, past their due date
+                </h2>
+                <div class="space-y-0.5">
+                    @foreach ($this->stats['overdueInvoices'] as $invoice)
+                        <a href="/invoices/{{ $invoice->id }}" wire:navigate class="flex items-center justify-between border-b border-critical-100 py-2 text-sm last:border-0 hover:underline">
+                            <span class="text-critical-900">{{ $invoice->reference }} &middot; {{ $invoice->customer->name }}</span>
+                            <span class="font-semibold text-critical-700">KES {{ number_format($invoice->balanceMinor() / 100, 0) }}</span>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
+        <div class="grid items-start gap-4 lg:grid-cols-2">
+            <div class="border border-gray-200 bg-white p-5 shadow-sm">
+                <h2 class="mb-3 text-sm font-semibold text-gray-900">Recent invoices</h2>
+                <div class="space-y-0.5">
+                    @forelse ($this->stats['recentInvoices'] as $invoice)
+                        <a href="/invoices/{{ $invoice->id }}" wire:navigate class="flex items-center justify-between border-b border-gray-50 py-2 text-sm last:border-0 hover:text-primary-600">
+                            <span class="text-gray-900">{{ $invoice->reference }} &middot; {{ $invoice->customer->name }}</span>
+                            <span @class([
+                                'text-xs font-semibold',
+                                'text-fresh-700' => $invoice->status === 'Paid',
+                                'text-critical-700' => in_array($invoice->status, ['Unpaid', 'Part paid']),
+                                'text-gray-500' => $invoice->status === 'Draft',
+                            ])>
+                                KES {{ number_format($invoice->amount_minor / 100, 0) }}
+                            </span>
+                        </a>
+                    @empty
+                        <p class="text-sm text-gray-500">No invoices yet.</p>
+                    @endforelse
+                </div>
+            </div>
+
+            <div class="border border-gray-200 bg-white p-5 shadow-sm">
+                <h2 class="mb-3 text-sm font-semibold text-gray-900">Recent payments</h2>
+                <div class="space-y-0.5">
+                    @forelse ($this->stats['recentPayments'] as $payment)
+                        <div class="flex items-center justify-between border-b border-gray-50 py-2 text-sm last:border-0">
+                            <span class="text-gray-900">{{ $payment->reference }} &middot; {{ $payment->customer->name }}</span>
+                            <span class="text-xs font-semibold text-fresh-700">+KES {{ number_format($payment->amount_minor / 100, 0) }}</span>
+                        </div>
+                    @empty
+                        <p class="text-sm text-gray-500">No payments yet.</p>
+                    @endforelse
+                </div>
             </div>
         </div>
     @endif

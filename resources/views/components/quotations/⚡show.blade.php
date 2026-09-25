@@ -6,6 +6,7 @@ use Livewire\Attributes\Layout;
 use App\Models\Quotation;
 use App\Models\User;
 use App\Models\WorkOrder;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
 {
@@ -80,6 +81,21 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
         $this->quotation->refresh();
         $this->quotation->load('workOrder');
     }
+
+    public function downloadPdf()
+    {
+        $this->authorize('view', $this->quotation);
+
+        $pdf = Pdf::loadView('pdfs.quotation', [
+            'quotation' => $this->quotation,
+            'company' => config('company'),
+        ]);
+
+        return response()->streamDownload(
+            fn () => print($pdf->output()),
+            $this->quotation->reference.'.pdf'
+        );
+    }
 };
 ?>
 
@@ -94,16 +110,24 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
             <h1 class="text-xl font-semibold text-gray-900">{{ $quotation->reference }}</h1>
             <p class="text-sm text-gray-500">{{ $quotation->customer->name }}</p>
         </div>
-        <span @class([
-            'shrink-0 px-2.5 py-1 text-xs font-medium',
-            'bg-gray-100 text-gray-600' => str_starts_with($quotation->status, 'Awaiting'),
-            'bg-info-50 text-info-700' => in_array($quotation->status, ['Approved', 'Accepted']),
-            'bg-success-50 text-success-700' => $quotation->status === 'Converted',
-            'bg-primary-50 text-primary-700' => $quotation->status === 'Sent back',
-        ])>
-            {{ $quotation->status }}
-        </span>
+        <div class="flex items-center gap-2">
+            <span @class([
+                'shrink-0 px-2.5 py-1 text-xs font-medium',
+                'bg-gray-100 text-gray-600' => str_starts_with($quotation->status, 'Awaiting'),
+                'bg-info-50 text-info-700' => in_array($quotation->status, ['Approved', 'Accepted']),
+                'bg-success-50 text-success-700' => $quotation->status === 'Converted',
+                'bg-primary-50 text-primary-700' => $quotation->status === 'Sent back',
+            ])>
+                {{ $quotation->status }}
+            </span>
+        </div>
     </div>
+
+    <button wire:click="downloadPdf" wire:loading.attr="disabled" wire:target="downloadPdf"
+            class="mb-4 flex items-center gap-1.5 border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">
+        <x-icon name="folder" class="h-3.5 w-3.5" />
+        Download PDF
+    </button>
 
     <div class="mb-4 border border-gray-200 bg-white p-5">
         <p class="mb-1 text-xs text-gray-500">Scope</p>
@@ -159,6 +183,14 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
             <div>
                 <dt class="text-gray-500">Approval route</dt>
                 <dd class="text-gray-900">{{ $quotation->approval_threshold }}</dd>
+            </div>
+            <div>
+                <dt class="text-gray-500">Customer KRA PIN</dt>
+                <dd class="text-gray-900">{{ $quotation->customer->kra_pin ?? '—' }}</dd>
+            </div>
+            <div>
+                <dt class="text-gray-500">Payment terms</dt>
+                <dd class="text-gray-900">{{ $quotation->payment_terms ?? config('company.default_payment_terms') }}</dd>
             </div>
         </dl>
     </div>

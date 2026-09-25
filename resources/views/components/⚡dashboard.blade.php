@@ -11,6 +11,7 @@ use App\Models\Contract;
 use App\Models\TechnicianDocument;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Models\User;
 
 new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
 {
@@ -108,6 +109,18 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
             ->latest()
             ->get();
 
+        $dispatch = User::role('Technician')
+            ->with(['assignedWorkOrders' => fn ($q) => $q->whereNotIn('status', ['Closed'])->orderByDesc('updated_at')])
+            ->get()
+            ->map(function (User $tech) {
+                $tech->currentJob = $tech->assignedWorkOrders->first();
+                $tech->openJobCount = $tech->assignedWorkOrders->count();
+
+                return $tech;
+            })
+            ->sortByDesc('openJobCount')
+            ->values();
+
         return [
             'role' => 'Supervisor',
             'quotationsAwaiting' => $quotationsAwaiting,
@@ -117,8 +130,9 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
                 ->where('status', 'Awaiting review')
                 ->latest()
                 ->get(),
+            'dispatch' => $dispatch,
+            'overdueJobsList' => WorkOrder::with('customer')->where('due_date', '<', now())->whereNotIn('status', ['Closed'])->orderBy('due_date')->get(),
             'jobsReadyToClose' => WorkOrder::where('status', 'Approved')->count(),
-            'overdueJobs' => WorkOrder::where('due_date', '<', now())->whereNotIn('status', ['Closed'])->count(),
             'approvalsThisWeek' => Quotation::where('updated_at', '>=', now()->startOfWeek())
                 ->whereIn('status', ['Approved', 'Sent back', 'Accepted', 'Converted'])
                 ->count(),
@@ -128,20 +142,40 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
 
     private function managerStats(): array
     {
+        $revenueThisMonthMinor = Invoice::where('issued_at', '>=', now()->startOfMonth())->sum('amount_minor');
+        $revenueLastMonthMinor = Invoice::whereBetween('issued_at', [
+            now()->subMonthNoOverflow()->startOfMonth(), now()->subMonthNoOverflow()->endOfMonth(),
+        ])->sum('amount_minor');
+
+        $revenueDeltaPct = $revenueLastMonthMinor > 0
+            ? round((($revenueThisMonthMinor - $revenueLastMonthMinor) / $revenueLastMonthMinor) * 100, 1)
+            : null;
+
         $quotationsAwaiting = Quotation::with(['customer', 'items'])
             ->where('status', 'Awaiting Manager')
             ->latest()
             ->get();
 
+        $technicianPerformance = User::role('Technician')->get()->map(function (User $tech) {
+            $tech->jobsClosedCount = WorkOrder::where('assigned_technician_id', $tech->id)->where('status', 'Closed')->count();
+            $tech->revenueMinor = Invoice::whereHas('workOrder', fn ($q) => $q->where('assigned_technician_id', $tech->id))->sum('amount_minor');
+
+            return $tech;
+        })->sortByDesc('revenueMinor')->take(5)->values();
+
         return [
             'role' => 'Manager',
+            'revenueThisMonthMinor' => $revenueThisMonthMinor,
+            'revenueDeltaPct' => $revenueDeltaPct,
+            'jobsClosedThisMonth' => WorkOrder::where('status', 'Closed')->where('updated_at', '>=', now()->startOfMonth())->count(),
             'quotationsAwaiting' => $quotationsAwaiting,
             'pipelineValueMinor' => $quotationsAwaiting->sum(fn (Quotation $q) => $q->totalMinor()),
+            'technicianPerformance' => $technicianPerformance,
             'contractsNeedingAttention' => $this->contractsNeedingAttention(),
             'totalCustomers' => Customer::count(),
             'activeContracts' => Contract::where('status', 'Active')->count(),
             'overdueJobs' => WorkOrder::where('due_date', '<', now())->whereNotIn('status', ['Closed'])->count(),
-            'totalTechnicians' => \App\Models\User::role('Technician')->count(),
+            'totalTechnicians' => User::role('Technician')->count(),
         ];
     }
 
@@ -149,7 +183,7 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
     {
         $user = auth()->user();
 
-        $myJobs = WorkOrder::with('customer')
+        $myJobs = WorkOrder::with(['customer', 'sourceRequest'])
             ->where('assigned_technician_id', $user->id)
             ->whereNotIn('status', ['Closed'])
             ->orderBy('due_date')
@@ -159,6 +193,7 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
 
         return [
             'role' => 'Technician',
+            'nextJob' => $myJobs->first(),
             'myJobs' => $myJobs,
             'dueTodayOrOverdue' => $dueTodayOrOverdue,
             'statusCounts' => $myJobs->countBy('status'),
@@ -176,14 +211,34 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
 
     private function financeStats(): array
     {
-        $outstanding = Invoice::whereIn('status', ['Unpaid', 'Part paid'])->get();
+        $outstanding = Invoice::with('customer')->whereIn('status', ['Unpaid', 'Part paid'])->get();
+
+        $ageing = ['current' => 0, 'days1to30' => 0, 'days31to60' => 0, 'days60plus' => 0];
+        foreach ($outstanding as $invoice) {
+            $daysOverdue = now()->diffInDays($invoice->due_at, false) * -1;
+            $balance = $invoice->balanceMinor();
+
+            if ($daysOverdue <= 0) {
+                $ageing['current'] += $balance;
+            } elseif ($daysOverdue <= 30) {
+                $ageing['days1to30'] += $balance;
+            } elseif ($daysOverdue <= 60) {
+                $ageing['days31to60'] += $balance;
+            } else {
+                $ageing['days60plus'] += $balance;
+            }
+        }
+
+        $readyJobs = WorkOrder::whereHas('documents', fn ($q) => $q->where('type', 'rep')->where('status', 'Released'))
+            ->whereDoesntHave('invoices')
+            ->get();
 
         return [
             'role' => 'Finance',
-            'readyToInvoice' => WorkOrder::whereHas('documents', fn ($q) => $q->where('type', 'rep')->where('status', 'Released'))
-                ->whereDoesntHave('invoices')
-                ->count(),
+            'readyToInvoice' => $readyJobs->count(),
+            'readyToInvoiceValueMinor' => $readyJobs->whereNotNull('value_minor')->sum('value_minor'),
             'outstandingBalanceMinor' => $outstanding->sum(fn (Invoice $i) => $i->balanceMinor()),
+            'ageing' => $ageing,
             'overdueInvoices' => Invoice::with('customer')->where('due_at', '<', now())->whereIn('status', ['Unpaid', 'Part paid'])->get(),
             'paidThisMonthMinor' => Payment::where('paid_at', '>=', now()->startOfMonth())->sum('amount_minor'),
             'recentInvoices' => Invoice::with('customer')->latest()->limit(6)->get(),
@@ -192,7 +247,6 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
     }
 };
 ?>
-
 <div>
     <div class="mb-5">
         <p class="text-xs font-semibold uppercase tracking-wider text-primary-600">{{ auth()->user()->getRoleNames()->first() }}</p>
@@ -411,15 +465,17 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
                 </div>
             </div>
 
-            <div class="border-l-4 border-info-500 bg-white p-5 shadow-sm lg:col-span-5">
-                <span class="flex h-9 w-9 items-center justify-center bg-info-500 text-white">
-                    <x-icon name="folder" class="h-4 w-4" />
+            <div class="border-l-4 border-primary-500 bg-white p-5 shadow-sm lg:col-span-5">
+                <span class="flex h-9 w-9 items-center justify-center bg-primary-500 text-white">
+                    <x-icon name="tools" class="h-4 w-4" />
                 </span>
-                <p class="mt-3 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Reports to review</p>
-                <p class="mt-1 text-4xl font-bold leading-none text-gray-900">{{ $this->stats['reportsAwaitingReview']->count() }}</p>
-                <a href="/documents" wire:navigate class="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-info-600 hover:text-info-700">
-                    Review now <x-icon name="arrow-right" class="h-3.5 w-3.5" />
-                </a>
+                <p class="mt-3 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Overdue jobs</p>
+                <p class="mt-1 text-4xl font-bold leading-none text-gray-900">{{ $this->stats['overdueJobsList']->count() }}</p>
+                @if ($this->stats['overdueJobsList']->isNotEmpty())
+                    <a href="/jobs/{{ $this->stats['overdueJobsList']->first()->id }}" wire:navigate class="mt-2 block text-xs text-gray-500 hover:text-primary-600">
+                        {{ $this->stats['overdueJobsList']->first()->reference }}, {{ $this->stats['overdueJobsList']->first()->customer->name }}
+                    </a>
+                @endif
             </div>
         </div>
 
@@ -428,25 +484,40 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
                 <p class="text-3xl font-bold text-gray-900">{{ $this->stats['jobsReadyToClose'] }}</p>
                 <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Jobs ready to close</p>
             </div>
-            <div class="border-l-4 border-primary-500 bg-white p-4 shadow-sm">
-                <p class="text-3xl font-bold text-gray-900">{{ $this->stats['overdueJobs'] }}</p>
-                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Overdue jobs</p>
+            <div class="border-l-4 border-info-400 bg-white p-4 shadow-sm">
+                <p class="text-3xl font-bold text-gray-900">{{ $this->stats['reportsAwaitingReview']->count() }}</p>
+                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Reports to review</p>
             </div>
         </div>
 
         <p class="mb-2 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Compliance</p>
-        <div class="mb-4 border border-gray-200 bg-white p-5 shadow-sm">
-            <h2 class="mb-3 text-sm font-semibold text-gray-900">Contracts nearing expiry</h2>
-            <div class="grid gap-3 md:grid-cols-2">
-                @forelse ($this->stats['contractsNeedingAttention'] as $contract)
-                    <x-expiry-ring
-                        :percent="$contract->percentOfTermUsedCapped()"
-                        :stage="$contract->expiryStage()"
-                        :title="$contract->reference.' — '.$contract->customer->name"
-                        :subtitle="$contract->percentOfTermUsedCapped().'% of term elapsed'" />
-                @empty
-                    <p class="text-sm text-gray-500">No contracts need attention right now.</p>
-                @endforelse
+        <div class="mb-4 grid items-start gap-4 lg:grid-cols-2">
+            <div class="border border-gray-200 bg-white p-5 shadow-sm">
+                <h2 class="mb-4 text-sm font-semibold text-gray-900">Workload by technician</h2>
+                @if ($this->stats['dispatch']->isNotEmpty())
+                    <x-bar-chart :height="110" :data="$this->stats['dispatch']->map(fn ($t) => [
+                        'label' => explode(' ', $t->name)[0],
+                        'value' => $t->openJobCount,
+                        'valueLabel' => $t->openJobCount,
+                    ])" />
+                @else
+                    <p class="text-sm text-gray-500">No technicians on record.</p>
+                @endif
+            </div>
+
+            <div class="border border-gray-200 bg-white p-5 shadow-sm">
+                <h2 class="mb-3 text-sm font-semibold text-gray-900">Contracts nearing expiry</h2>
+                <div class="space-y-3">
+                    @forelse ($this->stats['contractsNeedingAttention'] as $contract)
+                        <x-expiry-ring
+                            :percent="$contract->percentOfTermUsedCapped()"
+                            :stage="$contract->expiryStage()"
+                            :title="$contract->reference.' — '.$contract->customer->name"
+                            :subtitle="$contract->percentOfTermUsedCapped().'% of term elapsed'" />
+                    @empty
+                        <p class="text-sm text-gray-500">No contracts need attention right now.</p>
+                    @endforelse
+                </div>
             </div>
         </div>
 
@@ -485,17 +556,20 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
             <div class="bg-gray-900 p-6 shadow-sm lg:col-span-7">
                 <div class="flex items-start justify-between gap-6">
                     <div class="shrink-0">
-                        <p class="text-[11px] font-semibold uppercase tracking-widest text-white/40">Awaiting your approval</p>
-                        <p class="mt-1.5 text-5xl font-bold leading-none text-white">{{ $this->stats['quotationsAwaiting']->count() }}</p>
-                        <p class="mt-2 text-xs text-white/40">quotations at or above KES 3,000,000</p>
-                        <a href="/quotations" wire:navigate class="mt-4 inline-block border border-white/20 px-3.5 py-2 text-xs font-semibold text-white hover:bg-white hover:text-gray-900">
-                            View all &rarr;
-                        </a>
+                        <p class="text-[11px] font-semibold uppercase tracking-widest text-white/40">Revenue this month</p>
+                        <p class="mt-1.5 text-4xl font-bold leading-none text-white">KES {{ number_format($this->stats['revenueThisMonthMinor'] / 100, 0) }}</p>
+                        <p class="mt-2 text-xs {{ $this->stats['revenueDeltaPct'] === null ? 'text-white/40' : ($this->stats['revenueDeltaPct'] >= 0 ? 'text-fresh-500' : 'text-critical-500') }}">
+                            @if ($this->stats['revenueDeltaPct'] !== null)
+                                {{ $this->stats['revenueDeltaPct'] >= 0 ? '↑' : '↓' }} {{ abs($this->stats['revenueDeltaPct']) }}% on last month
+                            @else
+                                No prior month to compare
+                            @endif
+                        </p>
                     </div>
                     <div class="flex-1 border-l border-white/10 pl-6">
-                        <p class="mb-2 text-[11px] font-semibold uppercase tracking-widest text-white/30">Pipeline value</p>
-                        <p class="text-3xl font-bold text-white">KES {{ number_format($this->stats['pipelineValueMinor'] / 100, 0) }}</p>
-                        <p class="mt-2 text-xs text-white/50">Total across quotations waiting on your decision</p>
+                        <p class="text-[11px] font-semibold uppercase tracking-widest text-white/30">Jobs closed</p>
+                        <p class="mt-1.5 text-4xl font-bold leading-none text-white">{{ $this->stats['jobsClosedThisMonth'] }}</p>
+                        <p class="mt-2 text-xs text-white/40">this month, across the whole team</p>
                     </div>
                 </div>
             </div>
@@ -504,9 +578,12 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
                 <span class="flex h-9 w-9 items-center justify-center bg-urgent-500 text-white">
                     <x-icon name="journal-text" class="h-4 w-4" />
                 </span>
-                <p class="mt-3 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Contracts nearing expiry</p>
-                <p class="mt-1 text-4xl font-bold leading-none text-gray-900">{{ $this->stats['contractsNeedingAttention']->count() }}</p>
-                <p class="mt-3 text-sm text-gray-500">Out of {{ $this->stats['activeContracts'] }} active contracts</p>
+                <p class="mt-3 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Needs your approval</p>
+                <p class="mt-1 text-4xl font-bold leading-none text-gray-900">{{ $this->stats['quotationsAwaiting']->count() }}</p>
+                <p class="mt-2 text-xs text-gray-500">KES 3,000,000 and above &middot; KES {{ number_format($this->stats['pipelineValueMinor'] / 100, 0) }} total</p>
+                <a href="/quotations" wire:navigate class="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-urgent-700 hover:text-urgent-800">
+                    Review approvals <x-icon name="arrow-right" class="h-3.5 w-3.5" />
+                </a>
             </div>
         </div>
 
@@ -526,63 +603,78 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
         </div>
 
         <p class="mb-2 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Compliance</p>
-        <div class="border border-gray-200 bg-white p-5 shadow-sm">
-            <h2 class="mb-3 text-sm font-semibold text-gray-900">Contracts nearing expiry</h2>
-            <div class="grid gap-3 md:grid-cols-2">
-                @forelse ($this->stats['contractsNeedingAttention'] as $contract)
-                    <x-expiry-ring
-                        :percent="$contract->percentOfTermUsedCapped()"
-                        :stage="$contract->expiryStage()"
-                        :title="$contract->reference.' — '.$contract->customer->name"
-                        :subtitle="$contract->percentOfTermUsedCapped().'% of term elapsed'" />
-                @empty
-                    <p class="text-sm text-gray-500">No contracts need attention right now.</p>
-                @endforelse
+        <div class="grid items-start gap-4 lg:grid-cols-2">
+            <div class="border border-gray-200 bg-white p-5 shadow-sm">
+                <h2 class="mb-4 text-sm font-semibold text-gray-900">Technician performance</h2>
+                @if ($this->stats['technicianPerformance']->isNotEmpty())
+                    <x-bar-chart :height="110" :data="$this->stats['technicianPerformance']->map(fn ($t) => [
+                        'label' => explode(' ', $t->name)[0],
+                        'value' => $t->revenueMinor,
+                        'valueLabel' => number_format($t->revenueMinor / 100000, 0).'K',
+                    ])" />
+                @else
+                    <p class="text-sm text-gray-500">No invoiced work yet.</p>
+                @endif
+            </div>
+
+            <div class="border border-gray-200 bg-white p-5 shadow-sm">
+                <h2 class="mb-3 text-sm font-semibold text-gray-900">Contracts nearing expiry</h2>
+                <div class="space-y-3">
+                    @forelse ($this->stats['contractsNeedingAttention'] as $contract)
+                        <x-expiry-ring
+                            :percent="$contract->percentOfTermUsedCapped()"
+                            :stage="$contract->expiryStage()"
+                            :title="$contract->reference.' — '.$contract->customer->name"
+                            :subtitle="$contract->percentOfTermUsedCapped().'% of term elapsed'" />
+                    @empty
+                        <p class="text-sm text-gray-500">No contracts need attention right now.</p>
+                    @endforelse
+                </div>
             </div>
         </div>
 
     @elseif ($this->stats['role'] === 'Technician')
-        <div class="mb-4 grid items-start gap-4 lg:grid-cols-12">
-            <div class="bg-gray-900 p-6 shadow-sm lg:col-span-7">
-                <div class="flex items-start justify-between gap-6">
-                    <div class="shrink-0">
-                        <p class="text-[11px] font-semibold uppercase tracking-widest text-white/40">My active jobs</p>
-                        <p class="mt-1.5 text-5xl font-bold leading-none text-white">{{ $this->stats['myJobs']->count() }}</p>
-                        <p class="mt-2 text-xs text-white/40">{{ $this->stats['jobsClosedThisMonth'] }} closed this month</p>
-                        <a href="/jobs" wire:navigate class="mt-4 inline-block border border-white/20 px-3.5 py-2 text-xs font-semibold text-white hover:bg-white hover:text-gray-900">
-                            View all &rarr;
-                        </a>
+        @if ($this->stats['nextJob'])
+            <div class="mb-4 bg-gray-900 p-6 shadow-sm">
+                <p class="text-[11px] font-semibold uppercase tracking-widest text-white/40">Next stop</p>
+                <div class="mt-3 grid gap-6 md:grid-cols-2">
+                    <div>
+                        <p class="text-xs text-white/40">Job</p>
+                        <p class="text-xl font-bold text-white">{{ $this->stats['nextJob']->reference }}</p>
+                        <p class="mt-3 text-xs text-white/40">Customer</p>
+                        <p class="font-semibold text-white">{{ $this->stats['nextJob']->customer->name }}</p>
+                        <p class="mt-3 text-xs text-white/40">Due</p>
+                        <p class="font-semibold text-white">{{ $this->stats['nextJob']->due_date->format('D, d M') }}</p>
                     </div>
-                    <div class="flex-1 border-l border-white/10 pl-6">
-                        <p class="mb-2.5 text-[11px] font-semibold uppercase tracking-widest text-white/30">By stage</p>
-                        @foreach (['Assigned', 'On site', 'Awaiting review', 'Approved'] as $status)
-                            <div class="flex items-center justify-between border-b border-white/5 py-1.5 text-sm last:border-0">
-                                <span class="text-white/60">{{ $status }}</span>
-                                <span class="font-semibold text-white">{{ $this->stats['statusCounts']->get($status, 0) }}</span>
-                            </div>
-                        @endforeach
+                    <div>
+                        <p class="text-xs text-white/40">Nature of visit</p>
+                        <p class="font-semibold text-white">{{ $this->stats['nextJob']->nature_of_visit }}</p>
+                        @if ($this->stats['nextJob']->sourceRequest)
+                            <p class="mt-3 text-xs text-white/40">Fault reported</p>
+                            <p class="text-sm text-white/80">{{ $this->stats['nextJob']->sourceRequest->fault_description }}</p>
+                        @endif
+                        <div class="mt-4">
+                            @if ($this->stats['nextJob']->status === 'On site')
+                                <a href="/jobs/{{ $this->stats['nextJob']->id }}/report" wire:navigate class="inline-block bg-primary-500 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-600">
+                                    File service report
+                                </a>
+                            @else
+                                <a href="/jobs/{{ $this->stats['nextJob']->id }}" wire:navigate class="inline-block border border-white/25 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10">
+                                    Open job &rarr;
+                                </a>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </div>
-
-            <div class="border-l-4 border-primary-500 bg-white p-5 shadow-sm lg:col-span-5">
-                <span class="flex h-9 w-9 items-center justify-center bg-primary-500 text-white">
-                    <x-icon name="tools" class="h-4 w-4" />
-                </span>
-                <p class="mt-3 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Due today or overdue</p>
-                <p class="mt-1 text-4xl font-bold leading-none text-gray-900">{{ $this->stats['dueTodayOrOverdue']->count() }}</p>
-                <a href="/jobs" wire:navigate class="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-primary-600 hover:text-primary-700">
-                    View jobs <x-icon name="arrow-right" class="h-3.5 w-3.5" />
-                </a>
-            </div>
-        </div>
+        @endif
 
         <div class="mb-4 grid grid-cols-2 gap-3">
-            <div class="border-l-4 border-success-500 bg-white p-4 shadow-sm">
-                <p class="text-3xl font-bold text-gray-900">{{ $this->stats['reportsFiledThisWeek'] }}</p>
-                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Reports filed this week</p>
+            <div class="border-l-4 border-primary-500 bg-white p-4 shadow-sm">
+                <p class="text-3xl font-bold text-gray-900">{{ $this->stats['dueTodayOrOverdue']->count() }}</p>
+                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Due today or overdue</p>
             </div>
-            <div class="border-l-4 border-info-400 bg-white p-4 shadow-sm">
+            <div class="border-l-4 border-success-500 bg-white p-4 shadow-sm">
                 <p class="text-3xl font-bold text-gray-900">{{ $this->stats['jobsClosedThisMonth'] }}</p>
                 <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Closed this month</p>
             </div>
@@ -604,9 +696,9 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
         </div>
 
         <div class="border border-gray-200 bg-white p-5 shadow-sm">
-            <h2 class="mb-3 text-sm font-semibold text-gray-900">My jobs</h2>
+            <h2 class="mb-3 text-sm font-semibold text-gray-900">Rest of my list</h2>
             <div class="space-y-0.5">
-                @forelse ($this->stats['myJobs'] as $job)
+                @forelse ($this->stats['myJobs']->slice(1) as $job)
                     <a href="/jobs/{{ $job->id }}" wire:navigate class="flex items-center justify-between border-b border-gray-50 py-2 text-sm last:border-0 hover:text-primary-600">
                         <span class="text-gray-900">{{ $job->reference }} &middot; {{ $job->customer->name }}</span>
                         <span class="flex items-center gap-3">
@@ -622,15 +714,12 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
                         </span>
                     </a>
                 @empty
-                    <p class="text-sm text-gray-500">Nothing assigned right now.</p>
+                    <p class="text-sm text-gray-500">Nothing else on your list.</p>
                 @endforelse
             </div>
         </div>
 
     @elseif ($this->stats['role'] === 'Finance')
-        {{-- Money carries its own meaning here: red is what's owed to us,
-             green is what's actually landed. Not accent colors, the
-             figures themselves. --}}
         <div class="mb-4 grid items-start gap-4 lg:grid-cols-2">
             <div class="border-l-4 border-critical-500 bg-white p-6 shadow-sm">
                 <div class="flex items-center gap-2">
@@ -658,11 +747,39 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
         <div class="mb-4 grid grid-cols-2 gap-3">
             <a href="/invoices" wire:navigate class="border-l-4 border-info-500 bg-white p-4 shadow-sm hover:bg-info-50">
                 <p class="text-3xl font-bold text-gray-900">{{ $this->stats['readyToInvoice'] }}</p>
-                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Ready to invoice</p>
+                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                    Ready to invoice
+                    @if ($this->stats['readyToInvoiceValueMinor'] > 0)
+                        &middot; KES {{ number_format($this->stats['readyToInvoiceValueMinor'] / 100, 0) }}
+                    @endif
+                </p>
             </a>
             <div class="border-l-4 border-urgent-500 bg-white p-4 shadow-sm">
                 <p class="text-3xl font-bold text-urgent-700">{{ $this->stats['overdueInvoices']->count() }}</p>
                 <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Overdue invoices</p>
+            </div>
+        </div>
+
+        @php $ageingTotal = max(array_sum($this->stats['ageing']), 1); @endphp
+        <div class="mb-4 border border-gray-200 bg-white p-5 shadow-sm">
+            <h2 class="mb-3 text-sm font-semibold text-gray-900">Outstanding, by age</h2>
+            <div class="space-y-3">
+                <div>
+                    <div class="mb-1 flex justify-between text-xs"><span class="text-gray-600">Current</span><span class="font-semibold text-gray-900">KES {{ number_format($this->stats['ageing']['current'] / 100, 0) }}</span></div>
+                    <div class="h-1.5 w-full bg-gray-100"><div class="h-1.5 bg-fresh-500" style="width: {{ $this->stats['ageing']['current'] / $ageingTotal * 100 }}%"></div></div>
+                </div>
+                <div>
+                    <div class="mb-1 flex justify-between text-xs"><span class="text-gray-600">1 to 30 days overdue</span><span class="font-semibold text-gray-900">KES {{ number_format($this->stats['ageing']['days1to30'] / 100, 0) }}</span></div>
+                    <div class="h-1.5 w-full bg-gray-100"><div class="h-1.5 bg-warn-500" style="width: {{ $this->stats['ageing']['days1to30'] / $ageingTotal * 100 }}%"></div></div>
+                </div>
+                <div>
+                    <div class="mb-1 flex justify-between text-xs"><span class="text-gray-600">31 to 60 days overdue</span><span class="font-semibold text-gray-900">KES {{ number_format($this->stats['ageing']['days31to60'] / 100, 0) }}</span></div>
+                    <div class="h-1.5 w-full bg-gray-100"><div class="h-1.5 bg-urgent-500" style="width: {{ $this->stats['ageing']['days31to60'] / $ageingTotal * 100 }}%"></div></div>
+                </div>
+                <div>
+                    <div class="mb-1 flex justify-between text-xs"><span class="text-gray-600">Over 60 days overdue</span><span class="font-semibold text-gray-900">KES {{ number_format($this->stats['ageing']['days60plus'] / 100, 0) }}</span></div>
+                    <div class="h-1.5 w-full bg-gray-100"><div class="h-1.5 bg-critical-500" style="width: {{ $this->stats['ageing']['days60plus'] / $ageingTotal * 100 }}%"></div></div>
+                </div>
             </div>
         </div>
 

@@ -4,6 +4,7 @@ use Livewire\Component;
 use Livewire\Attributes\Layout;
 use App\Models\Invoice;
 use App\Models\Payment;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
 {
@@ -17,6 +18,7 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
         $this->invoice = $invoice->load([
             'customer',
             'payments',
+            'items',
             'workOrder.sourceQuotation.lpoDetail',
             'workOrder.sourceRequest',
         ]);
@@ -58,6 +60,21 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
         $this->invoice->load('payments');
         $this->paymentAmount = '';
     }
+
+    public function downloadPdf()
+    {
+        $this->authorize('view', $this->invoice);
+
+        $pdf = Pdf::loadView('pdfs.invoice', [
+            'invoice' => $this->invoice,
+            'company' => config('company'),
+        ]);
+
+        return response()->streamDownload(
+            fn () => print($pdf->output()),
+            $this->invoice->reference.'.pdf'
+        );
+    }
 };
 ?>
 
@@ -82,6 +99,12 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
             {{ $invoice->status }}
         </span>
     </div>
+
+    <button wire:click="downloadPdf" wire:loading.attr="disabled" wire:target="downloadPdf"
+            class="mb-4 flex items-center gap-1.5 border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">
+        <x-icon name="folder" class="h-3.5 w-3.5" />
+        Download PDF
+    </button>
 
     @if ($invoice->workOrder)
         <div class="mb-4 border border-gray-200 bg-white p-5">
@@ -127,11 +150,52 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
     @endif
 
     <div class="mb-4 border border-gray-200 bg-white p-5">
-        <dl class="grid grid-cols-2 gap-4 text-sm">
-            <div>
-                <dt class="text-gray-500">Amount</dt>
-                <dd class="font-medium text-gray-900">KES {{ number_format($invoice->amount_minor / 100, 2) }}</dd>
+        <h2 class="mb-3 text-sm font-medium text-gray-900">What was charged</h2>
+        @if ($invoice->items->isNotEmpty())
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-100 text-xs text-gray-500">
+                        <th class="pb-2 text-left font-medium">Item</th>
+                        <th class="pb-2 text-right font-medium">Qty</th>
+                        <th class="pb-2 text-right font-medium">Rate</th>
+                        <th class="pb-2 text-right font-medium">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($invoice->items as $item)
+                        <tr class="border-b border-gray-50">
+                            <td class="py-2 text-gray-900">{{ $item->description }}</td>
+                            <td class="py-2 text-right text-gray-600">{{ rtrim(rtrim($item->quantity, '0'), '.') }}</td>
+                            <td class="py-2 text-right text-gray-600">{{ number_format($item->rate_minor / 100, 2) }}</td>
+                            <td class="py-2 text-right text-gray-900">{{ number_format($item->amountMinor() / 100, 2) }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+
+            <div class="mt-3 flex justify-end">
+                <div class="w-56 text-sm">
+                    <div class="flex justify-between py-1">
+                        <span class="text-gray-500">Subtotal</span>
+                        <span class="text-gray-900">{{ number_format($invoice->itemsSubtotalMinor() / 100, 2) }}</span>
+                    </div>
+                    <div class="flex justify-between py-1">
+                        <span class="text-gray-500">VAT, {{ number_format($invoice->vat_rate * 100, 0) }}%</span>
+                        <span class="text-gray-900">{{ number_format($invoice->vatMinor() / 100, 2) }}</span>
+                    </div>
+                    <div class="flex justify-between border-t border-gray-100 py-2 font-medium">
+                        <span class="text-gray-900">Total</span>
+                        <span class="text-gray-900">KES {{ number_format($invoice->amount_minor / 100, 2) }}</span>
+                    </div>
+                </div>
             </div>
+        @else
+            <p class="text-sm text-gray-500">No itemized lines on file for this invoice, likely created before this was tracked.</p>
+        @endif
+    </div>
+
+    <div class="mb-4 border border-gray-200 bg-white p-5">
+        <dl class="grid grid-cols-2 gap-4 text-sm">
             <div>
                 <dt class="text-gray-500">Paid</dt>
                 <dd class="text-gray-900">KES {{ number_format($invoice->paid_minor / 100, 2) }}</dd>
@@ -143,6 +207,14 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
             <div>
                 <dt class="text-gray-500">Due</dt>
                 <dd class="text-gray-900">{{ $invoice->due_at->format('d M Y') }}</dd>
+            </div>
+            <div>
+                <dt class="text-gray-500">Customer KRA PIN</dt>
+                <dd class="text-gray-900">{{ $invoice->customer->kra_pin ?? '—' }}</dd>
+            </div>
+            <div class="col-span-2">
+                <dt class="text-gray-500">Payment terms</dt>
+                <dd class="text-gray-900">{{ config('company.default_payment_terms') }}</dd>
             </div>
         </dl>
     </div>

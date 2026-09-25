@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Invoice extends Model
 {
@@ -15,6 +16,7 @@ class Invoice extends Model
         'issued_at',
         'due_at',
         'amount_minor',
+        'vat_rate',
         'paid_minor',
         'currency_code',
         'status',
@@ -26,15 +28,14 @@ class Invoice extends Model
     protected $casts = [
         'issued_at' => 'date',
         'due_at' => 'date',
+        'vat_rate' => 'decimal:3',
         'documents_required_before_send' => 'boolean',
         'documents_attached' => 'boolean',
     ];
 
-    // Match the DB column defaults here in PHP too, same lesson as
-    // Quotation's vat_rate, so a freshly created record is correct in
-    // memory immediately, not just after a ->fresh() round-trip.
     protected $attributes = [
         'paid_minor' => 0,
+        'vat_rate' => 0.160,
         'currency_code' => 'KES',
         'status' => 'Draft',
         'documents_required_before_send' => false,
@@ -61,9 +62,27 @@ class Invoice extends Model
         return $this->belongsTo(User::class, 'raised_by');
     }
 
-    public function payments(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(InvoiceItem::class);
+    }
+
+    public function itemsSubtotalMinor(): int
+    {
+        return $this->items->sum(fn (InvoiceItem $item) => $item->amountMinor());
+    }
+
+    // VAT computed from the real item subtotal and the rate actually
+    // stored on this invoice, never a hardcoded percentage, since the
+    // rate itself is now an editable input, not a constant.
+    public function vatMinor(): int
+    {
+        return (int) round($this->itemsSubtotalMinor() * (float) $this->vat_rate);
     }
 
     public function balanceMinor(): int
@@ -71,9 +90,6 @@ class Invoice extends Model
         return $this->amount_minor - $this->paid_minor;
     }
 
-    // Not a standalone create-a-payment method, that belongs to Payment
-    // once it exists. This just applies an already-recorded payment amount
-    // to the invoice's running total and recomputes status.
     public function recordPayment(int $amountMinor): void
     {
         $this->paid_minor += $amountMinor;

@@ -106,29 +106,29 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
 ?>
 
 <div>
-    <a href="/quotations" wire:navigate class="mb-4 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700">
+    <a href="/quotations" wire:navigate class="mb-4 inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900">
         <x-icon name="arrow-right" class="h-3.5 w-3.5 rotate-180" />
         Back to quotations
     </a>
 
-    <h1 class="mb-6 text-xl font-semibold text-gray-900">New quotation</h1>
+    <h1 class="mb-6 text-xl font-semibold text-neutral-900">New quotation</h1>
 
     <form wire:submit="submit" class="space-y-4">
-        <div class="rounded-xl border border-gray-200 bg-white p-5">
+        <div class="card">
             <div class="mb-3 grid grid-cols-2 gap-4">
                 <div>
-                    <label class="mb-1.5 block text-xs font-medium text-gray-700">Customer</label>
-                    <select wire:model.live="customerId" class="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                    <label class="label">Customer</label>
+                    <select wire:model.live="customerId" class="input">
                         <option value="">Select a customer</option>
                         @foreach (\App\Models\Customer::orderBy('name')->get() as $customer)
                             <option value="{{ $customer->id }}">{{ $customer->name }}</option>
                         @endforeach
                     </select>
-                    @error('customerId') <p class="mt-1 text-xs text-primary-600">{{ $message }}</p> @enderror
+                    @error('customerId') <p class="mt-1 text-xs text-critical-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="mb-1.5 block text-xs font-medium text-gray-700">Site</label>
-                    <select wire:model="siteId" class="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                    <label class="label">Site</label>
+                    <select wire:model="siteId" class="input">
                         <option value="">No specific site</option>
                         @foreach ($this->sites as $site)
                             <option value="{{ $site->id }}">{{ $site->name }}</option>
@@ -137,16 +137,15 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
                 </div>
             </div>
             <div>
-                <label class="mb-1.5 block text-xs font-medium text-gray-700">Scope of work</label>
-                <input wire:model="scope" type="text" placeholder="e.g. Weighbridge load cell replacement"
-                       class="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
-                @error('scope') <p class="mt-1 text-xs text-primary-600">{{ $message }}</p> @enderror
+                <label class="label">Scope of work</label>
+                <input wire:model="scope" type="text" placeholder="e.g. Weighbridge load cell replacement" class="input">
+                @error('scope') <p class="mt-1 text-xs text-critical-600">{{ $message }}</p> @enderror
             </div>
         </div>
 
-        <div class="rounded-xl border border-gray-200 bg-white p-5">
+        <div class="card">
             <div class="mb-3 flex items-center justify-between">
-                <h2 class="text-sm font-medium text-gray-900">Line items</h2>
+                <h2 class="text-sm font-semibold text-neutral-900">Line items</h2>
                 <button type="button" wire:click="addItem" class="text-xs font-medium text-primary-600 hover:text-primary-700">
                     Add item
                 </button>
@@ -154,51 +153,48 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
 
             @foreach ($items as $index => $item)
                 <div class="mb-2 flex items-center gap-2">
-                    <input wire:model="items.{{ $index }}.description" type="text" placeholder="Description" class="flex-[2] rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
-                    <input wire:model.live="items.{{ $index }}.quantity" type="number" min="1" placeholder="Qty" class="w-16 rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
-                    <input wire:model.live="items.{{ $index }}.rate" type="text" inputmode="decimal" placeholder="Rate, KES" class="w-28 rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                    <input wire:model="items.{{ $index }}.description" type="text" placeholder="Description" class="input flex-[2]">
+                    <input wire:model.live="items.{{ $index }}.quantity" type="number" min="1" placeholder="Qty" class="input w-16">
+                    <input wire:model.live="items.{{ $index }}.rate" type="text" inputmode="decimal" placeholder="Rate, KES" class="input w-28">
                     @if (count($items) > 1)
-                        <button type="button" wire:click="removeItem({{ $index }})" class="shrink-0 text-gray-400 hover:text-primary-600">
+                        <button type="button" wire:click="removeItem({{ $index }})" class="shrink-0 text-neutral-400 hover:text-critical-600">
                             &times;
                         </button>
                     @endif
                 </div>
             @endforeach
 
-            <div class="mt-4 grid grid-cols-2 gap-4 border-t border-gray-100 pt-4">
+            <div class="mt-4 grid grid-cols-2 gap-4 border-t border-neutral-100 pt-4">
                 <div>
-                    <label class="mb-1.5 block text-xs font-medium text-gray-700">Labour, KES</label>
-                    <input wire:model.live="labour" type="text" inputmode="decimal" placeholder="0.00"
-                           class="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                    <label class="label">Labour, KES</label>
+                    <input wire:model.live="labour" type="text" inputmode="decimal" placeholder="0.00" class="input">
                 </div>
                 <div>
-                    <label class="mb-1.5 block text-xs font-medium text-gray-700">Validity, days</label>
-                    <input wire:model="validityDays" type="number" min="1"
-                           class="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                    <label class="label">Validity, days</label>
+                    <input wire:model="validityDays" type="number" min="1" class="input">
                 </div>
             </div>
         </div>
 
-        <div class="rounded-xl border border-gray-200 bg-white p-5">
+        <div class="card">
             <div class="flex justify-between py-1 text-sm">
-                <span class="text-gray-500">Subtotal</span>
-                <span class="text-gray-900">KES {{ number_format($this->subtotal, 2) }}</span>
+                <span class="text-neutral-500">Subtotal</span>
+                <span class="text-neutral-900">KES {{ number_format($this->subtotal, 2) }}</span>
             </div>
             <div class="flex justify-between py-1 text-sm">
-                <span class="text-gray-500">VAT, 16%</span>
-                <span class="text-gray-900">KES {{ number_format($this->vat, 2) }}</span>
+                <span class="text-neutral-500">VAT, 16%</span>
+                <span class="text-neutral-900">KES {{ number_format($this->vat, 2) }}</span>
             </div>
-            <div class="mt-1 flex justify-between border-t border-gray-100 py-2 text-sm font-medium">
-                <span class="text-gray-900">Total</span>
-                <span class="text-gray-900">KES {{ number_format($this->total, 2) }}</span>
+            <div class="mt-1 flex justify-between border-t border-neutral-100 py-2 text-sm font-semibold">
+                <span class="text-neutral-900">Total</span>
+                <span class="text-neutral-900">KES {{ number_format($this->total, 2) }}</span>
             </div>
-            <p class="mt-2 text-xs text-gray-500">
+            <p class="mt-2 text-xs text-neutral-500">
                 {{ $this->total >= 3000000 ? 'At or above KES 3,000,000, this will route to the Manager for approval.' : 'Under KES 3,000,000, this will route to the Supervisor for approval.' }}
             </p>
         </div>
 
-        <button type="submit" wire:loading.attr="disabled" wire:target="submit"
-                class="w-full rounded-lg bg-primary-500 py-2.5 text-sm font-medium text-white hover:bg-primary-600">
+        <button type="submit" wire:loading.attr="disabled" wire:target="submit" class="btn-primary w-full">
             Create quotation
         </button>
     </form>

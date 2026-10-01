@@ -12,7 +12,7 @@
 
     <div class="md:flex md:min-h-screen">
         {{-- Desktop sidebar --}}
-        <aside class="hidden md:flex md:w-64 md:flex-col md:border-r md:border-neutral-200 md:bg-white">
+        <aside class="hidden md:sticky md:top-0 md:flex md:h-screen md:w-64 md:flex-col md:border-r md:border-neutral-200 md:bg-white">
             <div class="flex h-16 items-center gap-2.5 border-b border-neutral-200 px-5">
                 <div class="flex h-9 w-9 items-center justify-center rounded-[var(--radius-sm)] bg-primary-500 text-xs font-bold text-white">AEA</div>
                 <span class="text-sm font-semibold text-neutral-900">Service Portal</span>

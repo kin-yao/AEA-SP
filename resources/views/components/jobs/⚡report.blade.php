@@ -116,60 +116,60 @@ new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Compon
 ?>
 
 <div>
-    <a href="/jobs/{{ $job->id }}" wire:navigate class="mb-4 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700">
+    <a href="/jobs/{{ $job->id }}" wire:navigate class="mb-4 inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900">
         <x-icon name="arrow-right" class="h-3.5 w-3.5 rotate-180" />
         Back to {{ $job->reference }}
     </a>
 
-    <h1 class="mb-1 text-xl font-semibold text-gray-900">Service report</h1>
-    <p class="mb-6 text-sm text-gray-500">{{ $job->reference }} &middot; {{ $job->customer->name }}</p>
+    <h1 class="mb-1 text-xl font-semibold text-neutral-900">Service report</h1>
+    <p class="mb-6 text-sm text-neutral-500">{{ $job->reference }} &middot; {{ $job->customer->name }}</p>
 
     <form wire:submit="submit" class="space-y-4">
-        <div class="rounded-xl border border-gray-200 bg-white p-5">
-            <h2 class="mb-3 text-sm font-medium text-gray-900">Customer</h2>
+        <div class="card">
+            <h2 class="mb-3 text-sm font-semibold text-neutral-900">Customer</h2>
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="mb-1.5 block text-xs font-medium text-gray-700">Contact person</label>
-                    <input wire:model="contactName" type="text" class="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                    <label class="label">Contact person</label>
+                    <input wire:model="contactName" type="text" class="input">
                 </div>
                 <div>
-                    <label class="mb-1.5 block text-xs font-medium text-gray-700">Address</label>
-                    <input wire:model="address" type="text" class="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                    <label class="label">Address</label>
+                    <input wire:model="address" type="text" class="input">
                 </div>
             </div>
         </div>
 
-        <div class="rounded-xl border border-gray-200 bg-white p-5">
-            <h2 class="mb-3 text-sm font-medium text-gray-900">Job details</h2>
+        <div class="card">
+            <h2 class="mb-3 text-sm font-semibold text-neutral-900">Job details</h2>
 
             <div class="mb-3">
-                <label class="mb-1.5 block text-xs font-medium text-gray-700">Fault reported</label>
-                <textarea wire:model="faultDescription" rows="2" class="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"></textarea>
-                @error('faultDescription') <p class="mt-1 text-xs text-primary-600">{{ $message }}</p> @enderror
+                <label class="label">Fault reported</label>
+                <textarea wire:model="faultDescription" rows="2" class="input"></textarea>
+                @error('faultDescription') <p class="mt-1 text-xs text-critical-600">{{ $message }}</p> @enderror
             </div>
 
             <div class="mb-3">
-                <label class="mb-1.5 block text-xs font-medium text-gray-700">Cause</label>
-                <textarea wire:model="cause" rows="2" class="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"></textarea>
-                @error('cause') <p class="mt-1 text-xs text-primary-600">{{ $message }}</p> @enderror
+                <label class="label">Cause</label>
+                <textarea wire:model="cause" rows="2" class="input"></textarea>
+                @error('cause') <p class="mt-1 text-xs text-critical-600">{{ $message }}</p> @enderror
             </div>
 
             <div class="mb-3">
-                <label class="mb-1.5 block text-xs font-medium text-gray-700">Correction</label>
-                <textarea wire:model="correction" rows="3" class="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"></textarea>
-                @error('correction') <p class="mt-1 text-xs text-primary-600">{{ $message }}</p> @enderror
+                <label class="label">Correction</label>
+                <textarea wire:model="correction" rows="3" class="input"></textarea>
+                @error('correction') <p class="mt-1 text-xs text-critical-600">{{ $message }}</p> @enderror
             </div>
 
             <div>
-                <label class="mb-1.5 block text-xs font-medium text-gray-700">Final result</label>
-                <textarea wire:model="finalResult" rows="2" class="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"></textarea>
-                @error('finalResult') <p class="mt-1 text-xs text-primary-600">{{ $message }}</p> @enderror
+                <label class="label">Final result</label>
+                <textarea wire:model="finalResult" rows="2" class="input"></textarea>
+                @error('finalResult') <p class="mt-1 text-xs text-critical-600">{{ $message }}</p> @enderror
             </div>
         </div>
 
-        <div class="rounded-xl border border-gray-200 bg-white p-5">
+        <div class="card">
             <div class="mb-3 flex items-center justify-between">
-                <h2 class="text-sm font-medium text-gray-900">Parts used</h2>
+                <h2 class="text-sm font-semibold text-neutral-900">Parts used</h2>
                 <button type="button" wire:click="addPart" class="text-xs font-medium text-primary-600 hover:text-primary-700">
                     Add part
                 </button>
@@ -177,11 +177,11 @@ new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Compon
 
             @foreach ($parts as $index => $part)
                 <div class="mb-2 flex items-center gap-2">
-                    <input wire:model="parts.{{ $index }}.item" type="text" placeholder="Item" class="flex-[2] rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
-                    <input wire:model="parts.{{ $index }}.partNumber" type="text" placeholder="Part no." class="flex-1 rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
-                    <input wire:model="parts.{{ $index }}.quantity" type="number" min="1" placeholder="Qty" class="w-16 rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                    <input wire:model="parts.{{ $index }}.item" type="text" placeholder="Item" class="input flex-[2]">
+                    <input wire:model="parts.{{ $index }}.partNumber" type="text" placeholder="Part no." class="input flex-1">
+                    <input wire:model="parts.{{ $index }}.quantity" type="number" min="1" placeholder="Qty" class="input w-16">
                     @if (count($parts) > 1)
-                        <button type="button" wire:click="removePart({{ $index }})" class="shrink-0 text-gray-400 hover:text-primary-600">
+                        <button type="button" wire:click="removePart({{ $index }})" class="shrink-0 text-neutral-400 hover:text-critical-600">
                             &times;
                         </button>
                     @endif
@@ -189,12 +189,12 @@ new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Compon
             @endforeach
         </div>
 
-        <div class="rounded-xl border border-gray-200 bg-white p-5">
-            <h2 class="mb-3 text-sm font-medium text-gray-900">Incident</h2>
+        <div class="card">
+            <h2 class="mb-3 text-sm font-semibold text-neutral-900">Incident</h2>
 
             <div class="mb-3">
-                <label class="mb-1.5 block text-xs font-medium text-gray-700">Did anything happen on site worth logging?</label>
-                <select wire:model.live="incidentType" class="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                <label class="label">Did anything happen on site worth logging?</label>
+                <select wire:model.live="incidentType" class="input">
                     <option>None</option>
                     <option>Near miss</option>
                     <option>Damage</option>
@@ -204,29 +204,28 @@ new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Compon
 
             @if ($incidentType !== 'None')
                 <div>
-                    <label class="mb-1.5 block text-xs font-medium text-gray-700">What happened, when, where and who was involved</label>
-                    <textarea wire:model="incidentDescription" rows="3" class="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"></textarea>
-                    @error('incidentDescription') <p class="mt-1 text-xs text-primary-600">{{ $message }}</p> @enderror
+                    <label class="label">What happened, when, where and who was involved</label>
+                    <textarea wire:model="incidentDescription" rows="3" class="input"></textarea>
+                    @error('incidentDescription') <p class="mt-1 text-xs text-critical-600">{{ $message }}</p> @enderror
                 </div>
             @endif
         </div>
 
-        <div class="rounded-xl border border-gray-200 bg-white p-5">
-            <h2 class="mb-3 text-sm font-medium text-gray-900">Sign off</h2>
+        <div class="card">
+            <h2 class="mb-3 text-sm font-semibold text-neutral-900">Sign off</h2>
             <div class="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                    <p class="mb-1 text-xs text-gray-500">Repairer</p>
-                    <p class="text-gray-900">{{ auth()->user()->name }}</p>
+                    <p class="mb-1 text-xs text-neutral-500">Repairer</p>
+                    <p class="text-neutral-900">{{ auth()->user()->name }}</p>
                 </div>
                 <div>
-                    <label class="mb-1.5 block text-xs font-medium text-gray-700">Customer name and title</label>
-                    <input wire:model="customerSignoffName" type="text" placeholder="e.g. Evans Mutiso, Stores Manager" class="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                    <label class="label">Customer name and title</label>
+                    <input wire:model="customerSignoffName" type="text" placeholder="e.g. Evans Mutiso, Stores Manager" class="input">
                 </div>
             </div>
         </div>
 
-        <button type="submit" wire:loading.attr="disabled" wire:target="submit"
-                class="w-full rounded-lg bg-primary-500 py-2.5 text-sm font-medium text-white hover:bg-primary-600">
+        <button type="submit" wire:loading.attr="disabled" wire:target="submit" class="btn-primary w-full">
             Submit report
         </button>
     </form>

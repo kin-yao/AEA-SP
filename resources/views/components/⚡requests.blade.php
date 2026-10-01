@@ -6,9 +6,16 @@ use App\Models\ServiceRequest;
 
 new #[Layout('layouts.app', ['title' => 'Requests'])] class extends Component
 {
+    public string $statusFilter = 'All';
+
     public function mount(): void
     {
         $this->authorize('viewAny', ServiceRequest::class);
+    }
+
+    public function setFilter(string $status): void
+    {
+        $this->statusFilter = $status;
     }
 
     public function with(): array
@@ -21,47 +28,59 @@ new #[Layout('layouts.app', ['title' => 'Requests'])] class extends Component
             $query->where('customer_id', $user->customer_id);
         }
 
+        if ($this->statusFilter !== 'All') {
+            $query->where('status', $this->statusFilter);
+        }
+
         return [
             'requests' => $query->get(),
+            'totalCount' => (clone $query)->count(),
         ];
     }
 };
 ?>
 
 <div>
-    <div class="mb-6 flex items-center justify-between">
-        <div>
-            <h1 class="text-xl font-semibold text-gray-900">Requests</h1>
-            <p class="text-sm text-gray-500">{{ $requests->count() }} total</p>
-        </div>
+    <div class="mb-5">
+        <h1 class="text-2xl font-semibold text-neutral-900">Requests</h1>
+        <p class="text-sm text-neutral-500">{{ $requests->count() }} shown</p>
+    </div>
+
+    <div class="mb-5 flex flex-wrap gap-1 border-b border-neutral-200 pb-px">
+        @foreach (['All', 'Open', 'Assigned', 'Quoted', 'Converted', 'Declined'] as $status)
+            <button wire:click="setFilter('{{ $status }}')"
+                    class="rounded-t-[var(--radius-sm)] border-b-2 px-3 py-2 text-sm font-medium {{ $statusFilter === $status ? 'border-primary-500 text-primary-600' : 'border-transparent text-neutral-500 hover:text-neutral-700' }}">
+                {{ $status }}
+            </button>
+        @endforeach
     </div>
 
     <div class="space-y-3">
         @forelse ($requests as $request)
-            <a href="/requests/{{ $request->id }}" wire:navigate class="block border border-gray-200 bg-white p-4 hover:border-gray-300">
+            <a href="/requests/{{ $request->id }}" wire:navigate class="card block hover:border-primary-200">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
-                        <p class="text-sm font-medium text-gray-900">{{ $request->reference }}</p>
-                        <p class="truncate text-sm text-gray-600">{{ $request->customer->name }}</p>
-                        <p class="mt-1 truncate text-xs text-gray-500">{{ $request->fault_description }}</p>
+                        <p class="text-sm font-semibold text-neutral-900">{{ $request->reference }}</p>
+                        <p class="truncate text-sm text-neutral-600">{{ $request->customer->name }}</p>
+                        <p class="mt-1 truncate text-xs text-neutral-500">{{ $request->fault_description }}</p>
                         @if ($request->technician)
-                            <p class="mt-1 text-xs text-gray-400">Assigned to {{ $request->technician->name }}</p>
+                            <p class="mt-1 text-xs text-neutral-400">Assigned to {{ $request->technician->name }}</p>
                         @endif
                     </div>
-                    <span @class([
-                        'shrink-0 px-2.5 py-1 text-xs font-medium',
-                        'bg-gray-100 text-gray-600' => $request->status === 'Open',
-                        'bg-info-50 text-info-700' => in_array($request->status, ['Assigned', 'Quoted']),
-                        'bg-success-50 text-success-700' => $request->status === 'Converted',
-                        'bg-primary-50 text-primary-700' => $request->status === 'Declined',
-                    ])>
-                        {{ $request->status }}
-                    </span>
+                    @php
+                        $pill = match (true) {
+                            $request->status === 'Converted' => 'pill-success',
+                            in_array($request->status, ['Assigned', 'Quoted']) => 'pill-info',
+                            $request->status === 'Declined' => 'pill-danger',
+                            default => 'pill-neutral',
+                        };
+                    @endphp
+                    <span class="{{ $pill }} shrink-0">{{ $request->status }}</span>
                 </div>
             </a>
         @empty
-            <div class="border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">
-                No requests yet.
+            <div class="card border-dashed text-center text-sm text-neutral-500">
+                No requests match this filter.
             </div>
         @endforelse
     </div>

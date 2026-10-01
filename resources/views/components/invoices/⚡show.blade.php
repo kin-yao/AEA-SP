@@ -79,48 +79,54 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
 ?>
 
 <div>
-    <a href="/invoices" wire:navigate class="mb-4 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700">
+    <a href="/invoices" wire:navigate class="mb-4 inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900">
         <x-icon name="arrow-right" class="h-3.5 w-3.5 rotate-180" />
         Back to invoices
     </a>
 
+    @php
+        $isOverdue = $invoice->due_at->isPast() && ! in_array($invoice->status, ['Draft', 'Paid']);
+    @endphp
+
     <div class="mb-4 flex items-start justify-between">
         <div>
-            <h1 class="text-xl font-semibold text-gray-900">{{ $invoice->reference }}</h1>
-            <p class="text-sm text-gray-500">{{ $invoice->customer->name }}</p>
+            <h1 class="text-xl font-semibold text-neutral-900">{{ $invoice->reference }}</h1>
+            <p class="text-sm text-neutral-500">{{ $invoice->customer->name }}</p>
         </div>
-        <span @class([
-            'shrink-0 px-2.5 py-1 text-xs font-medium',
-            'bg-gray-100 text-gray-600' => $invoice->status === 'Draft',
-            'bg-info-50 text-info-700' => in_array($invoice->status, ['Unpaid', 'Part paid']),
-            'bg-success-50 text-success-700' => $invoice->status === 'Paid',
-            'bg-primary-50 text-primary-700' => $invoice->status === 'Overdue',
-        ])>
-            {{ $invoice->status }}
-        </span>
+        <div class="flex shrink-0 items-center gap-2">
+            @if ($isOverdue)
+                <span class="pill-danger">Overdue</span>
+            @endif
+            <span @class([
+                'pill-neutral' => $invoice->status === 'Draft',
+                'pill-info' => in_array($invoice->status, ['Unpaid', 'Part paid']),
+                'pill-success' => $invoice->status === 'Paid',
+            ])>
+                {{ $invoice->status }}
+            </span>
+        </div>
     </div>
 
-    <button wire:click="downloadPdf" wire:loading.attr="disabled" wire:target="downloadPdf"
-            class="mb-4 flex items-center gap-1.5 border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">
+    <button wire:click="downloadPdf" wire:loading.attr="disabled" wire:target="downloadPdf" class="btn-outline mb-4">
         <x-icon name="folder" class="h-3.5 w-3.5" />
         Download PDF
     </button>
 
     @if ($invoice->workOrder)
-        <div class="mb-4 border border-gray-200 bg-white p-5">
-            <h2 class="mb-3 text-sm font-medium text-gray-900">Where this came from</h2>
+        <div class="card mb-4">
+            <h2 class="mb-3 text-sm font-semibold text-neutral-900">Where this came from</h2>
             <div class="space-y-3 text-sm">
                 <div class="flex items-center justify-between">
-                    <span class="text-gray-500">Job</span>
-                    <a href="/jobs/{{ $invoice->workOrder->id }}" wire:navigate class="font-medium text-info-700 hover:text-info-800">
+                    <span class="text-neutral-500">Job</span>
+                    <a href="/jobs/{{ $invoice->workOrder->id }}" wire:navigate class="font-semibold text-info-700 hover:text-info-800">
                         {{ $invoice->workOrder->reference }}
                     </a>
                 </div>
 
                 @if ($invoice->workOrder->sourceRequest)
                     <div class="flex items-center justify-between">
-                        <span class="text-gray-500">Request</span>
-                        <a href="/requests/{{ $invoice->workOrder->sourceRequest->id }}" wire:navigate class="font-medium text-info-700 hover:text-info-800">
+                        <span class="text-neutral-500">Request</span>
+                        <a href="/requests/{{ $invoice->workOrder->sourceRequest->id }}" wire:navigate class="font-semibold text-info-700 hover:text-info-800">
                             {{ $invoice->workOrder->sourceRequest->reference }}
                         </a>
                     </div>
@@ -128,46 +134,46 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
 
                 @if ($invoice->workOrder->sourceQuotation)
                     <div class="flex items-center justify-between">
-                        <span class="text-gray-500">Quotation</span>
-                        <a href="/quotations/{{ $invoice->workOrder->sourceQuotation->id }}" wire:navigate class="font-medium text-info-700 hover:text-info-800">
+                        <span class="text-neutral-500">Quotation</span>
+                        <a href="/quotations/{{ $invoice->workOrder->sourceQuotation->id }}" wire:navigate class="font-semibold text-info-700 hover:text-info-800">
                             {{ $invoice->workOrder->sourceQuotation->reference }}
                         </a>
                     </div>
 
                     @if ($invoice->workOrder->sourceQuotation->lpoDetail)
                         <div class="flex items-center justify-between">
-                            <span class="flex items-center gap-1 text-gray-500"><x-icon name="cart-check" class="h-3 w-3" /> LPO</span>
-                            <span class="font-medium text-gray-900">{{ $invoice->workOrder->sourceQuotation->lpo_reference }}</span>
+                            <span class="flex items-center gap-1 text-neutral-500"><x-icon name="cart-check" class="h-3 w-3" /> LPO</span>
+                            <span class="font-semibold text-neutral-900">{{ $invoice->workOrder->sourceQuotation->lpo_reference }}</span>
                         </div>
                     @endif
                 @endif
 
                 @if (! $invoice->workOrder->sourceQuotation && ! $invoice->workOrder->sourceRequest)
-                    <p class="text-xs text-gray-400">This job wasn't traced back to a request or quotation, likely created before that link existed.</p>
+                    <p class="text-xs text-neutral-400">This job wasn't traced back to a request or quotation, likely created before that link existed.</p>
                 @endif
             </div>
         </div>
     @endif
 
-    <div class="mb-4 border border-gray-200 bg-white p-5">
-        <h2 class="mb-3 text-sm font-medium text-gray-900">What was charged</h2>
+    <div class="card mb-4">
+        <h2 class="mb-3 text-sm font-semibold text-neutral-900">What was charged</h2>
         @if ($invoice->items->isNotEmpty())
-            <table class="w-full text-sm">
+            <table class="table-clean">
                 <thead>
-                    <tr class="border-b border-gray-100 text-xs text-gray-500">
-                        <th class="pb-2 text-left font-medium">Item</th>
-                        <th class="pb-2 text-right font-medium">Qty</th>
-                        <th class="pb-2 text-right font-medium">Rate</th>
-                        <th class="pb-2 text-right font-medium">Amount</th>
+                    <tr>
+                        <th class="text-left">Item</th>
+                        <th class="text-right">Qty</th>
+                        <th class="text-right">Rate</th>
+                        <th class="text-right">Amount</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($invoice->items as $item)
-                        <tr class="border-b border-gray-50">
-                            <td class="py-2 text-gray-900">{{ $item->description }}</td>
-                            <td class="py-2 text-right text-gray-600">{{ rtrim(rtrim($item->quantity, '0'), '.') }}</td>
-                            <td class="py-2 text-right text-gray-600">{{ number_format($item->rate_minor / 100, 2) }}</td>
-                            <td class="py-2 text-right text-gray-900">{{ number_format($item->amountMinor() / 100, 2) }}</td>
+                        <tr>
+                            <td class="text-neutral-900">{{ $item->description }}</td>
+                            <td class="text-right text-neutral-600">{{ rtrim(rtrim($item->quantity, '0'), '.') }}</td>
+                            <td class="text-right text-neutral-600">{{ number_format($item->rate_minor / 100, 2) }}</td>
+                            <td class="text-right text-neutral-900">{{ number_format($item->amountMinor() / 100, 2) }}</td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -176,64 +182,65 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
             <div class="mt-3 flex justify-end">
                 <div class="w-56 text-sm">
                     <div class="flex justify-between py-1">
-                        <span class="text-gray-500">Subtotal</span>
-                        <span class="text-gray-900">{{ number_format($invoice->itemsSubtotalMinor() / 100, 2) }}</span>
+                        <span class="text-neutral-500">Subtotal</span>
+                        <span class="text-neutral-900">{{ number_format($invoice->itemsSubtotalMinor() / 100, 2) }}</span>
                     </div>
                     <div class="flex justify-between py-1">
-                        <span class="text-gray-500">VAT, {{ number_format($invoice->vat_rate * 100, 0) }}%</span>
-                        <span class="text-gray-900">{{ number_format($invoice->vatMinor() / 100, 2) }}</span>
+                        <span class="text-neutral-500">VAT, {{ number_format($invoice->vat_rate * 100, 0) }}%</span>
+                        <span class="text-neutral-900">{{ number_format($invoice->vatMinor() / 100, 2) }}</span>
                     </div>
-                    <div class="flex justify-between border-t border-gray-100 py-2 font-medium">
-                        <span class="text-gray-900">Total</span>
-                        <span class="text-gray-900">KES {{ number_format($invoice->amount_minor / 100, 2) }}</span>
+                    <div class="flex justify-between border-t border-neutral-100 py-2 font-semibold">
+                        <span class="text-neutral-900">Total</span>
+                        <span class="text-neutral-900">KES {{ number_format($invoice->amount_minor / 100, 2) }}</span>
                     </div>
                 </div>
             </div>
         @else
-            <p class="text-sm text-gray-500">No itemized lines on file for this invoice, likely created before this was tracked.</p>
+            <p class="text-sm text-neutral-500">No itemized lines on file for this invoice, likely created before this was tracked.</p>
         @endif
     </div>
 
-    <div class="mb-4 border border-gray-200 bg-white p-5">
+    <div class="card mb-4">
         <dl class="grid grid-cols-2 gap-4 text-sm">
             <div>
-                <dt class="text-gray-500">Paid</dt>
-                <dd class="text-gray-900">KES {{ number_format($invoice->paid_minor / 100, 2) }}</dd>
+                <dt class="text-neutral-500">Paid</dt>
+                <dd class="text-neutral-900">KES {{ number_format($invoice->paid_minor / 100, 2) }}</dd>
             </div>
             <div>
-                <dt class="text-gray-500">Balance</dt>
-                <dd class="text-gray-900">KES {{ number_format($invoice->balanceMinor() / 100, 2) }}</dd>
+                <dt class="text-neutral-500">Balance</dt>
+                <dd class="text-neutral-900">KES {{ number_format($invoice->balanceMinor() / 100, 2) }}</dd>
             </div>
             <div>
-                <dt class="text-gray-500">Due</dt>
-                <dd class="text-gray-900">{{ $invoice->due_at->format('d M Y') }}</dd>
+                <dt class="text-neutral-500">Due</dt>
+                <dd @class(['text-critical-600 font-medium' => $isOverdue, 'text-neutral-900' => ! $isOverdue])>
+                    {{ $invoice->due_at->format('d M Y') }}
+                </dd>
             </div>
             <div>
-                <dt class="text-gray-500">Customer KRA PIN</dt>
-                <dd class="text-gray-900">{{ $invoice->customer->kra_pin ?? '—' }}</dd>
+                <dt class="text-neutral-500">Customer KRA PIN</dt>
+                <dd class="text-neutral-900">{{ $invoice->customer->kra_pin ?? '—' }}</dd>
             </div>
             <div class="col-span-2">
-                <dt class="text-gray-500">Payment terms</dt>
-                <dd class="text-gray-900">{{ config('company.default_payment_terms') }}</dd>
+                <dt class="text-neutral-500">Payment terms</dt>
+                <dd class="text-neutral-900">{{ config('company.default_payment_terms') }}</dd>
             </div>
         </dl>
     </div>
 
     @can('issue', $invoice)
-        <button wire:click="issue" wire:loading.attr="disabled" wire:target="issue"
-                class="mb-4 w-full bg-primary-500 py-2.5 text-sm font-medium text-white hover:bg-primary-600">
+        <button wire:click="issue" wire:loading.attr="disabled" wire:target="issue" class="btn-primary mb-4 w-full">
             Issue invoice
         </button>
     @endcan
 
     @if ($invoice->payments->isNotEmpty())
-        <div class="mb-4 border border-gray-200 bg-white p-5">
-            <h2 class="mb-3 text-sm font-medium text-gray-900">Payments</h2>
-            <div class="space-y-2 text-sm">
+        <div class="card mb-4">
+            <h2 class="mb-3 text-sm font-semibold text-neutral-900">Payments</h2>
+            <div class="divide-y divide-neutral-100 text-sm">
                 @foreach ($invoice->payments as $payment)
-                    <div class="flex items-center justify-between border-b border-gray-100 pb-2 last:border-0 last:pb-0">
-                        <span class="text-gray-900">{{ $payment->reference }} &middot; {{ $payment->method }}</span>
-                        <span class="font-medium text-gray-900">KES {{ number_format($payment->amount_minor / 100, 2) }}</span>
+                    <div class="flex items-center justify-between py-2 first:pt-0 last:pb-0">
+                        <span class="text-neutral-900">{{ $payment->reference }} &middot; {{ $payment->method }}</span>
+                        <span class="font-semibold text-neutral-900">KES {{ number_format($payment->amount_minor / 100, 2) }}</span>
                     </div>
                 @endforeach
             </div>
@@ -241,24 +248,22 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
     @endif
 
     @can('recordPayment', $invoice)
-        <div class="border border-gray-200 bg-white p-5">
-            <h2 class="mb-3 text-sm font-medium text-gray-900">Record a payment</h2>
+        <div class="card">
+            <h2 class="mb-3 text-sm font-semibold text-neutral-900">Record a payment</h2>
             <div class="mb-3">
-                <label class="mb-1.5 block text-xs font-medium text-gray-700">Amount, KES</label>
-                <input wire:model="paymentAmount" type="text" inputmode="decimal" placeholder="0.00"
-                       class="w-full border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
-                @error('paymentAmount') <p class="mt-1 text-xs text-primary-600">{{ $message }}</p> @enderror
+                <label class="label">Amount, KES</label>
+                <input wire:model="paymentAmount" type="text" inputmode="decimal" placeholder="0.00" class="input">
+                @error('paymentAmount') <p class="mt-1 text-xs text-critical-600">{{ $message }}</p> @enderror
             </div>
             <div class="mb-4">
-                <label class="mb-1.5 block text-xs font-medium text-gray-700">Method</label>
-                <select wire:model="paymentMethod" class="w-full border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                <label class="label">Method</label>
+                <select wire:model="paymentMethod" class="input">
                     <option>Bank transfer</option>
                     <option>M-Pesa</option>
                     <option>Cheque</option>
                 </select>
             </div>
-            <button wire:click="recordPayment" wire:loading.attr="disabled" wire:target="recordPayment"
-                    class="w-full bg-primary-500 py-2.5 text-sm font-medium text-white hover:bg-primary-600">
+            <button wire:click="recordPayment" wire:loading.attr="disabled" wire:target="recordPayment" class="btn-primary w-full">
                 Record payment
             </button>
         </div>

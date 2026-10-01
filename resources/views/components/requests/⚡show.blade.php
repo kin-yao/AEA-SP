@@ -84,66 +84,67 @@ new #[Layout('layouts.app', ['title' => 'Request'])] class extends Component
 ?>
 
 <div>
-    <a href="/requests" wire:navigate class="mb-4 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700">
+    <a href="/requests" wire:navigate class="mb-4 inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-700">
         <x-icon name="arrow-right" class="h-3.5 w-3.5 rotate-180" />
         Back to requests
     </a>
 
-    <div class="mb-4 flex items-start justify-between">
+    <div class="mb-5 flex items-start justify-between">
         <div>
-            <h1 class="text-xl font-semibold text-gray-900">{{ $request->reference }}</h1>
-            <p class="text-sm text-gray-500">{{ $request->customer->name }}</p>
+            <h1 class="text-2xl font-semibold text-neutral-900">{{ $request->reference }}</h1>
+            <p class="text-sm text-neutral-500">{{ $request->customer->name }}</p>
         </div>
-        <span @class([
-            'shrink-0 rounded-full px-2.5 py-1 text-xs font-medium',
-            'bg-amber-50 text-amber-700' => $request->status === 'Open',
-            'bg-blue-50 text-blue-700' => $request->status === 'Assigned',
-            'bg-primary-50 text-primary-700' => $request->status === 'Quoted',
-            'bg-green-50 text-green-700' => $request->status === 'Converted',
-            'bg-gray-100 text-gray-600' => $request->status === 'Declined',
-        ])>
-            {{ $request->status }}
-        </span>
+        @php
+            $pill = match (true) {
+                $request->status === 'Converted' => 'pill-success',
+                in_array($request->status, ['Assigned', 'Quoted']) => 'pill-info',
+                $request->status === 'Declined' => 'pill-danger',
+                default => 'pill-neutral',
+            };
+        @endphp
+        <span class="{{ $pill }}">{{ $request->status }}</span>
     </div>
 
     @if ($generatedReference)
-        <div class="mb-4 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
-            Job <strong>{{ $generatedReference }}</strong> created and assigned to {{ $request->technician->name }}.
+        <div class="card mb-4" style="background-color: var(--color-fresh-50); border-color: #bfe3c7">
+            <p class="text-sm text-fresh-700">
+                Job <strong>{{ $generatedReference }}</strong> created and assigned to {{ $request->technician->name }}.
+            </p>
         </div>
     @endif
 
-    <div class="mb-4 rounded-xl border border-gray-200 bg-white p-5">
+    <div class="card mb-4">
         <dl class="grid grid-cols-2 gap-4 text-sm">
             <div>
-                <dt class="text-gray-500">Contact</dt>
-                <dd class="text-gray-900">{{ $request->contact_name ?? '—' }}</dd>
+                <dt class="text-neutral-500">Contact</dt>
+                <dd class="font-medium text-neutral-900">{{ $request->contact_name ?? '—' }}</dd>
             </div>
             <div>
-                <dt class="text-gray-500">Cover</dt>
-                <dd class="text-gray-900">{{ $request->cover }}</dd>
+                <dt class="text-neutral-500">Cover</dt>
+                <dd class="font-medium text-neutral-900">{{ $request->cover }}</dd>
             </div>
             <div>
-                <dt class="text-gray-500">Priority</dt>
-                <dd class="text-gray-900">{{ $request->priority }}</dd>
+                <dt class="text-neutral-500">Priority</dt>
+                <dd class="font-medium text-neutral-900">{{ $request->priority }}</dd>
             </div>
             <div>
-                <dt class="text-gray-500">Assigned to</dt>
-                <dd class="text-gray-900">{{ $request->technician->name ?? '—' }}</dd>
+                <dt class="text-neutral-500">Assigned to</dt>
+                <dd class="font-medium text-neutral-900">{{ $request->technician->name ?? '—' }}</dd>
             </div>
         </dl>
-        <div class="mt-4 border-t border-gray-100 pt-4">
-            <dt class="mb-1 text-sm text-gray-500">Fault reported</dt>
-            <dd class="text-sm text-gray-900">{{ $request->fault_description }}</dd>
+        <div class="mt-4 border-t border-neutral-100 pt-4">
+            <dt class="mb-1 text-sm text-neutral-500">Fault reported</dt>
+            <dd class="text-sm text-neutral-900">{{ $request->fault_description }}</dd>
         </div>
     </div>
 
     @can('assign', $request)
-        <div class="rounded-xl border border-gray-200 bg-white p-5">
-            <h2 class="mb-3 text-sm font-medium text-gray-900">Assign a technician</h2>
+        <div class="card mb-4">
+            <h2 class="mb-3 text-sm font-semibold text-neutral-900">Assign a technician</h2>
 
             <div class="mb-3">
-                <label class="mb-1.5 block text-xs font-medium text-gray-700">Technician</label>
-                <select wire:model="technicianId" class="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                <label class="label">Technician</label>
+                <select wire:model="technicianId" class="input">
                     <option value="">Select a technician</option>
                     @foreach ($this->technicians as $technician)
                         <option value="{{ $technician->id }}">{{ $technician->name }}</option>
@@ -153,8 +154,8 @@ new #[Layout('layouts.app', ['title' => 'Request'])] class extends Component
             </div>
 
             <div class="mb-4">
-                <label class="mb-1.5 block text-xs font-medium text-gray-700">Nature of visit</label>
-                <select wire:model="natureOfVisit" class="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                <label class="label">Nature of visit</label>
+                <select wire:model="natureOfVisit" class="input">
                     <option>Service</option>
                     <option>Repairs</option>
                     <option>Planned maintenance</option>
@@ -163,12 +164,10 @@ new #[Layout('layouts.app', ['title' => 'Request'])] class extends Component
             </div>
 
             <div class="flex gap-2">
-                <button wire:click="assign" wire:loading.attr="disabled" wire:target="assign"
-                        class="rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white hover:bg-primary-600">
+                <button wire:click="assign" wire:loading.attr="disabled" wire:target="assign" class="btn-primary">
                     Assign technician
                 </button>
-                <button wire:click="decline" wire:loading.attr="disabled" wire:target="decline"
-                        class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                <button wire:click="decline" wire:loading.attr="disabled" wire:target="decline" class="btn-outline">
                     Decline
                 </button>
             </div>
@@ -177,19 +176,17 @@ new #[Layout('layouts.app', ['title' => 'Request'])] class extends Component
 
     @can('create', \App\Models\WorkOrder::class)
         @if ($request->status === 'Assigned' && ! $generatedReference)
-            <div class="mt-4 rounded-xl border border-gray-200 bg-white p-5">
-                <h2 class="mb-3 text-sm font-medium text-gray-900">Generate the job</h2>
+            <div class="card">
+                <h2 class="mb-3 text-sm font-semibold text-neutral-900">Generate the job</h2>
                 @error('job') <p class="mb-3 text-xs text-primary-600">{{ $message }}</p> @enderror
 
                 <div class="mb-4">
-                    <label class="mb-1.5 block text-xs font-medium text-gray-700">Due date</label>
-                    <input type="date" wire:model="dueDate"
-                           class="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                    <label class="label">Due date</label>
+                    <input type="date" wire:model="dueDate" class="input">
                     @error('dueDate') <p class="mt-1 text-xs text-primary-600">{{ $message }}</p> @enderror
                 </div>
 
-                <button wire:click="generateJob" wire:loading.attr="disabled" wire:target="generateJob"
-                        class="rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white hover:bg-primary-600">
+                <button wire:click="generateJob" wire:loading.attr="disabled" wire:target="generateJob" class="btn-primary">
                     Generate job
                 </button>
             </div>

@@ -100,60 +100,57 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
 ?>
 
 <div>
-    <a href="/quotations" wire:navigate class="mb-4 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700">
+    <a href="/quotations" wire:navigate class="mb-4 inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900">
         <x-icon name="arrow-right" class="h-3.5 w-3.5 rotate-180" />
         Back to quotations
     </a>
 
     <div class="mb-4 flex items-start justify-between">
         <div>
-            <h1 class="text-xl font-semibold text-gray-900">{{ $quotation->reference }}</h1>
-            <p class="text-sm text-gray-500">{{ $quotation->customer->name }}</p>
+            <h1 class="text-xl font-semibold text-neutral-900">{{ $quotation->reference }}</h1>
+            <p class="text-sm text-neutral-500">{{ $quotation->customer->name }}</p>
         </div>
-        <div class="flex items-center gap-2">
-            <span @class([
-                'shrink-0 px-2.5 py-1 text-xs font-medium',
-                'bg-gray-100 text-gray-600' => str_starts_with($quotation->status, 'Awaiting'),
-                'bg-info-50 text-info-700' => in_array($quotation->status, ['Approved', 'Accepted']),
-                'bg-success-50 text-success-700' => $quotation->status === 'Converted',
-                'bg-primary-50 text-primary-700' => $quotation->status === 'Sent back',
-            ])>
-                {{ $quotation->status }}
-            </span>
-        </div>
+        <span @class([
+            'shrink-0',
+            'pill-neutral' => str_starts_with($quotation->status, 'Awaiting'),
+            'pill-info' => in_array($quotation->status, ['Approved', 'Accepted']),
+            'pill-success' => $quotation->status === 'Converted',
+            'pill-danger' => $quotation->status === 'Sent back',
+        ])>
+            {{ $quotation->status }}
+        </span>
     </div>
 
-    <button wire:click="downloadPdf" wire:loading.attr="disabled" wire:target="downloadPdf"
-            class="mb-4 flex items-center gap-1.5 border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">
+    <button wire:click="downloadPdf" wire:loading.attr="disabled" wire:target="downloadPdf" class="btn-outline mb-4">
         <x-icon name="folder" class="h-3.5 w-3.5" />
         Download PDF
     </button>
 
-    <div class="mb-4 border border-gray-200 bg-white p-5">
-        <p class="mb-1 text-xs text-gray-500">Scope</p>
-        <p class="mb-4 text-sm font-medium text-gray-900">{{ $quotation->scope }}</p>
+    <div class="card mb-4">
+        <p class="mb-1 text-xs text-neutral-500">Scope</p>
+        <p class="mb-4 text-sm font-semibold text-neutral-900">{{ $quotation->scope }}</p>
 
-        <table class="w-full text-sm">
+        <table class="table-clean">
             <thead>
-                <tr class="border-b border-gray-100 text-xs text-gray-500">
-                    <th class="pb-2 text-left font-medium">Item</th>
-                    <th class="pb-2 text-right font-medium">Qty</th>
-                    <th class="pb-2 text-right font-medium">Rate</th>
-                    <th class="pb-2 text-right font-medium">Amount</th>
+                <tr>
+                    <th class="text-left">Item</th>
+                    <th class="text-right">Qty</th>
+                    <th class="text-right">Rate</th>
+                    <th class="text-right">Amount</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach ($quotation->items as $item)
-                    <tr class="border-b border-gray-50">
-                        <td class="py-2 text-gray-900">{{ $item->description }}</td>
-                        <td class="py-2 text-right text-gray-600">{{ $item->quantity }}</td>
-                        <td class="py-2 text-right text-gray-600">{{ number_format($item->rate_minor / 100, 2) }}</td>
-                        <td class="py-2 text-right text-gray-900">{{ number_format($item->amountMinor() / 100, 2) }}</td>
+                    <tr>
+                        <td class="text-neutral-900">{{ $item->description }}</td>
+                        <td class="text-right text-neutral-600">{{ $item->quantity }}</td>
+                        <td class="text-right text-neutral-600">{{ number_format($item->rate_minor / 100, 2) }}</td>
+                        <td class="text-right text-neutral-900">{{ number_format($item->amountMinor() / 100, 2) }}</td>
                     </tr>
                 @endforeach
-                <tr class="border-b border-gray-50">
-                    <td class="py-2 text-gray-900" colspan="3">Labour</td>
-                    <td class="py-2 text-right text-gray-900">{{ number_format($quotation->labour_minor / 100, 2) }}</td>
+                <tr>
+                    <td class="text-neutral-900" colspan="3">Labour</td>
+                    <td class="text-right text-neutral-900">{{ number_format($quotation->labour_minor / 100, 2) }}</td>
                 </tr>
             </tbody>
         </table>
@@ -161,93 +158,89 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
         <div class="mt-3 flex justify-end">
             <div class="w-48 text-sm">
                 <div class="flex justify-between py-1">
-                    <span class="text-gray-500">Subtotal</span>
-                    <span class="text-gray-900">{{ number_format($quotation->subtotalMinor() / 100, 2) }}</span>
+                    <span class="text-neutral-500">Subtotal</span>
+                    <span class="text-neutral-900">{{ number_format($quotation->subtotalMinor() / 100, 2) }}</span>
                 </div>
                 <div class="flex justify-between py-1">
-                    <span class="text-gray-500">VAT, 16%</span>
-                    <span class="text-gray-900">{{ number_format($quotation->vatMinor() / 100, 2) }}</span>
+                    <span class="text-neutral-500">VAT, 16%</span>
+                    <span class="text-neutral-900">{{ number_format($quotation->vatMinor() / 100, 2) }}</span>
                 </div>
-                <div class="flex justify-between border-t border-gray-100 py-2 font-medium">
-                    <span class="text-gray-900">Total</span>
-                    <span class="text-gray-900">KES {{ number_format($quotation->totalMinor() / 100, 2) }}</span>
+                <div class="flex justify-between border-t border-neutral-100 py-2 font-semibold">
+                    <span class="text-neutral-900">Total</span>
+                    <span class="text-neutral-900">KES {{ number_format($quotation->totalMinor() / 100, 2) }}</span>
                 </div>
             </div>
         </div>
 
-        <dl class="mt-4 grid grid-cols-2 gap-4 border-t border-gray-100 pt-4 text-sm">
+        <dl class="mt-4 grid grid-cols-2 gap-4 border-t border-neutral-100 pt-4 text-sm">
             <div>
-                <dt class="text-gray-500">Validity</dt>
-                <dd class="text-gray-900">{{ $quotation->validity_days }} days</dd>
+                <dt class="text-neutral-500">Validity</dt>
+                <dd class="text-neutral-900">{{ $quotation->validity_days }} days</dd>
             </div>
             <div>
-                <dt class="text-gray-500">Approval route</dt>
-                <dd class="text-gray-900">{{ $quotation->approval_threshold }}</dd>
+                <dt class="text-neutral-500">Approval route</dt>
+                <dd class="text-neutral-900">{{ $quotation->approval_threshold }}</dd>
             </div>
             <div>
-                <dt class="text-gray-500">Customer KRA PIN</dt>
-                <dd class="text-gray-900">{{ $quotation->customer->kra_pin ?? '—' }}</dd>
+                <dt class="text-neutral-500">Customer KRA PIN</dt>
+                <dd class="text-neutral-900">{{ $quotation->customer->kra_pin ?? '—' }}</dd>
             </div>
             <div>
-                <dt class="text-gray-500">Payment terms</dt>
-                <dd class="text-gray-900">{{ $quotation->payment_terms ?? config('company.default_payment_terms') }}</dd>
+                <dt class="text-neutral-500">Payment terms</dt>
+                <dd class="text-neutral-900">{{ $quotation->payment_terms ?? config('company.default_payment_terms') }}</dd>
             </div>
         </dl>
     </div>
 
     @can('approve', $quotation)
         <div class="mb-4 flex gap-2">
-            <button wire:click="approve" wire:loading.attr="disabled" wire:target="approve"
-                    class="flex-1 bg-primary-500 py-2.5 text-sm font-medium text-white hover:bg-primary-600">
+            <button wire:click="approve" wire:loading.attr="disabled" wire:target="approve" class="btn-primary flex-1">
                 Approve
             </button>
-            <button wire:click="sendBack" wire:loading.attr="disabled" wire:target="sendBack"
-                    class="flex-1 border border-gray-300 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+            <button wire:click="sendBack" wire:loading.attr="disabled" wire:target="sendBack" class="btn-outline flex-1">
                 Send back
             </button>
         </div>
     @endcan
 
     @if ($quotation->lpoDetail)
-        <div class="mb-4 border border-gray-200 bg-white p-5">
-            <p class="mb-1 flex items-center gap-1 text-xs text-gray-500"><x-icon name="cart-check" class="h-3 w-3" /> LPO on file</p>
-            <p class="text-sm font-medium text-gray-900">{{ $quotation->lpo_reference }}</p>
-            <p class="text-xs text-gray-500">Received via {{ $quotation->lpoDetail->received_via }}</p>
+        <div class="card mb-4">
+            <p class="mb-1 flex items-center gap-1 text-xs text-neutral-500"><x-icon name="cart-check" class="h-3 w-3" /> LPO on file</p>
+            <p class="text-sm font-semibold text-neutral-900">{{ $quotation->lpo_reference }}</p>
+            <p class="text-xs text-neutral-500">Received via {{ $quotation->lpoDetail->received_via }}</p>
             @if ($quotation->lpoDetail->file_path)
                 <a href="{{ Storage::url($quotation->lpoDetail->file_path) }}" target="_blank" class="mt-2 inline-block text-xs font-medium text-info-700 hover:text-info-800">
                     View uploaded document
                 </a>
             @else
-                <p class="mt-2 text-xs text-gray-400">No document uploaded</p>
+                <p class="mt-2 text-xs text-neutral-400">No document uploaded</p>
             @endif
         </div>
     @else
         @can('logLpo', $quotation)
-            <div class="mb-4 border border-gray-200 bg-white p-5">
-                <h2 class="mb-3 flex items-center gap-1.5 text-sm font-medium text-gray-900"><x-icon name="cart-check" class="h-4 w-4" /> Log the customer's LPO</h2>
+            <div class="card mb-4">
+                <h2 class="mb-3 flex items-center gap-1.5 text-sm font-semibold text-neutral-900"><x-icon name="cart-check" class="h-4 w-4" /> Log the customer's LPO</h2>
                 <div class="mb-3">
-                    <label class="mb-1.5 block text-xs font-medium text-gray-700">LPO reference</label>
-                    <input wire:model="lpoReference" type="text" placeholder="e.g. KSM-LPO-2291"
-                           class="w-full border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
-                    @error('lpoReference') <p class="mt-1 text-xs text-primary-600">{{ $message }}</p> @enderror
+                    <label class="label">LPO reference</label>
+                    <input wire:model="lpoReference" type="text" placeholder="e.g. KSM-LPO-2291" class="input">
+                    @error('lpoReference') <p class="mt-1 text-xs text-critical-600">{{ $message }}</p> @enderror
                 </div>
                 <div class="mb-3">
-                    <label class="mb-1.5 block text-xs font-medium text-gray-700">Received via</label>
-                    <select wire:model="lpoReceivedVia" class="w-full border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                    <label class="label">Received via</label>
+                    <select wire:model="lpoReceivedVia" class="input">
                         <option>E-mail</option>
                         <option>Hand delivered</option>
                         <option>Post</option>
                     </select>
                 </div>
                 <div class="mb-4">
-                    <label class="mb-1.5 block text-xs font-medium text-gray-700">Scanned document, optional</label>
+                    <label class="label">Scanned document, optional</label>
                     <input wire:model="lpoFile" type="file" accept=".pdf,.jpg,.jpeg,.png"
-                           class="w-full border border-gray-300 py-2 px-3 text-sm file:mr-3 file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:text-xs file:font-medium">
-                    <div wire:loading wire:target="lpoFile" class="mt-1 text-xs text-gray-500">Uploading...</div>
-                    @error('lpoFile') <p class="mt-1 text-xs text-primary-600">{{ $message }}</p> @enderror
+                           class="input file:mr-3 file:border-0 file:bg-neutral-100 file:px-3 file:py-1.5 file:text-xs file:font-medium">
+                    <div wire:loading wire:target="lpoFile" class="mt-1 text-xs text-neutral-500">Uploading...</div>
+                    @error('lpoFile') <p class="mt-1 text-xs text-critical-600">{{ $message }}</p> @enderror
                 </div>
-                <button wire:click="logLpo" wire:loading.attr="disabled" wire:target="logLpo,lpoFile"
-                        class="w-full bg-primary-500 py-2.5 text-sm font-medium text-white hover:bg-primary-600">
+                <button wire:click="logLpo" wire:loading.attr="disabled" wire:target="logLpo,lpoFile" class="btn-primary w-full">
                     Log LPO
                 </button>
             </div>
@@ -255,34 +248,32 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
     @endif
 
     @if ($quotation->workOrder)
-        <div class="mb-4 border border-gray-200 bg-white p-5">
-            <p class="mb-1 text-xs text-gray-500">Job</p>
-            <a href="/jobs/{{ $quotation->workOrder->id }}" wire:navigate class="text-sm font-medium text-info-700 hover:text-info-800">
+        <div class="card mb-4">
+            <p class="mb-1 text-xs text-neutral-500">Job</p>
+            <a href="/jobs/{{ $quotation->workOrder->id }}" wire:navigate class="text-sm font-semibold text-info-700 hover:text-info-800">
                 {{ $quotation->workOrder->reference }}
             </a>
         </div>
     @else
         @can('convertToJob', $quotation)
-            <div class="border border-gray-200 bg-white p-5">
-                <h2 class="mb-3 text-sm font-medium text-gray-900">Generate the job</h2>
+            <div class="card">
+                <h2 class="mb-3 text-sm font-semibold text-neutral-900">Generate the job</h2>
                 <div class="mb-3">
-                    <label class="mb-1.5 block text-xs font-medium text-gray-700">Technician</label>
-                    <select wire:model="jobTechnicianId" class="w-full border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                    <label class="label">Technician</label>
+                    <select wire:model="jobTechnicianId" class="input">
                         <option value="">Select a technician</option>
                         @foreach ($this->technicians as $technician)
                             <option value="{{ $technician->id }}">{{ $technician->name }}</option>
                         @endforeach
                     </select>
-                    @error('jobTechnicianId') <p class="mt-1 text-xs text-primary-600">{{ $message }}</p> @enderror
+                    @error('jobTechnicianId') <p class="mt-1 text-xs text-critical-600">{{ $message }}</p> @enderror
                 </div>
                 <div class="mb-4">
-                    <label class="mb-1.5 block text-xs font-medium text-gray-700">Due date</label>
-                    <input wire:model="jobDueDate" type="date"
-                           class="w-full border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
-                    @error('jobDueDate') <p class="mt-1 text-xs text-primary-600">{{ $message }}</p> @enderror
+                    <label class="label">Due date</label>
+                    <input wire:model="jobDueDate" type="date" class="input">
+                    @error('jobDueDate') <p class="mt-1 text-xs text-critical-600">{{ $message }}</p> @enderror
                 </div>
-                <button wire:click="convertToJob" wire:loading.attr="disabled" wire:target="convertToJob"
-                        class="w-full bg-primary-500 py-2.5 text-sm font-medium text-white hover:bg-primary-600">
+                <button wire:click="convertToJob" wire:loading.attr="disabled" wire:target="convertToJob" class="btn-primary w-full">
                     Generate job
                 </button>
             </div>

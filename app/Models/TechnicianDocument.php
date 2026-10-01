@@ -16,6 +16,11 @@ class TechnicianDocument extends Model
         return $this->belongsTo(User::class, 'technician_id');
     }
 
+    public function expiresAt(): \Carbon\Carbon
+    {
+        return $this->issued_at->copy()->addDays((int) round($this->validity_months * 30.4));
+    }
+
     public function percentUsed(): int
     {
         $totalDays = $this->validity_months * 30.4;
@@ -45,8 +50,7 @@ class TechnicianDocument extends Model
 
     public function dueLabel(): string
     {
-        $expiresAt = $this->issued_at->copy()->addDays((int) round($this->validity_months * 30.4));
-        $diffDays = (int) now()->diffInDays($expiresAt, false);
+        $diffDays = (int) now()->diffInDays($this->expiresAt(), false);
 
         if ($diffDays < 0) {
             return 'Expired '.abs($diffDays).' days ago';

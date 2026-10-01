@@ -65,10 +65,10 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
         $circumference = 2 * M_PI * 42;
 
         $segments = [
-            ['label' => 'Assigned', 'count' => (int) $jobCounts->get('Assigned', 0), 'stroke' => 'stroke-gray-400', 'dot' => 'bg-gray-400'],
-            ['label' => 'On site', 'count' => (int) $jobCounts->get('On site', 0), 'stroke' => 'stroke-amber-400', 'dot' => 'bg-amber-400'],
+            ['label' => 'Assigned', 'count' => (int) $jobCounts->get('Assigned', 0), 'stroke' => 'stroke-neutral-300', 'dot' => 'bg-neutral-300'],
+            ['label' => 'On site', 'count' => (int) $jobCounts->get('On site', 0), 'stroke' => 'stroke-amber-500', 'dot' => 'bg-amber-500'],
             ['label' => 'Awaiting review', 'count' => (int) $jobCounts->get('Awaiting review', 0), 'stroke' => 'stroke-info-500', 'dot' => 'bg-info-500'],
-            ['label' => 'Approved', 'count' => (int) $jobCounts->get('Approved', 0), 'stroke' => 'stroke-violet-400', 'dot' => 'bg-violet-400'],
+            ['label' => 'Approved', 'count' => (int) $jobCounts->get('Approved', 0), 'stroke' => 'stroke-primary-400', 'dot' => 'bg-primary-400'],
             ['label' => 'Closed', 'count' => (int) $jobCounts->get('Closed', 0), 'stroke' => 'stroke-success-500', 'dot' => 'bg-success-500'],
         ];
 
@@ -86,6 +86,7 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
             'openRequests' => ServiceRequest::with('customer')->where('status', 'Open')->latest()->get(),
             'requestsByStatus' => ServiceRequest::selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status'),
             'requestsThisWeek' => ServiceRequest::where('created_at', '>=', now()->startOfWeek())->count(),
+            'convertedThisWeek' => ServiceRequest::where('status', 'Converted')->where('updated_at', '>=', now()->startOfWeek())->count(),
             'reportsReadyToPost' => Document::where('type', 'rep')->where('status', 'Checked, ready to post')->count(),
             'quotationsAwaitingLpo' => Quotation::where('status', 'Approved')->whereDoesntHave('lpoDetail')->count(),
             'readyToInvoice' => WorkOrder::whereHas('documents', fn ($q) => $q->where('type', 'rep')->where('status', 'Released'))
@@ -151,6 +152,16 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
             ? round((($revenueThisMonthMinor - $revenueLastMonthMinor) / $revenueLastMonthMinor) * 100, 1)
             : null;
 
+        // Real 6-month revenue trend for the hero sparkline, computed from
+        // actual invoices, not fabricated.
+        $monthlyRevenueTrend = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $monthlyRevenueTrend[] = (int) Invoice::whereBetween('issued_at', [
+                now()->subMonthsNoOverflow($i)->startOfMonth(),
+                now()->subMonthsNoOverflow($i)->endOfMonth(),
+            ])->sum('amount_minor');
+        }
+
         $quotationsAwaiting = Quotation::with(['customer', 'items'])
             ->where('status', 'Awaiting Manager')
             ->latest()
@@ -167,6 +178,7 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
             'role' => 'Manager',
             'revenueThisMonthMinor' => $revenueThisMonthMinor,
             'revenueDeltaPct' => $revenueDeltaPct,
+            'monthlyRevenueTrend' => $monthlyRevenueTrend,
             'jobsClosedThisMonth' => WorkOrder::where('status', 'Closed')->where('updated_at', '>=', now()->startOfMonth())->count(),
             'quotationsAwaiting' => $quotationsAwaiting,
             'pipelineValueMinor' => $quotationsAwaiting->sum(fn (Quotation $q) => $q->totalMinor()),
@@ -248,30 +260,32 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
 };
 ?>
 <div>
-    <div class="mb-5">
+    <div class="mb-6">
         <p class="text-xs font-semibold uppercase tracking-wider text-primary-600">{{ auth()->user()->getRoleNames()->first() }}</p>
-        <h1 class="mt-0.5 text-2xl font-semibold text-gray-900">
+        <h1 class="mt-0.5 text-2xl font-semibold text-neutral-900">
             Good {{ now()->hour < 12 ? 'morning' : (now()->hour < 17 ? 'afternoon' : 'evening') }}, {{ explode(' ', auth()->user()->name)[0] }}
         </h1>
     </div>
 
     @if (! $this->stats)
-        <div class="border border-gray-200 bg-white p-6 shadow-sm">
-            <p class="text-sm text-gray-500">
+        <div class="card">
+            <p class="text-sm text-neutral-500">
                 You're signed in. A dedicated dashboard for {{ auth()->user()->getRoleNames()->first() }} hasn't been built yet.
             </p>
         </div>
 
     @elseif ($this->stats['role'] === 'Service Admin')
-        <div class="mb-4 grid items-start gap-4 lg:grid-cols-12">
-            <div class="bg-gray-900 p-6 shadow-sm lg:col-span-7">
+        {{-- Hero paired with a STACK of two cards, not one lone short card,
+             so the right column's content actually fills the row height. --}}
+        <div class="mb-5 grid gap-4 lg:grid-cols-12">
+            <div class="card-dark lg:col-span-7">
                 <div class="flex items-start justify-between gap-6">
                     <div class="shrink-0">
                         <p class="text-[11px] font-semibold uppercase tracking-widest text-white/40">Requests to triage</p>
                         <p class="mt-1.5 text-5xl font-bold leading-none text-white">{{ $this->stats['openRequests']->count() }}</p>
                         <p class="mt-2 text-xs text-white/40">{{ $this->stats['requestsThisWeek'] }} logged this week</p>
-                        <a href="/requests" wire:navigate class="mt-4 inline-block border border-white/20 px-3.5 py-2 text-xs font-semibold text-white hover:bg-white hover:text-gray-900">
-                            View all &rarr;
+                        <a href="/requests" wire:navigate class="mt-4 inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-white/10 px-4 py-2.5 text-xs font-semibold text-white hover:bg-white/20">
+                            View all <x-icon name="arrow-right" class="h-3.5 w-3.5" />
                         </a>
                     </div>
                     <div class="flex-1 border-l border-white/10 pl-6">
@@ -286,175 +300,181 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
                 </div>
             </div>
 
-            <div class="border-l-4 border-info-500 bg-white p-5 shadow-sm lg:col-span-5">
-                <span class="flex h-9 w-9 items-center justify-center bg-info-500 text-white">
-                    <x-icon name="folder" class="h-4 w-4" />
-                </span>
-                <p class="mt-3 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Ready to post</p>
-                <p class="mt-1 text-4xl font-bold leading-none text-gray-900">{{ $this->stats['reportsReadyToPost'] }}</p>
-                <a href="/documents" wire:navigate class="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-info-600 hover:text-info-700">
-                    Review and post <x-icon name="arrow-right" class="h-3.5 w-3.5" />
-                </a>
+            <div class="flex flex-col gap-4 lg:col-span-5">
+                <div class="card flex-1">
+                    <div class="flex items-center justify-between">
+                        <span class="icon-badge-sm icon-badge-info"><x-icon name="folder" class="h-4 w-4" /></span>
+                        <span class="text-3xl font-bold leading-none text-neutral-900">{{ $this->stats['reportsReadyToPost'] }}</span>
+                    </div>
+                    <p class="mt-3 text-sm font-semibold text-neutral-900">Ready to post</p>
+                    <a href="/documents" wire:navigate class="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-info-600 hover:text-info-700">
+                        Review and post <x-icon name="arrow-right" class="h-3 w-3" />
+                    </a>
+                </div>
+                <div class="card flex-1">
+                    <div class="flex items-center justify-between">
+                        <span class="icon-badge-sm icon-badge-amber"><x-icon name="journal-text" class="h-4 w-4" /></span>
+                        <span class="text-3xl font-bold leading-none text-neutral-900">{{ $this->stats['quotationsAwaitingLpo'] }}</span>
+                    </div>
+                    <p class="mt-3 text-sm font-semibold text-neutral-900">Awaiting LPO</p>
+                    <a href="/quotations" wire:navigate class="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-amber-700 hover:text-amber-800">
+                        View quotations <x-icon name="arrow-right" class="h-3 w-3" />
+                    </a>
+                </div>
             </div>
         </div>
 
-        <div class="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <div class="border-l-4 border-info-400 bg-white p-4 shadow-sm">
-                <p class="text-3xl font-bold text-gray-900">{{ $this->stats['quotationsAwaitingLpo'] }}</p>
-                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Awaiting LPO</p>
-            </div>
-            <div class="border-l-4 border-info-400 bg-white p-4 shadow-sm">
-                <p class="text-3xl font-bold text-gray-900">{{ $this->stats['readyToInvoice'] }}</p>
-                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">To invoice</p>
-            </div>
-            <div class="border-l-4 border-primary-500 bg-white p-4 shadow-sm">
-                <p class="text-3xl font-bold text-gray-900">{{ $this->stats['overdueJobs'] }}</p>
-                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Overdue jobs</p>
-            </div>
-            <div class="border-l-4 border-success-500 bg-white p-4 shadow-sm">
-                <p class="text-3xl font-bold text-gray-900">{{ $this->stats['totalCustomers'] }}</p>
-                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Customers</p>
+        <div class="mb-5">
+            <p class="mb-2 text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Compliance &middot; top priority</p>
+            <div class="grid items-start gap-4 lg:grid-cols-2">
+                <div class="card">
+                    <h2 class="mb-1 text-sm font-semibold text-neutral-900">Contracts nearing expiry</h2>
+                    <div class="divide-y divide-neutral-100">
+                        @forelse ($this->stats['contractsNeedingAttention']->take(4) as $contract)
+                            <x-expiry-ring
+                                :percent="$contract->percentOfTermUsedCapped()"
+                                :stage="$contract->expiryStage()"
+                                :title="$contract->reference.' — '.$contract->customer->name"
+                                :expiresAt="$contract->ends_at->format('d M Y')" />
+                        @empty
+                            <p class="py-2 text-sm text-neutral-500">No contracts need attention right now.</p>
+                        @endforelse
+                    </div>
+                    @if ($this->stats['contractsNeedingAttention']->count() > 4)
+                        <p class="mt-2 text-xs text-neutral-400">+{{ $this->stats['contractsNeedingAttention']->count() - 4 }} more not shown</p>
+                    @endif
+                </div>
+
+                <div class="card">
+                    <h2 class="mb-1 text-sm font-semibold text-neutral-900">Technician certificates</h2>
+                    <div class="divide-y divide-neutral-100">
+                        @forelse ($this->stats['techDocsNeedingAttention']->take(4) as $doc)
+                            <x-expiry-ring
+                                :percent="$doc->percentUsedCapped()"
+                                :stage="$doc->expiryStage()"
+                                :title="$doc->technician->name.' — '.$doc->document_type"
+                                :expiresAt="$doc->expiresAt()->format('d M Y')" />
+                        @empty
+                            <p class="py-2 text-sm text-neutral-500">All technician documents are current.</p>
+                        @endforelse
+                    </div>
+                    @if ($this->stats['techDocsNeedingAttention']->count() > 4)
+                        <p class="mt-2 text-xs text-neutral-400">+{{ $this->stats['techDocsNeedingAttention']->count() - 4 }} more not shown</p>
+                    @endif
+                </div>
             </div>
         </div>
 
-        <div class="mb-4 grid items-start gap-4 lg:grid-cols-12">
-            <div class="flex items-center gap-6 border border-gray-200 bg-white p-5 shadow-sm lg:col-span-7">
+        <div class="mb-5 grid grid-cols-3 gap-3">
+            <div class="card-compact">
+                <span class="icon-badge-sm icon-badge-info"><x-icon name="receipt" class="h-4 w-4" /></span>
+                <p class="mt-2.5 text-2xl font-bold text-neutral-900">{{ $this->stats['readyToInvoice'] }}</p>
+                <p class="mt-0.5 text-xs font-medium text-neutral-500">To invoice</p>
+            </div>
+            <div class="card-compact">
+                <span class="icon-badge-sm icon-badge-primary"><x-icon name="exclamation-circle" class="h-4 w-4" /></span>
+                <p class="mt-2.5 text-2xl font-bold text-neutral-900">{{ $this->stats['overdueJobs'] }}</p>
+                <p class="mt-0.5 text-xs font-medium text-neutral-500">Overdue jobs</p>
+            </div>
+            <div class="card-compact">
+                <span class="icon-badge-sm icon-badge-success"><x-icon name="people" class="h-4 w-4" /></span>
+                <p class="mt-2.5 text-2xl font-bold text-neutral-900">{{ $this->stats['totalCustomers'] }}</p>
+                <p class="mt-0.5 text-xs font-medium text-neutral-500">Customers</p>
+            </div>
+        </div>
+
+        <div class="mb-5 grid items-start gap-4 lg:grid-cols-12">
+            <div class="card flex items-center gap-6 lg:col-span-7">
                 <svg viewBox="0 0 100 100" class="h-28 w-28 shrink-0 -rotate-90">
-                    <circle cx="50" cy="50" r="42" fill="none" stroke-width="12" class="stroke-gray-100" />
+                    <circle cx="50" cy="50" r="42" fill="none" stroke-width="12" class="stroke-neutral-100" />
                     @foreach ($this->stats['jobSegments'] as $segment)
                         @if ($segment['count'] > 0)
-                            <circle cx="50" cy="50" r="42" fill="none" stroke-width="12" stroke-linecap="butt"
+                            <circle cx="50" cy="50" r="42" fill="none" stroke-width="12" stroke-linecap="round"
                                     class="{{ $segment['stroke'] }}"
                                     stroke-dasharray="{{ $segment['dasharray'] }}"
                                     stroke-dashoffset="{{ $segment['dashoffset'] }}" />
                         @endif
                     @endforeach
-                    <text x="50" y="54" text-anchor="middle" transform="rotate(90 50 50)" class="fill-gray-900 text-[22px] font-bold">{{ $this->stats['jobTotal'] }}</text>
+                    <text x="50" y="54" text-anchor="middle" transform="rotate(90 50 50)" class="fill-neutral-900 text-[22px] font-bold">{{ $this->stats['jobTotal'] }}</text>
                 </svg>
                 <div class="flex-1">
-                    <p class="mb-2.5 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Jobs by stage</p>
+                    <p class="mb-2.5 text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Jobs by stage</p>
                     @foreach ($this->stats['jobSegments'] as $segment)
-                        <div class="flex items-center justify-between border-b border-gray-50 py-1 text-sm last:border-0">
-                            <span class="flex items-center gap-2 text-gray-600">
-                                <span class="h-2.5 w-2.5 {{ $segment['dot'] }}"></span>
+                        <div class="flex items-center justify-between border-b border-neutral-50 py-1 text-sm last:border-0">
+                            <span class="flex items-center gap-2 text-neutral-600">
+                                <span class="h-2.5 w-2.5 rounded-full {{ $segment['dot'] }}"></span>
                                 {{ $segment['label'] }}
                             </span>
-                            <span class="font-semibold text-gray-900">{{ $segment['count'] }}</span>
+                            <span class="font-semibold text-neutral-900">{{ $segment['count'] }}</span>
                         </div>
                     @endforeach
                 </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-3 lg:col-span-5">
-                <a href="/quotations/create" wire:navigate class="flex flex-col items-center justify-center gap-2 border border-gray-200 bg-white p-4 text-center shadow-sm hover:border-info-400 hover:bg-info-50">
-                    <span class="flex h-9 w-9 items-center justify-center bg-info-50 text-info-600">
-                        <x-icon name="journal-text" class="h-4 w-4" />
-                    </span>
-                    <p class="text-xs font-semibold text-gray-900">New quote</p>
-                </a>
-                <a href="/jobs" wire:navigate class="flex flex-col items-center justify-center gap-2 border border-gray-200 bg-white p-4 text-center shadow-sm hover:border-info-400 hover:bg-info-50">
-                    <span class="flex h-9 w-9 items-center justify-center bg-info-50 text-info-600">
-                        <x-icon name="tools" class="h-4 w-4" />
-                    </span>
-                    <p class="text-xs font-semibold text-gray-900">Jobs</p>
-                </a>
-                <a href="/invoices" wire:navigate class="flex flex-col items-center justify-center gap-2 border border-gray-200 bg-white p-4 text-center shadow-sm hover:border-info-400 hover:bg-info-50">
-                    <span class="flex h-9 w-9 items-center justify-center bg-info-50 text-info-600">
-                        <x-icon name="receipt" class="h-4 w-4" />
-                    </span>
-                    <p class="text-xs font-semibold text-gray-900">Invoices</p>
-                </a>
-            </div>
-        </div>
-
-        <p class="mb-2 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Compliance</p>
-        <div class="mb-4 grid items-start gap-4 lg:grid-cols-2">
-            <div class="border border-gray-200 bg-white p-5 shadow-sm">
-                <h2 class="mb-3 text-sm font-semibold text-gray-900">Contracts nearing expiry</h2>
-                <div class="space-y-3">
-                    @forelse ($this->stats['contractsNeedingAttention'] as $contract)
-                        <x-expiry-ring
-                            :percent="$contract->percentOfTermUsedCapped()"
-                            :stage="$contract->expiryStage()"
-                            :title="$contract->reference.' — '.$contract->customer->name"
-                            :subtitle="$contract->percentOfTermUsedCapped().'% of term elapsed'" />
-                    @empty
-                        <p class="text-sm text-gray-500">No contracts need attention right now.</p>
-                    @endforelse
-                </div>
-            </div>
-
-            <div class="border border-gray-200 bg-white p-5 shadow-sm">
-                <h2 class="mb-3 text-sm font-semibold text-gray-900">Technician certificates</h2>
-                <div class="space-y-3">
-                    @forelse ($this->stats['techDocsNeedingAttention'] as $doc)
-                        <x-expiry-ring
-                            :percent="$doc->percentUsedCapped()"
-                            :stage="$doc->expiryStage()"
-                            :title="$doc->technician->name.' — '.$doc->document_type"
-                            :subtitle="$doc->dueLabel()" />
-                    @empty
-                        <p class="text-sm text-gray-500">All technician documents are current.</p>
-                    @endforelse
-                </div>
+            <div class="card lg:col-span-5">
+                <h2 class="mb-4 text-sm font-semibold text-neutral-900">This week</h2>
+                <x-bar-chart :height="110" :data="collect([
+                    ['label' => 'New requests', 'value' => $this->stats['requestsThisWeek'], 'valueLabel' => $this->stats['requestsThisWeek']],
+                    ['label' => 'Converted', 'value' => $this->stats['convertedThisWeek'], 'valueLabel' => $this->stats['convertedThisWeek']],
+                ])" />
             </div>
         </div>
 
         <div class="grid items-start gap-4 lg:grid-cols-2">
-            <div class="border border-gray-200 bg-white p-5 shadow-sm">
-                <h2 class="mb-3 text-sm font-semibold text-gray-900">Customer intake, today</h2>
-                <div class="space-y-0.5">
+            <div class="card">
+                <h2 class="mb-3 text-sm font-semibold text-neutral-900">Customer intake, today</h2>
+                <div class="divide-y divide-neutral-50">
                     @forelse ($this->stats['recentRequests'] as $request)
-                        <a href="/requests/{{ $request->id }}" wire:navigate class="flex items-center justify-between border-b border-gray-50 py-2 text-sm last:border-0 hover:text-primary-600">
-                            <span class="text-gray-900">{{ $request->reference }} &middot; {{ $request->customer->name }}</span>
-                            <span @class([
-                                'px-2 py-0.5 text-[11px] font-semibold',
-                                'bg-gray-100 text-gray-600' => $request->status === 'Open',
-                                'bg-info-50 text-info-700' => in_array($request->status, ['Assigned', 'Quoted']),
-                                'bg-success-50 text-success-700' => $request->status === 'Converted',
-                                'bg-primary-50 text-primary-700' => $request->status === 'Declined',
-                            ])>
-                                {{ $request->status }}
-                            </span>
+                        <a href="/requests/{{ $request->id }}" wire:navigate class="flex items-center justify-between py-2.5 text-sm hover:text-primary-600">
+                            <span class="text-neutral-900">{{ $request->reference }} &middot; {{ $request->customer->name }}</span>
+                            @php
+                                $pill = match (true) {
+                                    $request->status === 'Converted' => 'pill-success',
+                                    in_array($request->status, ['Assigned', 'Quoted']) => 'pill-info',
+                                    $request->status === 'Declined' => 'pill-danger',
+                                    default => 'pill-neutral',
+                                };
+                            @endphp
+                            <span class="{{ $pill }}">{{ $request->status }}</span>
                         </a>
                     @empty
-                        <p class="text-sm text-gray-500">No requests yet.</p>
+                        <p class="py-2 text-sm text-neutral-500">No requests yet.</p>
                     @endforelse
                 </div>
             </div>
 
-            <div class="border border-gray-200 bg-white p-5 shadow-sm">
-                <h2 class="mb-3 text-sm font-semibold text-gray-900">Recent reports</h2>
-                <div class="space-y-0.5">
+            <div class="card">
+                <h2 class="mb-3 text-sm font-semibold text-neutral-900">Recent reports</h2>
+                <div class="divide-y divide-neutral-50">
                     @forelse ($this->stats['recentReports'] as $report)
-                        <a href="/documents/{{ $report->id }}" wire:navigate class="flex items-center justify-between border-b border-gray-50 py-2 text-sm last:border-0 hover:text-primary-600">
-                            <span class="text-gray-900">{{ $report->reference }} &middot; {{ $report->customer->name }}</span>
-                            <span @class([
-                                'px-2 py-0.5 text-[11px] font-semibold',
-                                'bg-gray-100 text-gray-600' => $report->status === 'Draft',
-                                'bg-info-50 text-info-700' => in_array($report->status, ['Awaiting review', 'Checked, ready to post']),
-                                'bg-success-50 text-success-700' => $report->status === 'Released',
-                            ])>
-                                {{ $report->status }}
-                            </span>
+                        <a href="/documents/{{ $report->id }}" wire:navigate class="flex items-center justify-between py-2.5 text-sm hover:text-primary-600">
+                            <span class="text-neutral-900">{{ $report->reference }} &middot; {{ $report->customer->name }}</span>
+                            @php
+                                $pill = match (true) {
+                                    $report->status === 'Released' => 'pill-success',
+                                    in_array($report->status, ['Awaiting review', 'Checked, ready to post']) => 'pill-info',
+                                    default => 'pill-neutral',
+                                };
+                            @endphp
+                            <span class="{{ $pill }}">{{ $report->status }}</span>
                         </a>
                     @empty
-                        <p class="text-sm text-gray-500">No reports yet.</p>
+                        <p class="py-2 text-sm text-neutral-500">No reports yet.</p>
                     @endforelse
                 </div>
             </div>
         </div>
 
     @elseif ($this->stats['role'] === 'Supervisor')
-        <div class="mb-4 grid items-start gap-4 lg:grid-cols-12">
-            <div class="bg-gray-900 p-6 shadow-sm lg:col-span-7">
+        <div class="mb-5 grid gap-4 lg:grid-cols-12">
+            <div class="card-dark lg:col-span-7">
                 <div class="flex items-start justify-between gap-6">
                     <div class="shrink-0">
                         <p class="text-[11px] font-semibold uppercase tracking-widest text-white/40">Awaiting your approval</p>
                         <p class="mt-1.5 text-5xl font-bold leading-none text-white">{{ $this->stats['quotationsAwaiting']->count() }}</p>
                         <p class="mt-2 text-xs text-white/40">{{ $this->stats['approvalsThisWeek'] }} decided this week</p>
-                        <a href="/quotations" wire:navigate class="mt-4 inline-block border border-white/20 px-3.5 py-2 text-xs font-semibold text-white hover:bg-white hover:text-gray-900">
-                            View all &rarr;
+                        <a href="/quotations" wire:navigate class="mt-4 inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-white/10 px-4 py-2.5 text-xs font-semibold text-white hover:bg-white/20">
+                            View all <x-icon name="arrow-right" class="h-3.5 w-3.5" />
                         </a>
                     </div>
                     <div class="flex-1 border-l border-white/10 pl-6">
@@ -465,106 +485,115 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
                 </div>
             </div>
 
-            <div class="border-l-4 border-primary-500 bg-white p-5 shadow-sm lg:col-span-5">
-                <span class="flex h-9 w-9 items-center justify-center bg-primary-500 text-white">
-                    <x-icon name="tools" class="h-4 w-4" />
-                </span>
-                <p class="mt-3 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Overdue jobs</p>
-                <p class="mt-1 text-4xl font-bold leading-none text-gray-900">{{ $this->stats['overdueJobsList']->count() }}</p>
-                @if ($this->stats['overdueJobsList']->isNotEmpty())
-                    <a href="/jobs/{{ $this->stats['overdueJobsList']->first()->id }}" wire:navigate class="mt-2 block text-xs text-gray-500 hover:text-primary-600">
-                        {{ $this->stats['overdueJobsList']->first()->reference }}, {{ $this->stats['overdueJobsList']->first()->customer->name }}
-                    </a>
-                @endif
+            <div class="flex flex-col gap-3 lg:col-span-5">
+                <div class="card-compact flex-1">
+                    <div class="flex items-center justify-between">
+                        <span class="icon-badge-sm icon-badge-primary"><x-icon name="exclamation-circle" class="h-4 w-4" /></span>
+                        <span class="text-2xl font-bold leading-none text-neutral-900">{{ $this->stats['overdueJobsList']->count() }}</span>
+                    </div>
+                    <p class="mt-2 text-xs font-medium text-neutral-500">Overdue jobs</p>
+                </div>
+                <div class="card-compact flex-1">
+                    <div class="flex items-center justify-between">
+                        <span class="icon-badge-sm icon-badge-success"><x-icon name="check2-circle" class="h-4 w-4" /></span>
+                        <span class="text-2xl font-bold leading-none text-neutral-900">{{ $this->stats['jobsReadyToClose'] }}</span>
+                    </div>
+                    <p class="mt-2 text-xs font-medium text-neutral-500">Jobs ready to close</p>
+                </div>
+                <div class="card-compact flex-1">
+                    <div class="flex items-center justify-between">
+                        <span class="icon-badge-sm icon-badge-info"><x-icon name="folder" class="h-4 w-4" /></span>
+                        <span class="text-2xl font-bold leading-none text-neutral-900">{{ $this->stats['reportsAwaitingReview']->count() }}</span>
+                    </div>
+                    <p class="mt-2 text-xs font-medium text-neutral-500">Reports to review</p>
+                </div>
             </div>
         </div>
 
-        <div class="mb-4 grid grid-cols-2 gap-3">
-            <div class="border-l-4 border-success-500 bg-white p-4 shadow-sm">
-                <p class="text-3xl font-bold text-gray-900">{{ $this->stats['jobsReadyToClose'] }}</p>
-                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Jobs ready to close</p>
-            </div>
-            <div class="border-l-4 border-info-400 bg-white p-4 shadow-sm">
-                <p class="text-3xl font-bold text-gray-900">{{ $this->stats['reportsAwaitingReview']->count() }}</p>
-                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Reports to review</p>
-            </div>
-        </div>
+        <div class="mb-5">
+            <p class="mb-2 text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Compliance &middot; top priority</p>
+            <div class="grid items-start gap-4 lg:grid-cols-2">
+                <div class="card">
+                    <h2 class="mb-4 text-sm font-semibold text-neutral-900">Workload by technician</h2>
+                    @if ($this->stats['dispatch']->isNotEmpty())
+                        <x-bar-chart :height="110" :data="$this->stats['dispatch']->map(fn ($t) => [
+                            'label' => explode(' ', $t->name)[0],
+                            'value' => $t->openJobCount,
+                            'valueLabel' => $t->openJobCount,
+                        ])" />
+                    @else
+                        <p class="text-sm text-neutral-500">No technicians on record.</p>
+                    @endif
+                </div>
 
-        <p class="mb-2 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Compliance</p>
-        <div class="mb-4 grid items-start gap-4 lg:grid-cols-2">
-            <div class="border border-gray-200 bg-white p-5 shadow-sm">
-                <h2 class="mb-4 text-sm font-semibold text-gray-900">Workload by technician</h2>
-                @if ($this->stats['dispatch']->isNotEmpty())
-                    <x-bar-chart :height="110" :data="$this->stats['dispatch']->map(fn ($t) => [
-                        'label' => explode(' ', $t->name)[0],
-                        'value' => $t->openJobCount,
-                        'valueLabel' => $t->openJobCount,
-                    ])" />
-                @else
-                    <p class="text-sm text-gray-500">No technicians on record.</p>
-                @endif
-            </div>
-
-            <div class="border border-gray-200 bg-white p-5 shadow-sm">
-                <h2 class="mb-3 text-sm font-semibold text-gray-900">Contracts nearing expiry</h2>
-                <div class="space-y-3">
-                    @forelse ($this->stats['contractsNeedingAttention'] as $contract)
-                        <x-expiry-ring
-                            :percent="$contract->percentOfTermUsedCapped()"
-                            :stage="$contract->expiryStage()"
-                            :title="$contract->reference.' — '.$contract->customer->name"
-                            :subtitle="$contract->percentOfTermUsedCapped().'% of term elapsed'" />
-                    @empty
-                        <p class="text-sm text-gray-500">No contracts need attention right now.</p>
-                    @endforelse
+                <div class="card">
+                    <h2 class="mb-1 text-sm font-semibold text-neutral-900">Contracts nearing expiry</h2>
+                    <div class="divide-y divide-neutral-100">
+                        @forelse ($this->stats['contractsNeedingAttention']->take(4) as $contract)
+                            <x-expiry-ring
+                                :percent="$contract->percentOfTermUsedCapped()"
+                                :stage="$contract->expiryStage()"
+                                :title="$contract->reference.' — '.$contract->customer->name"
+                                :expiresAt="$contract->ends_at->format('d M Y')" />
+                        @empty
+                            <p class="py-2 text-sm text-neutral-500">No contracts need attention right now.</p>
+                        @endforelse
+                    </div>
+                    @if ($this->stats['contractsNeedingAttention']->count() > 4)
+                        <p class="mt-2 text-xs text-neutral-400">+{{ $this->stats['contractsNeedingAttention']->count() - 4 }} more not shown</p>
+                    @endif
                 </div>
             </div>
         </div>
 
         <div class="grid items-start gap-4 lg:grid-cols-2">
-            <div class="border border-gray-200 bg-white p-5 shadow-sm">
-                <h2 class="mb-3 text-sm font-semibold text-gray-900">Quotations awaiting approval</h2>
-                <div class="space-y-0.5">
+            <div class="card">
+                <h2 class="mb-3 text-sm font-semibold text-neutral-900">Quotations awaiting approval</h2>
+                <div class="divide-y divide-neutral-50">
                     @forelse ($this->stats['quotationsAwaiting'] as $quotation)
-                        <a href="/quotations/{{ $quotation->id }}" wire:navigate class="flex items-center justify-between border-b border-gray-50 py-2 text-sm last:border-0 hover:text-primary-600">
-                            <span class="text-gray-900">{{ $quotation->reference }} &middot; {{ $quotation->customer->name }}</span>
-                            <span class="text-xs font-semibold text-gray-500">KES {{ number_format($quotation->totalMinor() / 100, 0) }}</span>
+                        <a href="/quotations/{{ $quotation->id }}" wire:navigate class="flex items-center justify-between py-2.5 text-sm hover:text-primary-600">
+                            <span class="text-neutral-900">{{ $quotation->reference }} &middot; {{ $quotation->customer->name }}</span>
+                            <span class="text-xs font-semibold text-neutral-500">KES {{ number_format($quotation->totalMinor() / 100, 0) }}</span>
                         </a>
                     @empty
-                        <p class="text-sm text-gray-500">Nothing awaiting your approval.</p>
+                        <p class="py-2 text-sm text-neutral-500">Nothing awaiting your approval.</p>
                     @endforelse
                 </div>
             </div>
 
-            <div class="border border-gray-200 bg-white p-5 shadow-sm">
-                <h2 class="mb-3 text-sm font-semibold text-gray-900">Reports awaiting review</h2>
-                <div class="space-y-0.5">
+            <div class="card">
+                <h2 class="mb-3 text-sm font-semibold text-neutral-900">Reports awaiting review</h2>
+                <div class="divide-y divide-neutral-50">
                     @forelse ($this->stats['reportsAwaitingReview'] as $report)
-                        <a href="/documents/{{ $report->id }}" wire:navigate class="flex items-center justify-between border-b border-gray-50 py-2 text-sm last:border-0 hover:text-primary-600">
-                            <span class="text-gray-900">{{ $report->reference }} &middot; {{ $report->customer->name }}</span>
-                            <span class="text-xs font-semibold text-gray-500">{{ $report->workOrder?->reference }}</span>
+                        <a href="/documents/{{ $report->id }}" wire:navigate class="flex items-center justify-between py-2.5 text-sm hover:text-primary-600">
+                            <span class="text-neutral-900">{{ $report->reference }} &middot; {{ $report->customer->name }}</span>
+                            <span class="text-xs font-semibold text-neutral-500">{{ $report->workOrder?->reference }}</span>
                         </a>
                     @empty
-                        <p class="text-sm text-gray-500">Nothing awaiting review.</p>
+                        <p class="py-2 text-sm text-neutral-500">Nothing awaiting review.</p>
                     @endforelse
                 </div>
             </div>
         </div>
 
     @elseif ($this->stats['role'] === 'Manager')
-        <div class="mb-4 grid items-start gap-4 lg:grid-cols-12">
-            <div class="bg-gray-900 p-6 shadow-sm lg:col-span-7">
+        <div class="mb-5 grid gap-4 lg:grid-cols-12">
+            <div class="card-dark lg:col-span-7">
                 <div class="flex items-start justify-between gap-6">
                     <div class="shrink-0">
                         <p class="text-[11px] font-semibold uppercase tracking-widest text-white/40">Revenue this month</p>
                         <p class="mt-1.5 text-4xl font-bold leading-none text-white">KES {{ number_format($this->stats['revenueThisMonthMinor'] / 100, 0) }}</p>
-                        <p class="mt-2 text-xs {{ $this->stats['revenueDeltaPct'] === null ? 'text-white/40' : ($this->stats['revenueDeltaPct'] >= 0 ? 'text-fresh-500' : 'text-critical-500') }}">
+                        <p class="mt-2 text-xs {{ $this->stats['revenueDeltaPct'] === null ? 'text-white/40' : ($this->stats['revenueDeltaPct'] >= 0 ? 'text-success-400' : 'text-primary-400') }}">
                             @if ($this->stats['revenueDeltaPct'] !== null)
                                 {{ $this->stats['revenueDeltaPct'] >= 0 ? '↑' : '↓' }} {{ abs($this->stats['revenueDeltaPct']) }}% on last month
                             @else
                                 No prior month to compare
                             @endif
                         </p>
+                        <div class="mt-4 w-40">
+                            <x-sparkline :values="array_map(fn ($v) => $v / 100, $this->stats['monthlyRevenueTrend'])" color="var(--color-success-400)" />
+                        </div>
+                        <p class="mt-1 text-[10px] uppercase tracking-wide text-white/30">Last 6 months</p>
                     </div>
                     <div class="flex-1 border-l border-white/10 pl-6">
                         <p class="text-[11px] font-semibold uppercase tracking-widest text-white/30">Jobs closed</p>
@@ -574,68 +603,83 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
                 </div>
             </div>
 
-            <div class="border-l-4 border-urgent-500 bg-white p-5 shadow-sm lg:col-span-5">
-                <span class="flex h-9 w-9 items-center justify-center bg-urgent-500 text-white">
-                    <x-icon name="journal-text" class="h-4 w-4" />
-                </span>
-                <p class="mt-3 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Needs your approval</p>
-                <p class="mt-1 text-4xl font-bold leading-none text-gray-900">{{ $this->stats['quotationsAwaiting']->count() }}</p>
-                <p class="mt-2 text-xs text-gray-500">KES 3,000,000 and above &middot; KES {{ number_format($this->stats['pipelineValueMinor'] / 100, 0) }} total</p>
-                <a href="/quotations" wire:navigate class="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-urgent-700 hover:text-urgent-800">
-                    Review approvals <x-icon name="arrow-right" class="h-3.5 w-3.5" />
-                </a>
-            </div>
-        </div>
-
-        <div class="mb-4 grid grid-cols-3 gap-3">
-            <div class="border-l-4 border-success-500 bg-white p-4 shadow-sm">
-                <p class="text-3xl font-bold text-gray-900">{{ $this->stats['totalCustomers'] }}</p>
-                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Customers</p>
-            </div>
-            <div class="border-l-4 border-info-400 bg-white p-4 shadow-sm">
-                <p class="text-3xl font-bold text-gray-900">{{ $this->stats['totalTechnicians'] }}</p>
-                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Technicians</p>
-            </div>
-            <div class="border-l-4 border-primary-500 bg-white p-4 shadow-sm">
-                <p class="text-3xl font-bold text-gray-900">{{ $this->stats['overdueJobs'] }}</p>
-                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Overdue jobs</p>
-            </div>
-        </div>
-
-        <p class="mb-2 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Compliance</p>
-        <div class="grid items-start gap-4 lg:grid-cols-2">
-            <div class="border border-gray-200 bg-white p-5 shadow-sm">
-                <h2 class="mb-4 text-sm font-semibold text-gray-900">Technician performance</h2>
-                @if ($this->stats['technicianPerformance']->isNotEmpty())
-                    <x-bar-chart :height="110" :data="$this->stats['technicianPerformance']->map(fn ($t) => [
-                        'label' => explode(' ', $t->name)[0],
-                        'value' => $t->revenueMinor,
-                        'valueLabel' => number_format($t->revenueMinor / 100000, 0).'K',
-                    ])" />
-                @else
-                    <p class="text-sm text-gray-500">No invoiced work yet.</p>
-                @endif
-            </div>
-
-            <div class="border border-gray-200 bg-white p-5 shadow-sm">
-                <h2 class="mb-3 text-sm font-semibold text-gray-900">Contracts nearing expiry</h2>
-                <div class="space-y-3">
-                    @forelse ($this->stats['contractsNeedingAttention'] as $contract)
-                        <x-expiry-ring
-                            :percent="$contract->percentOfTermUsedCapped()"
-                            :stage="$contract->expiryStage()"
-                            :title="$contract->reference.' — '.$contract->customer->name"
-                            :subtitle="$contract->percentOfTermUsedCapped().'% of term elapsed'" />
-                    @empty
-                        <p class="text-sm text-gray-500">No contracts need attention right now.</p>
-                    @endforelse
+            <div class="flex flex-col gap-4 lg:col-span-5">
+                <div class="card flex-1">
+                    <div class="flex items-center justify-between">
+                        <span class="icon-badge-sm icon-badge-amber"><x-icon name="journal-text" class="h-4 w-4" /></span>
+                        <span class="text-3xl font-bold leading-none text-neutral-900">{{ $this->stats['quotationsAwaiting']->count() }}</span>
+                    </div>
+                    <p class="mt-3 text-sm font-semibold text-neutral-900">Needs your approval</p>
+                    <p class="text-xs text-neutral-500">KES {{ number_format($this->stats['pipelineValueMinor'] / 100, 0) }} total</p>
+                    <a href="/quotations" wire:navigate class="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-amber-700 hover:text-amber-800">
+                        Review approvals <x-icon name="arrow-right" class="h-3 w-3" />
+                    </a>
                 </div>
+                <div class="card flex-1">
+                    <div class="flex items-center justify-between">
+                        <span class="icon-badge-sm icon-badge-primary"><x-icon name="exclamation-circle" class="h-4 w-4" /></span>
+                        <span class="text-3xl font-bold leading-none text-neutral-900">{{ $this->stats['overdueJobs'] }}</span>
+                    </div>
+                    <p class="mt-3 text-sm font-semibold text-neutral-900">Overdue jobs</p>
+                    <a href="/jobs" wire:navigate class="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary-600 hover:text-primary-700">
+                        View jobs <x-icon name="arrow-right" class="h-3 w-3" />
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-5">
+            <p class="mb-2 text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Compliance &middot; top priority</p>
+            <div class="grid items-start gap-4 lg:grid-cols-2">
+                <div class="card">
+                    <h2 class="mb-4 text-sm font-semibold text-neutral-900">Technician performance</h2>
+                    @if ($this->stats['technicianPerformance']->isNotEmpty())
+                        <x-bar-chart :height="110" :data="$this->stats['technicianPerformance']->map(fn ($t) => [
+                            'label' => explode(' ', $t->name)[0],
+                            'value' => $t->revenueMinor,
+                            'valueLabel' => number_format($t->revenueMinor / 100000, 0).'K',
+                        ])" />
+                    @else
+                        <p class="text-sm text-neutral-500">No invoiced work yet.</p>
+                    @endif
+                </div>
+
+                <div class="card">
+                    <h2 class="mb-1 text-sm font-semibold text-neutral-900">Contracts nearing expiry</h2>
+                    <div class="divide-y divide-neutral-100">
+                        @forelse ($this->stats['contractsNeedingAttention']->take(4) as $contract)
+                            <x-expiry-ring
+                                :percent="$contract->percentOfTermUsedCapped()"
+                                :stage="$contract->expiryStage()"
+                                :title="$contract->reference.' — '.$contract->customer->name"
+                                :expiresAt="$contract->ends_at->format('d M Y')" />
+                        @empty
+                            <p class="py-2 text-sm text-neutral-500">No contracts need attention right now.</p>
+                        @endforelse
+                    </div>
+                    @if ($this->stats['contractsNeedingAttention']->count() > 4)
+                        <p class="mt-2 text-xs text-neutral-400">+{{ $this->stats['contractsNeedingAttention']->count() - 4 }} more not shown</p>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+            <div class="card-compact">
+                <span class="icon-badge-sm icon-badge-success"><x-icon name="people" class="h-4 w-4" /></span>
+                <p class="mt-2.5 text-2xl font-bold text-neutral-900">{{ $this->stats['totalCustomers'] }}</p>
+                <p class="mt-0.5 text-xs font-medium text-neutral-500">Customers</p>
+            </div>
+            <div class="card-compact">
+                <span class="icon-badge-sm icon-badge-info"><x-icon name="tools" class="h-4 w-4" /></span>
+                <p class="mt-2.5 text-2xl font-bold text-neutral-900">{{ $this->stats['totalTechnicians'] }}</p>
+                <p class="mt-0.5 text-xs font-medium text-neutral-500">Technicians</p>
             </div>
         </div>
 
     @elseif ($this->stats['role'] === 'Technician')
         @if ($this->stats['nextJob'])
-            <div class="mb-4 bg-gray-900 p-6 shadow-sm">
+            <div class="card-dark mb-5">
                 <p class="text-[11px] font-semibold uppercase tracking-widest text-white/40">Next stop</p>
                 <div class="mt-3 grid gap-6 md:grid-cols-2">
                     <div>
@@ -655,12 +699,12 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
                         @endif
                         <div class="mt-4">
                             @if ($this->stats['nextJob']->status === 'On site')
-                                <a href="/jobs/{{ $this->stats['nextJob']->id }}/report" wire:navigate class="inline-block bg-primary-500 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-600">
+                                <a href="/jobs/{{ $this->stats['nextJob']->id }}/report" wire:navigate class="btn-primary">
                                     File service report
                                 </a>
                             @else
-                                <a href="/jobs/{{ $this->stats['nextJob']->id }}" wire:navigate class="inline-block border border-white/25 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10">
-                                    Open job &rarr;
+                                <a href="/jobs/{{ $this->stats['nextJob']->id }}" wire:navigate class="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-white/10 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/20">
+                                    Open job <x-icon name="arrow-right" class="h-3.5 w-3.5" />
                                 </a>
                             @endif
                         </div>
@@ -669,129 +713,133 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
             </div>
         @endif
 
-        <div class="mb-4 grid grid-cols-2 gap-3">
-            <div class="border-l-4 border-primary-500 bg-white p-4 shadow-sm">
-                <p class="text-3xl font-bold text-gray-900">{{ $this->stats['dueTodayOrOverdue']->count() }}</p>
-                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Due today or overdue</p>
-            </div>
-            <div class="border-l-4 border-success-500 bg-white p-4 shadow-sm">
-                <p class="text-3xl font-bold text-gray-900">{{ $this->stats['jobsClosedThisMonth'] }}</p>
-                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Closed this month</p>
-            </div>
-        </div>
-
-        <p class="mb-2 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Your compliance documents</p>
-        <div class="mb-4 border border-gray-200 bg-white p-5 shadow-sm">
-            <div class="grid gap-3 md:grid-cols-2">
-                @forelse ($this->stats['myDocuments'] as $doc)
-                    <x-expiry-ring
-                        :percent="$doc->percentUsedCapped()"
-                        :stage="$doc->expiryStage()"
-                        :title="$doc->document_type"
-                        :subtitle="$doc->dueLabel()" />
-                @empty
-                    <p class="text-sm text-gray-500">No documents on file.</p>
-                @endforelse
+        <div class="mb-5">
+            <p class="mb-2 text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Your compliance documents &middot; top priority</p>
+            <div class="card">
+                <div class="grid gap-x-4 divide-y divide-neutral-100 md:grid-cols-2 md:divide-y-0">
+                    @forelse ($this->stats['myDocuments']->take(4) as $doc)
+                        <x-expiry-ring
+                            :percent="$doc->percentUsedCapped()"
+                            :stage="$doc->expiryStage()"
+                            :title="$doc->document_type"
+                            :expiresAt="$doc->expiresAt()->format('d M Y')" />
+                    @empty
+                        <p class="py-2 text-sm text-neutral-500">No documents on file.</p>
+                    @endforelse
+                </div>
+                @if ($this->stats['myDocuments']->count() > 4)
+                    <p class="mt-2 text-xs text-neutral-400">+{{ $this->stats['myDocuments']->count() - 4 }} more not shown</p>
+                @endif
             </div>
         </div>
 
-        <div class="border border-gray-200 bg-white p-5 shadow-sm">
-            <h2 class="mb-3 text-sm font-semibold text-gray-900">Rest of my list</h2>
-            <div class="space-y-0.5">
+        <div class="mb-5 grid grid-cols-2 gap-3">
+            <div class="card-compact">
+                <span class="icon-badge-sm icon-badge-primary"><x-icon name="exclamation-circle" class="h-4 w-4" /></span>
+                <p class="mt-2.5 text-2xl font-bold text-neutral-900">{{ $this->stats['dueTodayOrOverdue']->count() }}</p>
+                <p class="mt-0.5 text-xs font-medium text-neutral-500">Due today or overdue</p>
+            </div>
+            <div class="card-compact">
+                <span class="icon-badge-sm icon-badge-success"><x-icon name="check2-circle" class="h-4 w-4" /></span>
+                <p class="mt-2.5 text-2xl font-bold text-neutral-900">{{ $this->stats['jobsClosedThisMonth'] }}</p>
+                <p class="mt-0.5 text-xs font-medium text-neutral-500">Closed this month</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="mb-3 text-sm font-semibold text-neutral-900">Rest of my list</h2>
+            <div class="divide-y divide-neutral-50">
                 @forelse ($this->stats['myJobs']->slice(1) as $job)
-                    <a href="/jobs/{{ $job->id }}" wire:navigate class="flex items-center justify-between border-b border-gray-50 py-2 text-sm last:border-0 hover:text-primary-600">
-                        <span class="text-gray-900">{{ $job->reference }} &middot; {{ $job->customer->name }}</span>
+                    <a href="/jobs/{{ $job->id }}" wire:navigate class="flex items-center justify-between py-2.5 text-sm hover:text-primary-600">
+                        <span class="text-neutral-900">{{ $job->reference }} &middot; {{ $job->customer->name }}</span>
                         <span class="flex items-center gap-3">
-                            <span class="text-xs text-gray-400">Due {{ $job->due_date->format('d M') }}</span>
-                            <span @class([
-                                'px-2 py-0.5 text-[11px] font-semibold',
-                                'bg-gray-100 text-gray-600' => $job->status === 'Assigned',
-                                'bg-info-50 text-info-700' => in_array($job->status, ['On site', 'Awaiting review']),
-                                'bg-success-50 text-success-700' => $job->status === 'Approved',
-                            ])>
-                                {{ $job->status }}
-                            </span>
+                            <span class="text-xs text-neutral-400">Due {{ $job->due_date->format('d M') }}</span>
+                            @php
+                                $pill = match (true) {
+                                    $job->status === 'Approved' => 'pill-success',
+                                    in_array($job->status, ['On site', 'Awaiting review']) => 'pill-info',
+                                    default => 'pill-neutral',
+                                };
+                            @endphp
+                            <span class="{{ $pill }}">{{ $job->status }}</span>
                         </span>
                     </a>
                 @empty
-                    <p class="text-sm text-gray-500">Nothing else on your list.</p>
+                    <p class="py-2 text-sm text-neutral-500">Nothing else on your list.</p>
                 @endforelse
             </div>
         </div>
 
     @elseif ($this->stats['role'] === 'Finance')
-        <div class="mb-4 grid items-start gap-4 lg:grid-cols-2">
-            <div class="border-l-4 border-critical-500 bg-white p-6 shadow-sm">
+        <div class="mb-5 grid items-stretch gap-4 lg:grid-cols-2">
+            <div class="card" style="border-left: 4px solid var(--color-critical-500)">
                 <div class="flex items-center gap-2">
-                    <span class="flex h-9 w-9 items-center justify-center bg-critical-50 text-critical-700">
-                        <x-icon name="receipt" class="h-4 w-4" />
-                    </span>
+                    <span class="icon-badge-sm" style="background-color: var(--color-critical-50); color: var(--color-critical-700)"><x-icon name="receipt" class="h-4 w-4" /></span>
                     <p class="text-[11px] font-semibold uppercase tracking-widest text-critical-700">Outstanding</p>
                 </div>
                 <p class="mt-3 text-4xl font-bold leading-none text-critical-700">KES {{ number_format($this->stats['outstandingBalanceMinor'] / 100, 0) }}</p>
-                <p class="mt-2 text-xs text-gray-500">Across every unpaid and part-paid invoice on file</p>
+                <p class="mt-2 text-xs text-neutral-500">Across every unpaid and part-paid invoice on file</p>
             </div>
 
-            <div class="border-l-4 border-fresh-500 bg-white p-6 shadow-sm">
+            <div class="card" style="border-left: 4px solid var(--color-fresh-500)">
                 <div class="flex items-center gap-2">
-                    <span class="flex h-9 w-9 items-center justify-center bg-fresh-50 text-fresh-700">
-                        <x-icon name="cart-check" class="h-4 w-4" />
-                    </span>
+                    <span class="icon-badge-sm" style="background-color: var(--color-fresh-50); color: var(--color-fresh-700)"><x-icon name="cart-check" class="h-4 w-4" /></span>
                     <p class="text-[11px] font-semibold uppercase tracking-widest text-fresh-700">Collected</p>
                 </div>
                 <p class="mt-3 text-4xl font-bold leading-none text-fresh-700">KES {{ number_format($this->stats['paidThisMonthMinor'] / 100, 0) }}</p>
-                <p class="mt-2 text-xs text-gray-500">In payments recorded so far this month</p>
+                <p class="mt-2 text-xs text-neutral-500">In payments recorded so far this month</p>
             </div>
         </div>
 
-        <div class="mb-4 grid grid-cols-2 gap-3">
-            <a href="/invoices" wire:navigate class="border-l-4 border-info-500 bg-white p-4 shadow-sm hover:bg-info-50">
-                <p class="text-3xl font-bold text-gray-900">{{ $this->stats['readyToInvoice'] }}</p>
-                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">
+        <div class="mb-5 grid grid-cols-2 gap-3">
+            <a href="/invoices" wire:navigate class="card-compact hover:border-info-300">
+                <span class="icon-badge-sm icon-badge-info"><x-icon name="receipt" class="h-4 w-4" /></span>
+                <p class="mt-2.5 text-2xl font-bold text-neutral-900">{{ $this->stats['readyToInvoice'] }}</p>
+                <p class="mt-0.5 text-xs font-medium text-neutral-500">
                     Ready to invoice
                     @if ($this->stats['readyToInvoiceValueMinor'] > 0)
                         &middot; KES {{ number_format($this->stats['readyToInvoiceValueMinor'] / 100, 0) }}
                     @endif
                 </p>
             </a>
-            <div class="border-l-4 border-urgent-500 bg-white p-4 shadow-sm">
-                <p class="text-3xl font-bold text-urgent-700">{{ $this->stats['overdueInvoices']->count() }}</p>
-                <p class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Overdue invoices</p>
+            <div class="card-compact">
+                <span class="icon-badge-sm icon-badge-amber"><x-icon name="exclamation-circle" class="h-4 w-4" /></span>
+                <p class="mt-2.5 text-2xl font-bold text-amber-700">{{ $this->stats['overdueInvoices']->count() }}</p>
+                <p class="mt-0.5 text-xs font-medium text-neutral-500">Overdue invoices</p>
             </div>
         </div>
 
-        @php $ageingTotal = max(array_sum($this->stats['ageing']), 1); @endphp
-        <div class="mb-4 border border-gray-200 bg-white p-5 shadow-sm">
-            <h2 class="mb-3 text-sm font-semibold text-gray-900">Outstanding, by age</h2>
-            <div class="space-y-3">
-                <div>
-                    <div class="mb-1 flex justify-between text-xs"><span class="text-gray-600">Current</span><span class="font-semibold text-gray-900">KES {{ number_format($this->stats['ageing']['current'] / 100, 0) }}</span></div>
-                    <div class="h-1.5 w-full bg-gray-100"><div class="h-1.5 bg-fresh-500" style="width: {{ $this->stats['ageing']['current'] / $ageingTotal * 100 }}%"></div></div>
-                </div>
-                <div>
-                    <div class="mb-1 flex justify-between text-xs"><span class="text-gray-600">1 to 30 days overdue</span><span class="font-semibold text-gray-900">KES {{ number_format($this->stats['ageing']['days1to30'] / 100, 0) }}</span></div>
-                    <div class="h-1.5 w-full bg-gray-100"><div class="h-1.5 bg-warn-500" style="width: {{ $this->stats['ageing']['days1to30'] / $ageingTotal * 100 }}%"></div></div>
-                </div>
-                <div>
-                    <div class="mb-1 flex justify-between text-xs"><span class="text-gray-600">31 to 60 days overdue</span><span class="font-semibold text-gray-900">KES {{ number_format($this->stats['ageing']['days31to60'] / 100, 0) }}</span></div>
-                    <div class="h-1.5 w-full bg-gray-100"><div class="h-1.5 bg-urgent-500" style="width: {{ $this->stats['ageing']['days31to60'] / $ageingTotal * 100 }}%"></div></div>
-                </div>
-                <div>
-                    <div class="mb-1 flex justify-between text-xs"><span class="text-gray-600">Over 60 days overdue</span><span class="font-semibold text-gray-900">KES {{ number_format($this->stats['ageing']['days60plus'] / 100, 0) }}</span></div>
-                    <div class="h-1.5 w-full bg-gray-100"><div class="h-1.5 bg-critical-500" style="width: {{ $this->stats['ageing']['days60plus'] / $ageingTotal * 100 }}%"></div></div>
-                </div>
+        @php
+            $ageingBars = [
+                ['label' => 'Current', 'value' => $this->stats['ageing']['current'], 'color' => 'var(--color-fresh-500)'],
+                ['label' => '1-30 days', 'value' => $this->stats['ageing']['days1to30'], 'color' => 'var(--color-warn-500)'],
+                ['label' => '31-60 days', 'value' => $this->stats['ageing']['days31to60'], 'color' => 'var(--color-urgent-500)'],
+                ['label' => '60+ days', 'value' => $this->stats['ageing']['days60plus'], 'color' => 'var(--color-critical-500)'],
+            ];
+            $ageingMax = max(1, max(array_column($ageingBars, 'value') ?: [0]));
+        @endphp
+        <div class="card mb-5">
+            <h2 class="mb-4 text-sm font-semibold text-neutral-900">Outstanding, by age</h2>
+            <div class="flex items-end gap-6" style="height: 160px">
+                @foreach ($ageingBars as $bar)
+                    <div class="flex flex-1 flex-col items-center gap-2">
+                        <span class="text-xs font-semibold text-neutral-700">KES {{ number_format($bar['value'] / 100, 0) }}</span>
+                        <div class="w-full rounded-t-[var(--radius-sm)]" style="height: {{ max(4, $bar['value'] / $ageingMax * 110) }}px; background-color: {{ $bar['color'] }}"></div>
+                        <span class="text-xs text-neutral-500 text-center">{{ $bar['label'] }}</span>
+                    </div>
+                @endforeach
             </div>
         </div>
 
         @if ($this->stats['overdueInvoices']->isNotEmpty())
-            <div class="mb-4 border border-critical-200 bg-critical-50 p-5">
-                <h2 class="mb-3 flex items-center gap-1.5 text-sm font-semibold text-critical-800">
+            <div class="card mb-5" style="background-color: var(--color-critical-50); border-color: #f5c6cb">
+                <h2 class="mb-3 flex items-center gap-1.5 text-sm font-semibold text-critical-700">
                     <x-icon name="exclamation-circle" class="h-4 w-4" /> Overdue, past their due date
                 </h2>
-                <div class="space-y-0.5">
+                <div class="divide-y divide-critical-100">
                     @foreach ($this->stats['overdueInvoices'] as $invoice)
-                        <a href="/invoices/{{ $invoice->id }}" wire:navigate class="flex items-center justify-between border-b border-critical-100 py-2 text-sm last:border-0 hover:underline">
-                            <span class="text-critical-900">{{ $invoice->reference }} &middot; {{ $invoice->customer->name }}</span>
+                        <a href="/invoices/{{ $invoice->id }}" wire:navigate class="flex items-center justify-between py-2.5 text-sm hover:underline">
+                            <span class="text-critical-700">{{ $invoice->reference }} &middot; {{ $invoice->customer->name }}</span>
                             <span class="font-semibold text-critical-700">KES {{ number_format($invoice->balanceMinor() / 100, 0) }}</span>
                         </a>
                     @endforeach
@@ -800,37 +848,37 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
         @endif
 
         <div class="grid items-start gap-4 lg:grid-cols-2">
-            <div class="border border-gray-200 bg-white p-5 shadow-sm">
-                <h2 class="mb-3 text-sm font-semibold text-gray-900">Recent invoices</h2>
-                <div class="space-y-0.5">
+            <div class="card">
+                <h2 class="mb-3 text-sm font-semibold text-neutral-900">Recent invoices</h2>
+                <div class="divide-y divide-neutral-50">
                     @forelse ($this->stats['recentInvoices'] as $invoice)
-                        <a href="/invoices/{{ $invoice->id }}" wire:navigate class="flex items-center justify-between border-b border-gray-50 py-2 text-sm last:border-0 hover:text-primary-600">
-                            <span class="text-gray-900">{{ $invoice->reference }} &middot; {{ $invoice->customer->name }}</span>
-                            <span @class([
-                                'text-xs font-semibold',
-                                'text-fresh-700' => $invoice->status === 'Paid',
-                                'text-critical-700' => in_array($invoice->status, ['Unpaid', 'Part paid']),
-                                'text-gray-500' => $invoice->status === 'Draft',
-                            ])>
-                                KES {{ number_format($invoice->amount_minor / 100, 0) }}
-                            </span>
+                        <a href="/invoices/{{ $invoice->id }}" wire:navigate class="flex items-center justify-between py-2.5 text-sm hover:text-primary-600">
+                            <span class="text-neutral-900">{{ $invoice->reference }} &middot; {{ $invoice->customer->name }}</span>
+                            @php
+                                $amountClass = match (true) {
+                                    $invoice->status === 'Paid' => 'text-fresh-700',
+                                    in_array($invoice->status, ['Unpaid', 'Part paid']) => 'text-critical-700',
+                                    default => 'text-neutral-500',
+                                };
+                            @endphp
+                            <span class="text-xs font-semibold {{ $amountClass }}">KES {{ number_format($invoice->amount_minor / 100, 0) }}</span>
                         </a>
                     @empty
-                        <p class="text-sm text-gray-500">No invoices yet.</p>
+                        <p class="py-2 text-sm text-neutral-500">No invoices yet.</p>
                     @endforelse
                 </div>
             </div>
 
-            <div class="border border-gray-200 bg-white p-5 shadow-sm">
-                <h2 class="mb-3 text-sm font-semibold text-gray-900">Recent payments</h2>
-                <div class="space-y-0.5">
+            <div class="card">
+                <h2 class="mb-3 text-sm font-semibold text-neutral-900">Recent payments</h2>
+                <div class="divide-y divide-neutral-50">
                     @forelse ($this->stats['recentPayments'] as $payment)
-                        <div class="flex items-center justify-between border-b border-gray-50 py-2 text-sm last:border-0">
-                            <span class="text-gray-900">{{ $payment->reference }} &middot; {{ $payment->customer->name }}</span>
+                        <div class="flex items-center justify-between py-2.5 text-sm">
+                            <span class="text-neutral-900">{{ $payment->reference }} &middot; {{ $payment->customer->name }}</span>
                             <span class="text-xs font-semibold text-fresh-700">+KES {{ number_format($payment->amount_minor / 100, 0) }}</span>
                         </div>
                     @empty
-                        <p class="text-sm text-gray-500">No payments yet.</p>
+                        <p class="py-2 text-sm text-neutral-500">No payments yet.</p>
                     @endforelse
                 </div>
             </div>

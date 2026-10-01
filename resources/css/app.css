@@ -9,7 +9,6 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 
-    /* AEA brand colors */
     --color-primary-50: #fef2f2;
     --color-primary-100: #fde3e3;
     --color-primary-200: #fbcbcb;
@@ -43,11 +42,11 @@
     --color-success-800: #14760f;
     --color-success-900: #0f5c0c;
 
-    /* Expiry status system, four stages, exact colors given: under 50%
-       elapsed, ~50%, ~75%, and expired/100%. Used for contracts and
-       technician compliance documents only, a distinct, deliberately
-       separate palette from the main UI colors above, this one carries
-       a specific meaning (time remaining), not brand identity. */
+    --color-amber-50: #fff8e9;
+    --color-amber-100: #ffecc2;
+    --color-amber-500: #f5a623;
+    --color-amber-700: #a86c0f;
+
     --color-fresh-50: #e9f7ec;
     --color-fresh-500: #28a745;
     --color-fresh-700: #1e7e34;
@@ -63,8 +62,88 @@
     --color-critical-50: #fbe9eb;
     --color-critical-500: #dc3545;
     --color-critical-700: #a71d2a;
+
+    --radius-sm: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.25rem;
+
+    --shadow-card: 0 1px 2px rgba(15, 15, 15, 0.04), 0 1px 6px rgba(15, 15, 15, 0.05);
+    --shadow-card-hover: 0 2px 4px rgba(15, 15, 15, 0.06), 0 4px 14px rgba(15, 15, 15, 0.08);
 }
 
-* {
-    border-radius: 0 !important;
+body {
+    background-color: #f7f7f8;
+    color: #18181b;
+}
+
+@layer components {
+    .card {
+        @apply bg-white border border-neutral-200/80 rounded-[var(--radius-lg)] p-5;
+        box-shadow: var(--shadow-card);
+    }
+    .card-hero {
+        @apply bg-white border border-neutral-200/80 rounded-[var(--radius-xl)] p-6;
+        box-shadow: var(--shadow-card);
+    }
+    .card-compact {
+        @apply bg-white border border-neutral-200/80 rounded-[var(--radius-md)] p-4;
+        box-shadow: var(--shadow-card);
+    }
+    .card-dark {
+        @apply bg-neutral-900 text-white rounded-[var(--radius-xl)] p-6 border border-neutral-900;
+    }
+
+    .icon-badge {
+        @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)];
+    }
+    .icon-badge-sm {
+        @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-sm)];
+    }
+    .icon-badge-primary { @apply bg-primary-50 text-primary-600; }
+    .icon-badge-info    { @apply bg-info-50 text-info-600; }
+    .icon-badge-success { @apply bg-success-50 text-success-700; }
+    .icon-badge-amber   { @apply bg-amber-50 text-amber-700; }
+    .icon-badge-neutral { @apply bg-neutral-100 text-neutral-700; }
+    .icon-badge-dark    { @apply bg-neutral-900 text-white; }
+
+    /* Buttons — full utility set per variant, no chaining through a base
+       custom class (Tailwind v4 @apply can't consume another @apply-made
+       class, only real utilities). */
+    .btn-primary {
+        @apply inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] px-4 py-2.5 text-sm font-medium transition-colors bg-primary-500 text-white hover:bg-primary-600;
+    }
+    .btn-dark {
+        @apply inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] px-4 py-2.5 text-sm font-medium transition-colors bg-neutral-900 text-white hover:bg-neutral-800;
+    }
+    .btn-outline {
+        @apply inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] px-4 py-2.5 text-sm font-medium transition-colors border border-neutral-300 text-neutral-700 bg-white hover:bg-neutral-50;
+    }
+    .btn-ghost {
+        @apply inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] px-4 py-2.5 text-sm font-medium transition-colors text-neutral-600 hover:bg-neutral-100;
+    }
+
+    /* Status pills — same fix, full utility set per variant */
+    .pill-success { @apply inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] px-2.5 py-1 text-xs font-semibold bg-success-50 text-success-700; }
+    .pill-info    { @apply inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] px-2.5 py-1 text-xs font-semibold bg-info-50 text-info-700; }
+    .pill-amber   { @apply inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] px-2.5 py-1 text-xs font-semibold bg-amber-100 text-amber-700; }
+    .pill-danger  { @apply inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] px-2.5 py-1 text-xs font-semibold bg-critical-50 text-critical-700; }
+    .pill-neutral { @apply inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] px-2.5 py-1 text-xs font-semibold bg-neutral-100 text-neutral-600; }
+
+    .input {
+        @apply w-full rounded-[var(--radius-sm)] border border-neutral-300 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500;
+    }
+    .label {
+        @apply mb-1.5 block text-xs font-medium text-neutral-600;
+    }
+
+    .table-clean { @apply w-full text-sm; }
+    .table-clean thead th {
+        @apply border-b border-neutral-200 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500;
+    }
+    .table-clean tbody td {
+        @apply border-b border-neutral-100 px-4 py-3.5 text-neutral-800;
+    }
+    .table-clean tbody tr:last-child td { @apply border-b-0; }
+    .table-clean tbody tr:hover { @apply bg-neutral-50; }
 }

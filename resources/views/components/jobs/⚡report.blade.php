@@ -156,25 +156,25 @@ new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Compon
             <div class="mb-3">
                 <label class="label">Fault reported</label>
                 <textarea wire:model="faultDescription" rows="2" class="input"></textarea>
-                @error('faultDescription') <p class="mt-1 text-xs text-critical-600">{{ $message }}</p> @enderror
+                @error('faultDescription') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
             </div>
 
             <div class="mb-3">
                 <label class="label">Cause</label>
                 <textarea wire:model="cause" rows="2" class="input"></textarea>
-                @error('cause') <p class="mt-1 text-xs text-critical-600">{{ $message }}</p> @enderror
+                @error('cause') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
             </div>
 
             <div class="mb-3">
                 <label class="label">Correction</label>
                 <textarea wire:model="correction" rows="3" class="input"></textarea>
-                @error('correction') <p class="mt-1 text-xs text-critical-600">{{ $message }}</p> @enderror
+                @error('correction') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
             </div>
 
             <div>
                 <label class="label">Final result</label>
                 <textarea wire:model="finalResult" rows="2" class="input"></textarea>
-                @error('finalResult') <p class="mt-1 text-xs text-critical-600">{{ $message }}</p> @enderror
+                @error('finalResult') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
             </div>
         </div>
 
@@ -192,7 +192,7 @@ new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Compon
                     <input wire:model="parts.{{ $index }}.partNumber" type="text" placeholder="Part no." class="input flex-1">
                     <input wire:model="parts.{{ $index }}.quantity" type="number" min="1" placeholder="Qty" class="input w-16">
                     @if (count($parts) > 1)
-                        <button type="button" wire:click="removePart({{ $index }})" class="shrink-0 text-neutral-400 hover:text-critical-600">
+                        <button type="button" wire:click="removePart({{ $index }})" class="shrink-0 text-neutral-400 hover:text-critical-700">
                             &times;
                         </button>
                     @endif
@@ -217,7 +217,7 @@ new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Compon
                 <div>
                     <label class="label">What happened, when, where and who was involved</label>
                     <textarea wire:model="incidentDescription" rows="3" class="input"></textarea>
-                    @error('incidentDescription') <p class="mt-1 text-xs text-critical-600">{{ $message }}</p> @enderror
+                    @error('incidentDescription') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
                 </div>
             @endif
         </div>

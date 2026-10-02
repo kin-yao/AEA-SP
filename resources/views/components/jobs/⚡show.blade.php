@@ -122,7 +122,7 @@ new #[Layout('layouts.app', ['title' => 'Job'])] class extends Component
             </div>
             <div>
                 <dt class="text-neutral-500">Due date</dt>
-                <dd @class(['text-critical-600 font-medium' => $isOverdue, 'text-neutral-900' => ! $isOverdue])>
+                <dd @class(['text-critical-700 font-medium' => $isOverdue, 'text-neutral-900' => ! $isOverdue])>
                     {{ $job->due_date->format('d M Y') }}
                 </dd>
             </div>

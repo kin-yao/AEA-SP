@@ -4,6 +4,7 @@ use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules\Password;
 use App\Models\Customer;
 use App\Models\Branch;
@@ -13,6 +14,8 @@ new #[Layout('layouts.guest', ['title' => 'Create your account - AEA Service Por
 {
     public string $companyName = '';
     public string $branchId = '';
+    public string $kraPin = '';
+    public string $poBox = '';
     public string $contactName = '';
     public string $email = '';
     public string $phone = '';
@@ -31,6 +34,8 @@ new #[Layout('layouts.guest', ['title' => 'Create your account - AEA Service Por
         $validated = $this->validate([
             'companyName' => ['required', 'string', 'max:255'],
             'branchId' => ['required', 'exists:branches,id'],
+            'kraPin' => ['nullable', 'string', 'max:255'],
+            'poBox' => ['nullable', 'string', 'max:255'],
             'contactName' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'max:255'],
@@ -43,9 +48,15 @@ new #[Layout('layouts.guest', ['title' => 'Create your account - AEA Service Por
             'reference' => $reference,
             'name' => $validated['companyName'],
             'branch_id' => $validated['branchId'],
+            'kra_pin' => $validated['kraPin'] ?: null,
+            'po_box' => $validated['poBox'] ?: null,
             'main_contact_name' => $validated['contactName'],
             'main_contact_email' => $validated['email'],
             'main_contact_phone' => $validated['phone'] ?: null,
+            // Deliberately not customer-set: has_active_contract and
+            // balance_minor stay at their defaults (false / 0). Whether
+            // this company is on a contract, and their balance, is an
+            // AEA business decision, not something a signup form grants.
         ]);
 
         $user = User::create([
@@ -66,6 +77,17 @@ new #[Layout('layouts.guest', ['title' => 'Create your account - AEA Service Por
 
         request()->session()->regenerate();
 
+        // Never let a mail problem block an account that was already
+        // created successfully, same rule as WorkflowNotifier elsewhere.
+        try {
+            $user->sendEmailVerificationNotification();
+        } catch (\Throwable $e) {
+            Log::warning('Verification email failed to send', [
+                'to' => $user->email,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         $this->redirect('/dashboard', navigate: true);
     }
 };
@@ -84,7 +106,7 @@ new #[Layout('layouts.guest', ['title' => 'Create your account - AEA Service Por
         <div class="mb-4">
             <label for="companyName" class="label">Company name</label>
             <input wire:model="companyName" type="text" id="companyName" class="input">
-            @error('companyName') <p class="mt-1.5 text-xs text-critical-600">{{ $message }}</p> @enderror
+            @error('companyName') <p class="mt-1.5 text-xs text-critical-700">{{ $message }}</p> @enderror
         </div>
 
         <div class="mb-4">
@@ -95,19 +117,30 @@ new #[Layout('layouts.guest', ['title' => 'Create your account - AEA Service Por
                     <option value="{{ $branch->id }}">{{ $branch->name }}</option>
                 @endforeach
             </select>
-            @error('branchId') <p class="mt-1.5 text-xs text-critical-600">{{ $message }}</p> @enderror
+            @error('branchId') <p class="mt-1.5 text-xs text-critical-700">{{ $message }}</p> @enderror
+        </div>
+
+        <div class="mb-4 grid grid-cols-2 gap-4">
+            <div>
+                <label for="kraPin" class="label">KRA PIN (optional)</label>
+                <input wire:model="kraPin" type="text" id="kraPin" class="input">
+            </div>
+            <div>
+                <label for="poBox" class="label">P.O. Box (optional)</label>
+                <input wire:model="poBox" type="text" id="poBox" class="input">
+            </div>
         </div>
 
         <div class="mb-4">
             <label for="contactName" class="label">Your name</label>
             <input wire:model="contactName" type="text" id="contactName" class="input">
-            @error('contactName') <p class="mt-1.5 text-xs text-critical-600">{{ $message }}</p> @enderror
+            @error('contactName') <p class="mt-1.5 text-xs text-critical-700">{{ $message }}</p> @enderror
         </div>
 
         <div class="mb-4">
             <label for="email" class="label">Email</label>
             <input wire:model="email" type="email" id="email" autocomplete="email" class="input">
-            @error('email') <p class="mt-1.5 text-xs text-critical-600">{{ $message }}</p> @enderror
+            @error('email') <p class="mt-1.5 text-xs text-critical-700">{{ $message }}</p> @enderror
         </div>
 
         <div class="mb-4">
@@ -118,7 +151,7 @@ new #[Layout('layouts.guest', ['title' => 'Create your account - AEA Service Por
         <div class="mb-4">
             <label for="password" class="label">Password</label>
             <input wire:model="password" type="password" id="password" autocomplete="new-password" class="input">
-            @error('password') <p class="mt-1.5 text-xs text-critical-600">{{ $message }}</p> @enderror
+            @error('password') <p class="mt-1.5 text-xs text-critical-700">{{ $message }}</p> @enderror
         </div>
 
         <div class="mb-5">
@@ -132,7 +165,7 @@ new #[Layout('layouts.guest', ['title' => 'Create your account - AEA Service Por
         </button>
 
         <p class="mt-4 text-center text-xs text-neutral-400">
-            Company details like KRA PIN and any service contract can be added later by AEA's team.
+            Any service contract and billing setup is arranged separately with AEA's team.
         </p>
     </form>
 

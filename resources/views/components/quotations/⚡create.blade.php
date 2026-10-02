@@ -137,7 +137,7 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
                             <option value="{{ $customer->id }}">{{ $customer->name }}</option>
                         @endforeach
                     </select>
-                    @error('customerId') <p class="mt-1 text-xs text-critical-600">{{ $message }}</p> @enderror
+                    @error('customerId') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="label">Site</label>
@@ -152,7 +152,7 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
             <div>
                 <label class="label">Scope of work</label>
                 <input wire:model="scope" type="text" placeholder="e.g. Weighbridge load cell replacement" class="input">
-                @error('scope') <p class="mt-1 text-xs text-critical-600">{{ $message }}</p> @enderror
+                @error('scope') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
             </div>
         </div>
 
@@ -170,7 +170,7 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
                     <input wire:model.live="items.{{ $index }}.quantity" type="number" min="1" placeholder="Qty" class="input w-16">
                     <input wire:model.live="items.{{ $index }}.rate" type="text" inputmode="decimal" placeholder="Rate, KES" class="input w-28">
                     @if (count($items) > 1)
-                        <button type="button" wire:click="removeItem({{ $index }})" class="shrink-0 text-neutral-400 hover:text-critical-600">
+                        <button type="button" wire:click="removeItem({{ $index }})" class="shrink-0 text-neutral-400 hover:text-critical-700">
                             &times;
                         </button>
                     @endif

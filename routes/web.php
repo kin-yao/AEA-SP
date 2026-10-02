@@ -1,6 +1,9 @@
 <?php
 
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -22,6 +25,29 @@ Route::livewire('/dashboard', 'dashboard')
 Route::livewire('/change-password', 'auth.change-password')
     ->middleware('auth')
     ->name('change-password');
+
+Route::livewire('/email/verify', 'auth.verify-email')
+    ->middleware('auth')
+    ->name('verification.notice');
+
+Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+    $request->fulfill();
+
+    return redirect('/dashboard');
+})->middleware(['auth', 'signed'])->name('verification.verify');
+
+Route::post('/email/verification-notification', function (Request $request) {
+    try {
+        $request->user()->sendEmailVerificationNotification();
+    } catch (\Throwable $e) {
+        Log::warning('Verification email failed to send', [
+            'to' => $request->user()->email,
+            'error' => $e->getMessage(),
+        ]);
+    }
+
+    return back()->with('status', 'A new verification link has been sent to your email address.');
+})->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 
 Route::livewire('/requests', 'requests')
     ->middleware(['auth', 'password.current'])

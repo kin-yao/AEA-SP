@@ -131,6 +131,13 @@
             </header>
 
             <main class="flex-1 px-4 py-6 pb-20 md:px-8 md:py-8 md:pb-8">
+                @if (auth()->user()->hasRole('Customer') && ! auth()->user()->hasVerifiedEmail())
+                    <div class="mb-4 flex items-center justify-between rounded-[var(--radius-md)] border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
+                        <span>Please verify your email address ({{ auth()->user()->email }}).</span>
+                        <a href="/email/verify" wire:navigate class="font-semibold underline hover:no-underline">Verify now</a>
+                    </div>
+                @endif
+
                 {{ $slot }}
             </main>
         </div>

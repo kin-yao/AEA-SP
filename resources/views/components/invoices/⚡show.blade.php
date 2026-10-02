@@ -232,7 +232,7 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
             </div>
             <div>
                 <dt class="text-neutral-500">Due</dt>
-                <dd @class(['text-critical-600 font-medium' => $isOverdue, 'text-neutral-900' => ! $isOverdue])>
+                <dd @class(['text-critical-700 font-medium' => $isOverdue, 'text-neutral-900' => ! $isOverdue])>
                     {{ $invoice->due_at->format('d M Y') }}
                 </dd>
             </div>
@@ -273,7 +273,7 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
             <div class="mb-3">
                 <label class="label">Amount, KES</label>
                 <input wire:model="paymentAmount" type="text" inputmode="decimal" placeholder="0.00" class="input">
-                @error('paymentAmount') <p class="mt-1 text-xs text-critical-600">{{ $message }}</p> @enderror
+                @error('paymentAmount') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
             </div>
             <div class="mb-4">
                 <label class="label">Method</label>

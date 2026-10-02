@@ -143,14 +143,14 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
                     <input wire:model="items.{{ $index }}.quantity" type="text" inputmode="decimal" placeholder="Qty" class="input w-16">
                     <input wire:model="items.{{ $index }}.rate" type="text" inputmode="decimal" placeholder="Rate" class="input w-24">
                     @if (count($items) > 1)
-                        <button type="button" wire:click="removeItem({{ $index }})" class="px-2 text-neutral-400 hover:text-critical-600">
+                        <button type="button" wire:click="removeItem({{ $index }})" class="px-2 text-neutral-400 hover:text-critical-700">
                             &times;
                         </button>
                     @endif
                 </div>
             @endforeach
         </div>
-        @error('items') <p class="mb-3 text-xs text-critical-600">{{ $message }}</p> @enderror
+        @error('items') <p class="mb-3 text-xs text-critical-700">{{ $message }}</p> @enderror
 
         <button type="button" wire:click="addItem" class="mb-4 text-xs font-medium text-info-700 hover:text-info-800">
             + Add line
@@ -161,7 +161,7 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
             <input wire:model.live="vatRate" type="text" inputmode="decimal" class="input w-16 text-right">
             <span class="text-sm text-neutral-600">%</span>
         </div>
-        @error('vatRate') <p class="mb-3 text-right text-xs text-critical-600">{{ $message }}</p> @enderror
+        @error('vatRate') <p class="mb-3 text-right text-xs text-critical-700">{{ $message }}</p> @enderror
 
         <div class="mb-4 flex justify-end">
             <div class="w-56 text-sm">
@@ -183,7 +183,7 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
         <div class="mb-4">
             <label class="label">Due date</label>
             <input wire:model="dueAt" type="date" class="input">
-            @error('dueAt') <p class="mt-1 text-xs text-critical-600">{{ $message }}</p> @enderror
+            @error('dueAt') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
         </div>
 
         <button type="submit" wire:loading.attr="disabled" wire:target="submit" class="btn-primary w-full">

@@ -68,7 +68,7 @@ new #[Layout('layouts.guest', ['title' => 'Sign in - AEA Service Portal'])] clas
                 >
             </div>
             @error('email')
-                <p class="mt-1.5 flex items-center gap-1 text-xs text-critical-600">
+                <p class="mt-1.5 flex items-center gap-1 text-xs text-critical-700">
                     <x-icon name="exclamation-circle" class="h-3.5 w-3.5" /> {{ $message }}
                 </p>
             @enderror
@@ -88,7 +88,7 @@ new #[Layout('layouts.guest', ['title' => 'Sign in - AEA Service Portal'])] clas
                 >
             </div>
             @error('password')
-                <p class="mt-1.5 flex items-center gap-1 text-xs text-critical-600">
+                <p class="mt-1.5 flex items-center gap-1 text-xs text-critical-700">
                     <x-icon name="exclamation-circle" class="h-3.5 w-3.5" /> {{ $message }}
                 </p>
             @enderror

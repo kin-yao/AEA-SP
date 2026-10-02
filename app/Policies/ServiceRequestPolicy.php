@@ -23,11 +23,12 @@ class ServiceRequestPolicy
         return $user->hasAnyRole(['Manager', 'Supervisor', 'Service Admin']);
     }
 
-    // Still Service Admin only, per the confirmed rule, a customer calling
-    // in doesn't log their own request, Service Admin logs it for them.
+    // Revisited: customers may now log their own requests through their
+    // self-service account, and Service Admin can still log one on behalf
+    // of a customer who calls in instead of using the portal.
     public function create(User $user): bool
     {
-        return $user->hasRole('Service Admin');
+        return $user->hasAnyRole(['Service Admin', 'Customer']);
     }
 
     public function update(User $user, ServiceRequest $serviceRequest): bool

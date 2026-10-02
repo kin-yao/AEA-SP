@@ -104,4 +104,8 @@ new #[Layout('layouts.guest', ['title' => 'Sign in - AEA Service Portal'])] clas
             <span wire:loading wire:target="login">Signing in...</span>
         </button>
     </form>
+
+    <p class="mt-5 text-center text-sm text-neutral-500">
+        New customer? <a href="/register" wire:navigate class="font-semibold text-primary-600 hover:text-primary-700">Create an account</a>
+    </p>
 </div>

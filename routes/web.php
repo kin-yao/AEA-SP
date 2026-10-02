@@ -11,6 +11,10 @@ Route::livewire('/login', 'auth.login')
     ->middleware('guest')
     ->name('login');
 
+Route::livewire('/register', 'auth.register')
+    ->middleware('guest')
+    ->name('register');
+
 Route::livewire('/dashboard', 'dashboard')
     ->middleware(['auth', 'password.current'])
     ->name('dashboard');

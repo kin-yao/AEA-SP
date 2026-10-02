@@ -6,6 +6,7 @@ use App\Models\ServiceRequest;
 use App\Models\Customer;
 use App\Models\CustomerSite;
 use App\Models\Equipment;
+use App\Models\Branch;
 use App\Services\WorkflowNotifier;
 
 new #[Layout('layouts.app', ['title' => 'Log a request'])] class extends Component
@@ -21,9 +22,62 @@ new #[Layout('layouts.app', ['title' => 'Log a request'])] class extends Compone
 
     public ?ServiceRequest $created = null;
 
+    // Only used by Service Admin, for a brand-new company that isn't in
+    // the system yet. A Customer-role user already has their own
+    // customer_id, so this never applies to them.
+    public bool $addingNewCustomer = false;
+    public string $newCustomerName = '';
+    public string $newCustomerBranchId = '';
+    public string $newCustomerContactName = '';
+    public string $newCustomerContactPhone = '';
+
     public function mount(): void
     {
         $this->authorize('create', ServiceRequest::class);
+
+        if (auth()->user()->hasRole('Customer')) {
+            $this->customer_id = (string) auth()->user()->customer_id;
+            $this->contact_name = auth()->user()->name;
+
+            $customer = Customer::find(auth()->user()->customer_id);
+            $this->cover = $customer && $customer->has_active_contract ? 'Contract' : 'Chargeable';
+        }
+    }
+
+    public function toggleNewCustomer(): void
+    {
+        abort_unless(auth()->user()->hasRole('Service Admin'), 403);
+
+        $this->addingNewCustomer = ! $this->addingNewCustomer;
+    }
+
+    public function createCustomer(): void
+    {
+        abort_unless(auth()->user()->hasRole('Service Admin'), 403);
+
+        $validated = $this->validate([
+            'newCustomerName' => ['required', 'string', 'max:255'],
+            'newCustomerBranchId' => ['required', 'exists:branches,id'],
+            'newCustomerContactName' => ['nullable', 'string', 'max:255'],
+            'newCustomerContactPhone' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $reference = 'CUS-'.str_pad((string) (Customer::max('id') + 1), 4, '0', STR_PAD_LEFT);
+
+        $customer = Customer::create([
+            'reference' => $reference,
+            'name' => $validated['newCustomerName'],
+            'branch_id' => $validated['newCustomerBranchId'],
+            'main_contact_name' => $validated['newCustomerContactName'] ?: null,
+            'main_contact_phone' => $validated['newCustomerContactPhone'] ?: null,
+        ]);
+
+        $this->customer_id = (string) $customer->id;
+        $this->addingNewCustomer = false;
+        $this->newCustomerName = '';
+        $this->newCustomerBranchId = '';
+        $this->newCustomerContactName = '';
+        $this->newCustomerContactPhone = '';
     }
 
     public function updatedCustomerId(): void
@@ -50,6 +104,7 @@ new #[Layout('layouts.app', ['title' => 'Log a request'])] class extends Compone
     {
         return [
             'customers' => Customer::orderBy('name')->get(),
+            'branches' => Branch::orderBy('name')->get(),
         ];
     }
 
@@ -125,17 +180,65 @@ new #[Layout('layouts.app', ['title' => 'Log a request'])] class extends Compone
         </div>
     @else
         <form wire:submit="submit" class="space-y-4">
+            @if ($addingNewCustomer)
+                <div class="card" style="border-left: 4px solid var(--color-primary-500)">
+                    <h2 class="mb-3 text-sm font-semibold text-neutral-900">New customer</h2>
+                    <div class="mb-3 grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="label">Company name</label>
+                            <input wire:model="newCustomerName" type="text" class="input">
+                            @error('newCustomerName') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="label">Branch</label>
+                            <select wire:model="newCustomerBranchId" class="input">
+                                <option value="">Select a branch</option>
+                                @foreach ($branches as $branch)
+                                    <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('newCustomerBranchId') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+                    <div class="mb-3 grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="label">Contact name (optional)</label>
+                            <input wire:model="newCustomerContactName" type="text" class="input">
+                        </div>
+                        <div>
+                            <label class="label">Contact phone (optional)</label>
+                            <input wire:model="newCustomerContactPhone" type="text" class="input">
+                        </div>
+                    </div>
+                    <button type="button" wire:click="createCustomer" class="btn-primary">
+                        Create customer
+                    </button>
+                    <p class="mt-2 text-xs text-neutral-400">
+                        This creates the company record. KRA PIN, contract, and billing details can be filled in later by Finance or a Manager.
+                    </p>
+                </div>
+            @endif
+
             <div class="card">
                 <div class="mb-3 grid grid-cols-2 gap-4">
                     <div>
                         <label class="label">Customer</label>
-                        <select wire:model.live="customer_id" class="input">
-                            <option value="">Select a customer</option>
-                            @foreach ($customers as $customer)
-                                <option value="{{ $customer->id }}">{{ $customer->name }}</option>
-                            @endforeach
-                        </select>
-                        @error('customer_id') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        @if (auth()->user()->hasRole('Customer'))
+                            <div class="input flex items-center bg-neutral-50 text-neutral-600">
+                                {{ auth()->user()->customer->name }}
+                            </div>
+                        @else
+                            <select wire:model.live="customer_id" class="input">
+                                <option value="">Select a customer</option>
+                                @foreach ($customers as $customer)
+                                    <option value="{{ $customer->id }}">{{ $customer->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('customer_id') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                            <button type="button" wire:click="toggleNewCustomer" class="mt-1.5 text-xs font-semibold text-primary-600 hover:text-primary-700">
+                                {{ $addingNewCustomer ? 'Cancel' : '+ Add a new customer' }}
+                            </button>
+                        @endif
                     </div>
                     <div>
                         <label class="label">Site (optional)</label>
@@ -178,13 +281,15 @@ new #[Layout('layouts.app', ['title' => 'Log a request'])] class extends Compone
 
             <div class="card">
                 <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="label">Cover</label>
-                        <select wire:model="cover" class="input">
-                            <option>Chargeable</option>
-                            <option>Contract</option>
-                        </select>
-                    </div>
+                    @unless (auth()->user()->hasRole('Customer'))
+                        <div>
+                            <label class="label">Cover</label>
+                            <select wire:model="cover" class="input">
+                                <option>Chargeable</option>
+                                <option>Contract</option>
+                            </select>
+                        </div>
+                    @endunless
                     <div>
                         <label class="label">Priority</label>
                         <select wire:model="priority" class="input">

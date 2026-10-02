@@ -8,6 +8,7 @@ use App\Models\Invoice;
 use App\Models\InventoryItem;
 use App\Models\Quotation;
 use App\Models\ServiceRequest;
+use App\Models\User;
 use App\Models\WorkOrder;
 use App\Policies\ContractPolicy;
 use App\Policies\DocumentPolicy;
@@ -15,6 +16,7 @@ use App\Policies\InventoryItemPolicy;
 use App\Policies\InvoicePolicy;
 use App\Policies\QuotationPolicy;
 use App\Policies\ServiceRequestPolicy;
+use App\Policies\UserPolicy;
 use App\Policies\WorkOrderPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -41,5 +43,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Document::class, DocumentPolicy::class);
         Gate::policy(Invoice::class, InvoicePolicy::class);
         Gate::policy(InventoryItem::class, InventoryItemPolicy::class);
+        Gate::policy(User::class, UserPolicy::class);
     }
 }

@@ -39,6 +39,10 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
             return $this->financeStats();
         }
 
+        if ($user->hasRole('Customer')) {
+            return $this->customerStats();
+        }
+
         return null;
     }
 
@@ -255,6 +259,46 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
             'paidThisMonthMinor' => Payment::where('paid_at', '>=', now()->startOfMonth())->sum('amount_minor'),
             'recentInvoices' => Invoice::with('customer')->latest()->limit(6)->get(),
             'recentPayments' => Payment::with('customer')->latest()->limit(6)->get(),
+        ];
+    }
+
+    private function customerStats(): array
+    {
+        $user = auth()->user();
+        $customerId = $user->customer_id;
+
+        $myRequests = ServiceRequest::where('customer_id', $customerId)->latest()->get();
+        $myJobs = WorkOrder::where('customer_id', $customerId)
+            ->whereNotIn('status', ['Closed'])
+            ->orderBy('due_date')
+            ->get();
+        $myInvoices = Invoice::where('customer_id', $customerId)->latest('issued_at')->get();
+        $outstanding = $myInvoices->whereIn('status', ['Unpaid', 'Part paid']);
+
+        $contract = Contract::where('customer_id', $customerId)
+            ->where('status', 'Active')
+            ->latest('ends_at')
+            ->first();
+
+        $recentDocuments = Document::with('workOrder')
+            ->where('customer_id', $customerId)
+            ->whereIn('type', Document::scopeForRole('Customer'))
+            ->latest()
+            ->take(5)
+            ->get();
+
+        return [
+            'role' => 'Customer',
+            'customer' => Customer::find($customerId),
+            'openRequestsCount' => $myRequests->whereIn('status', ['Open', 'Assigned', 'Quoted'])->count(),
+            'recentRequests' => $myRequests->take(5),
+            'activeJobs' => $myJobs,
+            'nextJob' => $myJobs->first(),
+            'outstandingBalanceMinor' => $outstanding->sum(fn (Invoice $i) => $i->balanceMinor()),
+            'overdueInvoicesCount' => $outstanding->filter(fn (Invoice $i) => $i->due_at->isPast())->count(),
+            'recentInvoices' => $myInvoices->take(5),
+            'contract' => $contract,
+            'recentDocuments' => $recentDocuments,
         ];
     }
 };
@@ -881,6 +925,134 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
                         <p class="py-2 text-sm text-neutral-500">No payments yet.</p>
                     @endforelse
                 </div>
+            </div>
+        </div>
+
+    @elseif ($this->stats['role'] === 'Customer')
+        <div class="mb-5 grid gap-4 lg:grid-cols-12">
+            <div class="card-dark lg:col-span-7">
+                <p class="text-[11px] font-semibold uppercase tracking-widest text-white/40">Open requests</p>
+                <p class="mt-1.5 text-5xl font-bold leading-none text-white">{{ $this->stats['openRequestsCount'] }}</p>
+                <p class="mt-2 text-xs text-white/40">
+                    @if ($this->stats['nextJob'])
+                        Next visit: {{ $this->stats['nextJob']->reference }}, due {{ $this->stats['nextJob']->due_date->format('d M Y') }}
+                    @else
+                        No jobs currently in progress
+                    @endif
+                </p>
+                <a href="/requests" wire:navigate class="mt-4 inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-white/10 px-4 py-2.5 text-xs font-semibold text-white hover:bg-white/20">
+                    View requests <x-icon name="arrow-right" class="h-3.5 w-3.5" />
+                </a>
+            </div>
+
+            <div class="flex flex-col gap-4 lg:col-span-5">
+                <div class="card flex-1">
+                    <div class="flex items-center justify-between">
+                        <span class="icon-badge-sm icon-badge-primary"><x-icon name="tools" class="h-4 w-4" /></span>
+                        <span class="text-3xl font-bold leading-none text-neutral-900">{{ $this->stats['activeJobs']->count() }}</span>
+                    </div>
+                    <p class="mt-3 text-sm font-semibold text-neutral-900">Active jobs</p>
+                    <a href="/jobs" wire:navigate class="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary-600 hover:text-primary-700">
+                        View jobs <x-icon name="arrow-right" class="h-3 w-3" />
+                    </a>
+                </div>
+                <div class="card flex-1">
+                    <div class="flex items-center justify-between">
+                        <span class="icon-badge-sm icon-badge-amber"><x-icon name="receipt" class="h-4 w-4" /></span>
+                        <span class="text-3xl font-bold leading-none text-neutral-900">KES {{ number_format($this->stats['outstandingBalanceMinor'] / 100, 0) }}</span>
+                    </div>
+                    <p class="mt-3 text-sm font-semibold text-neutral-900">Outstanding balance</p>
+                    <a href="/invoices" wire:navigate class="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-amber-700 hover:text-amber-800">
+                        @if ($this->stats['overdueInvoicesCount'] > 0)
+                            {{ $this->stats['overdueInvoicesCount'] }} overdue
+                        @else
+                            View invoices
+                        @endif
+                        <x-icon name="arrow-right" class="h-3 w-3" />
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        @if ($this->stats['contract'])
+            <div class="mb-5">
+                <p class="mb-2 text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Your contract</p>
+                <div class="card">
+                    <x-expiry-ring
+                        :percent="$this->stats['contract']->percentOfTermUsedCapped()"
+                        :stage="$this->stats['contract']->expiryStage()"
+                        :title="$this->stats['contract']->reference.' &middot; '.$this->stats['contract']->type"
+                        :expiresAt="$this->stats['contract']->ends_at->format('d M Y')" />
+                </div>
+            </div>
+        @endif
+
+        <div class="grid items-start gap-4 lg:grid-cols-2">
+            <div class="card">
+                <h2 class="mb-3 text-sm font-semibold text-neutral-900">Recent requests</h2>
+                <div class="divide-y divide-neutral-50">
+                    @forelse ($this->stats['recentRequests'] as $request)
+                        <a href="/requests/{{ $request->id }}" wire:navigate class="flex items-center justify-between py-2.5 text-sm hover:text-primary-600">
+                            <span class="min-w-0 truncate text-neutral-900">{{ $request->reference }} &middot; {{ $request->fault_description }}</span>
+                            @php
+                                $pill = match (true) {
+                                    $request->status === 'Converted' => 'pill-success',
+                                    in_array($request->status, ['Assigned', 'Quoted']) => 'pill-info',
+                                    $request->status === 'Declined' => 'pill-danger',
+                                    default => 'pill-neutral',
+                                };
+                            @endphp
+                            <span class="{{ $pill }} ml-2 shrink-0">{{ $request->status }}</span>
+                        </a>
+                    @empty
+                        <p class="py-2 text-sm text-neutral-500">No requests yet.</p>
+                    @endforelse
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="mb-3 text-sm font-semibold text-neutral-900">Recent documents</h2>
+                <div class="divide-y divide-neutral-50">
+                    @forelse ($this->stats['recentDocuments'] as $document)
+                        <a href="/documents/{{ $document->id }}" wire:navigate class="flex items-center justify-between py-2.5 text-sm hover:text-primary-600">
+                            <span class="text-neutral-900">{{ $document->reference }}</span>
+                            <span class="text-xs text-neutral-500">
+                                @php
+                                    $docLabels = [
+                                        'rep' => 'Service report',
+                                        'cert' => 'Calibration certificate',
+                                        'mv' => 'Maintenance voucher',
+                                        'dn' => 'Delivery note',
+                                    ];
+                                @endphp
+                                {{ $docLabels[$document->type] ?? ucfirst($document->type) }}
+                            </span>
+                        </a>
+                    @empty
+                        <p class="py-2 text-sm text-neutral-500">No documents yet.</p>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-5">
+            <h2 class="mb-3 text-sm font-semibold text-neutral-900">Recent invoices</h2>
+            <div class="divide-y divide-neutral-50">
+                @forelse ($this->stats['recentInvoices'] as $invoice)
+                    <a href="/invoices/{{ $invoice->id }}" wire:navigate class="flex items-center justify-between py-2.5 text-sm hover:text-primary-600">
+                        <span class="text-neutral-900">{{ $invoice->reference }} &middot; due {{ $invoice->due_at->format('d M Y') }}</span>
+                        @php
+                            $amountClass = match (true) {
+                                $invoice->status === 'Paid' => 'text-fresh-700',
+                                in_array($invoice->status, ['Unpaid', 'Part paid']) => 'text-critical-700',
+                                default => 'text-neutral-500',
+                            };
+                        @endphp
+                        <span class="text-xs font-semibold {{ $amountClass }}">KES {{ number_format($invoice->amount_minor / 100, 0) }}</span>
+                    </a>
+                @empty
+                    <p class="py-2 text-sm text-neutral-500">No invoices yet.</p>
+                @endforelse
             </div>
         </div>
     @endif

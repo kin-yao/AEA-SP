@@ -67,6 +67,15 @@
                         Invoices
                     </a>
                 @endcan
+
+                @can('viewAny', \App\Models\User::class)
+                    <p class="mb-1 mt-6 px-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">Admin</p>
+                    <a href="/users" wire:navigate
+                       class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('users*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
+                        <x-icon name="people" class="h-4.5 w-4.5" />
+                        Accounts
+                    </a>
+                @endcan
             </nav>
 
             <div class="border-t border-neutral-200 p-3">

@@ -5,6 +5,7 @@ use Livewire\Attributes\Layout;
 use App\Models\ServiceRequest;
 use App\Models\User;
 use App\Models\WorkOrder;
+use App\Services\WorkflowNotifier;
 
 new #[Layout('layouts.app', ['title' => 'Request'])] class extends Component
 {
@@ -39,6 +40,26 @@ new #[Layout('layouts.app', ['title' => 'Request'])] class extends Component
 
         $this->request->assignTechnician($technician, $this->natureOfVisit);
         $this->request->refresh();
+
+        WorkflowNotifier::customer(
+            $this->request->customer,
+            'A technician has been assigned to your request',
+            [
+                "{$technician->name} has been assigned to {$this->request->reference}.",
+                "Visit type: {$this->natureOfVisit}",
+            ],
+        );
+
+        WorkflowNotifier::user(
+            $technician,
+            'You\'ve been assigned a service request',
+            [
+                "{$this->request->reference} for {$this->request->customer->name} has been assigned to you.",
+                "Fault: {$this->request->fault_description}",
+            ],
+            url("/requests/{$this->request->id}"),
+            'View request',
+        );
     }
 
     public function decline(): void
@@ -46,6 +67,15 @@ new #[Layout('layouts.app', ['title' => 'Request'])] class extends Component
         $this->authorize('decline', $this->request);
 
         $this->request->update(['status' => 'Declined']);
+
+        WorkflowNotifier::customer(
+            $this->request->customer,
+            'Your service request could not be proceeded',
+            [
+                "We're sorry, but request {$this->request->reference} has been declined.",
+                'Please contact us if you have questions.',
+            ],
+        );
     }
 
     public function generateJob(): void
@@ -77,6 +107,27 @@ new #[Layout('layouts.app', ['title' => 'Request'])] class extends Component
 
         $this->request->update(['status' => 'Converted']);
         $this->request->refresh();
+
+        $workOrder->load(['customer', 'technician']);
+
+        WorkflowNotifier::customer(
+            $workOrder->customer,
+            'Your service visit has been scheduled',
+            [
+                "Job {$workOrder->reference} has been scheduled for {$this->dueDate}.",
+                'Technician: '.($workOrder->technician->name ?? 'to be confirmed'),
+            ],
+        );
+
+        WorkflowNotifier::user(
+            $workOrder->technician,
+            'New job scheduled',
+            [
+                "Job {$workOrder->reference} for {$workOrder->customer->name} is due {$this->dueDate}.",
+            ],
+            url("/jobs/{$workOrder->id}"),
+            'View job',
+        );
 
         $this->generatedReference = $workOrder->reference;
     }

@@ -3,6 +3,7 @@
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 use App\Models\WorkOrder;
+use App\Services\WorkflowNotifier;
 
 new #[Layout('layouts.app', ['title' => 'Job'])] class extends Component
 {
@@ -60,6 +61,18 @@ new #[Layout('layouts.app', ['title' => 'Job'])] class extends Component
 
         $this->job->update(['status' => $next]);
         $this->job->refresh();
+
+        // Only the customer-visible milestone gets an email, not every
+        // internal stage, the technician's own "On site" step included.
+        if ($next === 'Closed') {
+            WorkflowNotifier::customer(
+                $this->job->customer,
+                'Your service job has been completed',
+                [
+                    "Job {$this->job->reference} has been marked complete.",
+                ],
+            );
+        }
     }
 };
 ?>

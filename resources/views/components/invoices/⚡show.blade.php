@@ -4,6 +4,7 @@ use Livewire\Component;
 use Livewire\Attributes\Layout;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Services\WorkflowNotifier;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
@@ -30,6 +31,15 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
 
         $this->invoice->update(['status' => 'Unpaid']);
         $this->invoice->refresh();
+
+        WorkflowNotifier::customer(
+            $this->invoice->customer,
+            'Invoice issued',
+            [
+                "Invoice {$this->invoice->reference} for KES ".number_format($this->invoice->amount_minor / 100, 2).' has been issued.',
+                'Due date: '.$this->invoice->due_at->format('d M Y'),
+            ],
+        );
     }
 
     public function recordPayment(): void
@@ -58,6 +68,16 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
 
         $this->invoice->refresh();
         $this->invoice->load('payments');
+
+        WorkflowNotifier::customer(
+            $this->invoice->customer,
+            'Payment received',
+            [
+                "We've received your payment of KES ".number_format($amountMinor / 100, 2)." against invoice {$this->invoice->reference}.",
+                "Status: {$this->invoice->status}",
+            ],
+        );
+
         $this->paymentAmount = '';
     }
 

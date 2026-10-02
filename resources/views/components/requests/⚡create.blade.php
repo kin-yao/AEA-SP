@@ -1,0 +1,204 @@
+<?php
+
+use Livewire\Component;
+use Livewire\Attributes\Layout;
+use App\Models\ServiceRequest;
+use App\Models\Customer;
+use App\Models\CustomerSite;
+use App\Models\Equipment;
+use App\Services\WorkflowNotifier;
+
+new #[Layout('layouts.app', ['title' => 'Log a request'])] class extends Component
+{
+    public string $customer_id = '';
+    public string $customer_site_id = '';
+    public string $equipment_id = '';
+    public string $equipment_description = '';
+    public string $contact_name = '';
+    public string $fault_description = '';
+    public string $cover = 'Chargeable';
+    public string $priority = 'Medium';
+
+    public ?ServiceRequest $created = null;
+
+    public function mount(): void
+    {
+        $this->authorize('create', ServiceRequest::class);
+    }
+
+    public function updatedCustomerId(): void
+    {
+        $this->customer_site_id = '';
+        $this->equipment_id = '';
+    }
+
+    public function getSitesProperty()
+    {
+        return $this->customer_id
+            ? CustomerSite::where('customer_id', $this->customer_id)->orderBy('name')->get()
+            : collect();
+    }
+
+    public function getEquipmentListProperty()
+    {
+        return $this->customer_id
+            ? Equipment::where('customer_id', $this->customer_id)->orderBy('model')->get()
+            : collect();
+    }
+
+    public function with(): array
+    {
+        return [
+            'customers' => Customer::orderBy('name')->get(),
+        ];
+    }
+
+    public function submit(): void
+    {
+        $this->authorize('create', ServiceRequest::class);
+
+        $validated = $this->validate([
+            'customer_id' => ['required', 'exists:customers,id'],
+            'customer_site_id' => ['nullable', 'exists:customer_sites,id'],
+            'equipment_id' => ['nullable', 'exists:equipment,id'],
+            'equipment_description' => ['nullable', 'string', 'max:255'],
+            'contact_name' => ['nullable', 'string', 'max:255'],
+            'fault_description' => ['required', 'string'],
+            'cover' => ['required', 'in:Chargeable,Contract'],
+            'priority' => ['required', 'in:Low,Medium,High'],
+        ]);
+
+        $reference = 'SR-'.str_pad((string) (ServiceRequest::max('id') + 1), 4, '0', STR_PAD_LEFT);
+
+        $request = ServiceRequest::create([
+            ...$validated,
+            'reference' => $reference,
+            'customer_site_id' => $validated['customer_site_id'] ?: null,
+            'equipment_id' => $validated['equipment_id'] ?: null,
+            'logged_by_id' => auth()->id(),
+        ]);
+
+        $request->load('customer');
+
+        WorkflowNotifier::customer(
+            $request->customer,
+            'We\'ve received your service request',
+            [
+                "Your request {$request->reference} has been logged and will be assigned to a technician shortly.",
+                "Fault reported: {$request->fault_description}",
+            ],
+        );
+
+        WorkflowNotifier::role(
+            'Supervisor',
+            'New service request logged',
+            [
+                "{$request->reference} for {$request->customer->name} needs a technician assigned.",
+                "Fault: {$request->fault_description}",
+            ],
+            url("/requests/{$request->id}"),
+            'View request',
+        );
+
+        $this->created = $request;
+    }
+};
+?>
+
+<div>
+    <a href="/requests" wire:navigate class="mb-4 inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900">
+        <x-icon name="arrow-right" class="h-3.5 w-3.5 rotate-180" />
+        Back to requests
+    </a>
+
+    <h1 class="mb-6 text-xl font-semibold text-neutral-900">Log a request</h1>
+
+    @if ($created)
+        <div class="card mb-4" style="background-color: var(--color-fresh-50); border-color: #bfe3c7">
+            <p class="mb-3 text-sm text-fresh-700">
+                Request <strong>{{ $created->reference }}</strong> logged for {{ $created->customer->name }}.
+            </p>
+            <div class="flex gap-2">
+                <a href="/requests/{{ $created->id }}" wire:navigate class="btn-outline flex-1 text-center">View request</a>
+                <a href="/requests/create" wire:navigate class="btn-primary flex-1 text-center">Log another</a>
+            </div>
+        </div>
+    @else
+        <form wire:submit="submit" class="space-y-4">
+            <div class="card">
+                <div class="mb-3 grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="label">Customer</label>
+                        <select wire:model.live="customer_id" class="input">
+                            <option value="">Select a customer</option>
+                            @foreach ($customers as $customer)
+                                <option value="{{ $customer->id }}">{{ $customer->name }}</option>
+                            @endforeach
+                        </select>
+                        @error('customer_id') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="label">Site (optional)</label>
+                        <select wire:model="customer_site_id" class="input">
+                            <option value="">No specific site</option>
+                            @foreach ($this->sites as $site)
+                                <option value="{{ $site->id }}">{{ $site->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3 grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="label">Equipment (optional)</label>
+                        <select wire:model="equipment_id" class="input">
+                            <option value="">Not on record</option>
+                            @foreach ($this->equipmentList as $equipment)
+                                <option value="{{ $equipment->id }}">{{ $equipment->model }} &middot; {{ $equipment->serial_number }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label">Equipment description (optional)</label>
+                        <input wire:model="equipment_description" type="text" placeholder="If not on record" class="input">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="label">Contact name (optional)</label>
+                    <input wire:model="contact_name" type="text" class="input">
+                </div>
+
+                <div>
+                    <label class="label">Fault reported</label>
+                    <textarea wire:model="fault_description" rows="3" class="input"></textarea>
+                    @error('fault_description') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="label">Cover</label>
+                        <select wire:model="cover" class="input">
+                            <option>Chargeable</option>
+                            <option>Contract</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label">Priority</label>
+                        <select wire:model="priority" class="input">
+                            <option>Low</option>
+                            <option>Medium</option>
+                            <option>High</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" wire:loading.attr="disabled" wire:target="submit" class="btn-primary w-full">
+                Log request
+            </button>
+        </form>
+    @endif
+</div>

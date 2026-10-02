@@ -6,6 +6,7 @@ use Livewire\Attributes\Layout;
 use App\Models\Quotation;
 use App\Models\User;
 use App\Models\WorkOrder;
+use App\Services\WorkflowNotifier;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
@@ -24,7 +25,7 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
     public function mount(Quotation $quotation): void
     {
         $this->authorize('view', $quotation);
-        $this->quotation = $quotation->load(['customer', 'site', 'items', 'lpoDetail', 'workOrder']);
+        $this->quotation = $quotation->load(['customer', 'site', 'items', 'lpoDetail', 'workOrder', 'createdBy']);
         $this->jobDueDate = now()->addDays(3)->toDateString();
     }
 
@@ -39,6 +40,24 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
 
         $this->quotation->approve();
         $this->quotation->refresh();
+
+        WorkflowNotifier::customer(
+            $this->quotation->customer,
+            'Your quotation is ready',
+            [
+                "Quotation {$this->quotation->reference} has been approved and is ready for your review.",
+            ],
+        );
+
+        WorkflowNotifier::user(
+            $this->quotation->createdBy,
+            'Your quotation was approved',
+            [
+                "Quotation {$this->quotation->reference} for {$this->quotation->customer->name} has been approved.",
+            ],
+            url("/quotations/{$this->quotation->id}"),
+            'View quotation',
+        );
     }
 
     public function sendBack(): void
@@ -47,6 +66,16 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
 
         $this->quotation->sendBack();
         $this->quotation->refresh();
+
+        WorkflowNotifier::user(
+            $this->quotation->createdBy,
+            'Quotation sent back for changes',
+            [
+                "Quotation {$this->quotation->reference} for {$this->quotation->customer->name} was sent back.",
+            ],
+            url("/quotations/{$this->quotation->id}"),
+            'View quotation',
+        );
     }
 
     public function logLpo(): void
@@ -79,7 +108,26 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
 
         $this->quotation->convertToJob((int) $this->jobTechnicianId, $this->jobDueDate, $reference);
         $this->quotation->refresh();
-        $this->quotation->load('workOrder');
+        $this->quotation->load(['workOrder.technician']);
+
+        WorkflowNotifier::customer(
+            $this->quotation->customer,
+            'Your service visit has been scheduled',
+            [
+                "Job {$this->quotation->workOrder->reference} has been scheduled for {$this->jobDueDate}.",
+                'Technician: '.($this->quotation->workOrder->technician->name ?? 'to be confirmed'),
+            ],
+        );
+
+        WorkflowNotifier::user(
+            $this->quotation->workOrder->technician,
+            'New job scheduled',
+            [
+                "Job {$this->quotation->workOrder->reference} for {$this->quotation->customer->name} is due {$this->jobDueDate}.",
+            ],
+            url("/jobs/{$this->quotation->workOrder->id}"),
+            'View job',
+        );
     }
 
     public function downloadPdf()

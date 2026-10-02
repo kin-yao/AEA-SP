@@ -24,7 +24,20 @@ new #[Layout('layouts.guest', ['title' => 'Sign in - AEA Service Portal'])] clas
             ]);
         }
 
+        if (Auth::user()->status !== 'Active') {
+            Auth::logout();
+
+            throw ValidationException::withMessages([
+                'email' => 'This account has been locked. Contact ICT to have it unlocked.',
+            ]);
+        }
+
         request()->session()->regenerate();
+
+        if (Auth::user()->must_change_password) {
+            $this->redirect('/change-password', navigate: true);
+            return;
+        }
 
         $this->redirect('/dashboard', navigate: true);
     }

@@ -3,6 +3,7 @@
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 use App\Models\Document;
+use App\Services\WorkflowNotifier;
 
 new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
 {
@@ -40,6 +41,16 @@ new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
         $this->document->refresh();
 
         $this->document->workOrder?->update(['status' => 'Approved']);
+
+        WorkflowNotifier::user(
+            $this->document->filedBy,
+            'Your report was approved',
+            [
+                "Report {$this->document->reference} has been checked and approved.",
+            ],
+            url("/documents/{$this->document->id}"),
+            'View report',
+        );
     }
 
     public function post(): void
@@ -48,6 +59,26 @@ new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
 
         $this->document->update(['status' => 'Released']);
         $this->document->refresh();
+
+        WorkflowNotifier::customer(
+            $this->document->customer,
+            'Your service report is ready',
+            [
+                "Report {$this->document->reference} for your recent service visit has been released.",
+            ],
+        );
+
+        if ($this->document->workOrder) {
+            WorkflowNotifier::role(
+                'Service Admin',
+                'Job ready to invoice',
+                [
+                    "The report for job {$this->document->workOrder->reference} has been released; it can now be invoiced.",
+                ],
+                url("/invoices/create/{$this->document->workOrder->id}"),
+                'Raise invoice',
+            );
+        }
     }
 };
 ?>

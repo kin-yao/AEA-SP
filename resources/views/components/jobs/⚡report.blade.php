@@ -4,6 +4,7 @@ use Livewire\Component;
 use Livewire\Attributes\Layout;
 use App\Models\WorkOrder;
 use App\Models\Document;
+use App\Services\WorkflowNotifier;
 
 new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Component
 {
@@ -109,6 +110,16 @@ new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Compon
         // Only this, a real filed report, moves the job to Awaiting review,
         // not the generic status button on the job's own page anymore.
         $this->job->update(['status' => 'Awaiting review']);
+
+        WorkflowNotifier::role(
+            'Supervisor',
+            'Service report submitted for review',
+            [
+                "A report for job {$this->job->reference} has been submitted by ".auth()->user()->name.'.',
+            ],
+            url("/documents/{$document->id}"),
+            'Review report',
+        );
 
         $this->redirect('/jobs/'.$this->job->id, navigate: true);
     }

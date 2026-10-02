@@ -4,6 +4,7 @@ use Livewire\Component;
 use Livewire\Attributes\Layout;
 use App\Models\Quotation;
 use App\Models\Customer;
+use App\Services\WorkflowNotifier;
 
 new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Component
 {
@@ -96,9 +97,21 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
             ]);
         }
 
-        $quotation->load('items');
+        $quotation->load(['items', 'customer']);
         $quotation->routeApproval();
         $quotation->save();
+
+        // approval_threshold is 'Manager' or 'Supervisor', the same string
+        // as the role that needs to approve it.
+        WorkflowNotifier::role(
+            $quotation->approval_threshold,
+            'Quotation awaiting your approval',
+            [
+                "Quotation {$quotation->reference} for {$quotation->customer->name} (KES ".number_format($quotation->totalMinor() / 100, 2).') needs your approval.',
+            ],
+            url("/quotations/{$quotation->id}"),
+            'Review quotation',
+        );
 
         $this->redirect('/quotations/'.$quotation->id, navigate: true);
     }

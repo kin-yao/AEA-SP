@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Contract;
+use App\Models\Customer;
 use App\Models\Document;
 use App\Models\Invoice;
 use App\Models\InventoryItem;
@@ -11,6 +12,7 @@ use App\Models\ServiceRequest;
 use App\Models\User;
 use App\Models\WorkOrder;
 use App\Policies\ContractPolicy;
+use App\Policies\CustomerPolicy;
 use App\Policies\DocumentPolicy;
 use App\Policies\InventoryItemPolicy;
 use App\Policies\InvoicePolicy;
@@ -40,6 +42,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Quotation::class, QuotationPolicy::class);
         Gate::policy(WorkOrder::class, WorkOrderPolicy::class);
         Gate::policy(Contract::class, ContractPolicy::class);
+        Gate::policy(Customer::class, CustomerPolicy::class);
         Gate::policy(Document::class, DocumentPolicy::class);
         Gate::policy(Invoice::class, InvoicePolicy::class);
         Gate::policy(InventoryItem::class, InventoryItemPolicy::class);

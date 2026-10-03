@@ -49,6 +49,13 @@
                         Documents
                     </a>
                 @endcan
+                @can('viewAny', \App\Models\Customer::class)
+                    <a href="/customers" wire:navigate
+                       class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('customers*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
+                        <x-icon name="people" class="h-4.5 w-4.5" />
+                        Customers
+                    </a>
+                @endcan
                 @can('viewAny', \App\Models\Contract::class)
                     <a href="/contracts" wire:navigate
                        class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('contracts*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">

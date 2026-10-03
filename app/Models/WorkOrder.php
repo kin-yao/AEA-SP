@@ -10,6 +10,7 @@ class WorkOrder extends Model
     protected $fillable = [
         'reference',
         'customer_id',
+        'contract_id',
         'customer_site_id',
         'equipment_id',
         'equipment_description',
@@ -44,6 +45,11 @@ class WorkOrder extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function contract(): BelongsTo
+    {
+        return $this->belongsTo(Contract::class);
     }
 
     public function site(): BelongsTo

@@ -105,6 +105,10 @@ Route::livewire('/quotations/{quotation}', 'quotations.show')
     ->middleware(['auth', 'password.current'])
     ->name('quotations.show');
 
+Route::livewire('/contracts', 'contracts')->middleware(['auth', 'password.current'])->name('contracts.index');
+Route::livewire('/contracts/create', 'contracts.create')->middleware(['auth', 'password.current'])->name('contracts.create');
+Route::livewire('/contracts/{contract}', 'contracts.show')->middleware(['auth', 'password.current'])->name('contracts.show');
+
 Route::livewire('/users', 'users')
     ->middleware(['auth', 'password.current'])
     ->name('users');

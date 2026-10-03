@@ -2,22 +2,88 @@
 
 use Livewire\Component;
 use Livewire\Attributes\Layout;
+use Livewire\WithFileUploads;
 use App\Models\User;
+use App\Models\TechnicianDocument;
 use App\Mail\AccountCredentialsMail;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 new #[Layout('layouts.app', ['title' => 'User account'])] class extends Component
 {
+    use WithFileUploads;
+
     public User $account;
     public ?string $generatedPassword = null;
     public ?bool $emailSent = null;
 
+    public bool $addingDocument = false;
+    public string $documentType = 'Trade certification';
+    public string $issuedAt = '';
+    public string $validityMonths = '12';
+    public $documentFile = null;
+
     public function mount(User $account): void
     {
         $this->authorize('view', $account);
-        $this->account = $account->load(['branch', 'customer']);
+        $this->account = $account->load(['branch', 'customer', 'technicianDocuments']);
+    }
+
+    public function toggleAddDocument(): void
+    {
+        $this->authorize('manage', $this->account);
+
+        $this->addingDocument = ! $this->addingDocument;
+        $this->documentType = 'Trade certification';
+        $this->issuedAt = '';
+        $this->validityMonths = '12';
+        $this->documentFile = null;
+    }
+
+    public function addDocument(): void
+    {
+        $this->authorize('manage', $this->account);
+
+        $validated = $this->validate([
+            'documentType' => ['required', 'in:Medical cover / insurance,Driving licence,Trade certification,Medical certificate'],
+            'issuedAt' => ['required', 'date'],
+            'validityMonths' => ['required', 'integer', 'min:1'],
+            'documentFile' => ['nullable', 'file', 'max:10240', 'mimes:pdf,jpg,jpeg,png'],
+        ]);
+
+        $path = $this->documentFile?->store('technician-documents', 'public');
+
+        TechnicianDocument::create([
+            'technician_id' => $this->account->id,
+            'document_type' => $validated['documentType'],
+            'issued_at' => $validated['issuedAt'],
+            'validity_months' => $validated['validityMonths'],
+            'file_path' => $path,
+        ]);
+
+        $this->account->load('technicianDocuments');
+        $this->addingDocument = false;
+        $this->documentType = 'Trade certification';
+        $this->issuedAt = '';
+        $this->validityMonths = '12';
+        $this->documentFile = null;
+    }
+
+    public function deleteDocument(int $documentId): void
+    {
+        $this->authorize('manage', $this->account);
+
+        $document = $this->account->technicianDocuments->firstWhere('id', $documentId);
+
+        if ($document) {
+            if ($document->file_path) {
+                Storage::disk('public')->delete($document->file_path);
+            }
+            $document->delete();
+            $this->account->load('technicianDocuments');
+        }
     }
 
     public function toggleLock(): void
@@ -112,6 +178,80 @@ new #[Layout('layouts.app', ['title' => 'User account'])] class extends Componen
                 </p>
                 <p class="rounded-[var(--radius-sm)] bg-white px-3 py-2 font-mono text-sm text-neutral-900">{{ $generatedPassword }}</p>
             @endif
+        </div>
+    @endif
+
+    @if ($account->hasRole('Technician'))
+        <div class="card mb-4">
+            <div class="mb-3 flex items-center justify-between">
+                <h2 class="text-sm font-semibold text-neutral-900">Certificates &amp; documents</h2>
+                @can('manage', $account)
+                    <button type="button" wire:click="toggleAddDocument" class="text-xs font-semibold text-primary-600 hover:text-primary-700">
+                        {{ $addingDocument ? 'Cancel' : '+ Add a document' }}
+                    </button>
+                @endcan
+            </div>
+
+            @can('manage', $account)
+                @if ($addingDocument)
+                    <form wire:submit="addDocument" class="mb-4 space-y-3 rounded-[var(--radius-md)] border border-neutral-200 p-3">
+                        <div>
+                            <label class="label">Document type</label>
+                            <select wire:model="documentType" class="input">
+                                <option>Medical cover / insurance</option>
+                                <option>Driving licence</option>
+                                <option>Trade certification</option>
+                                <option>Medical certificate</option>
+                            </select>
+                            @error('documentType') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="label">Issued on</label>
+                                <input wire:model="issuedAt" type="date" class="input">
+                                @error('issuedAt') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="label">Valid for (months)</label>
+                                <input wire:model="validityMonths" type="number" min="1" class="input">
+                                @error('validityMonths') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                            </div>
+                        </div>
+                        <div>
+                            <label class="label">Scanned copy (optional)</label>
+                            <input wire:model="documentFile" type="file" accept=".pdf,.jpg,.jpeg,.png" class="input">
+                            @error('documentFile') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        </div>
+                        <button type="submit" wire:loading.attr="disabled" wire:target="addDocument,documentFile" class="btn-primary w-full">
+                            Save document
+                        </button>
+                    </form>
+                @endif
+            @endcan
+
+            <div class="divide-y divide-neutral-100">
+                @forelse ($account->technicianDocuments->sortByDesc(fn ($d) => $d->percentUsed()) as $doc)
+                    <div class="flex items-center justify-between gap-3 py-2.5">
+                        <x-expiry-ring
+                            :percent="$doc->percentUsedCapped()"
+                            :stage="$doc->expiryStage()"
+                            :title="$doc->document_type"
+                            :expiresAt="$doc->expiresAt()->format('d M Y')" />
+                        <div class="flex shrink-0 items-center gap-3">
+                            @if ($doc->file_path)
+                                <a href="{{ Storage::url($doc->file_path) }}" target="_blank" class="text-xs font-semibold text-primary-600 hover:text-primary-700">View</a>
+                            @endif
+                            @can('manage', $account)
+                                <button type="button" wire:click="deleteDocument({{ $doc->id }})" wire:confirm="Remove this document?" class="text-xs font-semibold text-critical-700 hover:text-critical-800">
+                                    Remove
+                                </button>
+                            @endcan
+                        </div>
+                    </div>
+                @empty
+                    <p class="py-2 text-sm text-neutral-500">No documents on file.</p>
+                @endforelse
+            </div>
         </div>
     @endif
 

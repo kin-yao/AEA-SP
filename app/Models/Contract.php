@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Contract extends Model
 {
@@ -27,9 +28,32 @@ class Contract extends Model
         return $this->belongsTo(Customer::class);
     }
 
+    public function workOrders(): HasMany
+    {
+        return $this->hasMany(WorkOrder::class);
+    }
+
+    // The visits_used column is seed-data only (never updated by the real
+    // workflow), so visits are counted live from linked, Closed jobs
+    // instead of trusting that stored counter.
+    public function visitsUsed(): int
+    {
+        return $this->workOrders()->where('status', 'Closed')->count();
+    }
+
     public function visitsRemaining(): int
     {
-        return max(0, $this->visits_included - $this->visits_used);
+        return max(0, $this->visits_included - $this->visitsUsed());
+    }
+
+    // Earliest linked job that hasn't closed yet, or null if nothing is
+    // currently scheduled under this contract.
+    public function nextVisit(): ?WorkOrder
+    {
+        return $this->workOrders()
+            ->where('status', '!=', 'Closed')
+            ->orderBy('due_date')
+            ->first();
     }
 
     // Percentage of the contract term elapsed, uncapped internally so

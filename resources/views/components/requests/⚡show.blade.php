@@ -4,6 +4,7 @@ use Livewire\Component;
 use Livewire\Attributes\Layout;
 use App\Models\ServiceRequest;
 use App\Models\User;
+use App\Models\Contract;
 use App\Models\WorkOrder;
 use App\Services\WorkflowNotifier;
 
@@ -93,9 +94,21 @@ new #[Layout('layouts.app', ['title' => 'Request'])] class extends Component
 
         $reference = 'WO-'.str_pad((string) (WorkOrder::max('id') + 1), 4, '0', STR_PAD_LEFT);
 
+        // A contract-covered request counts as a visit against the
+        // customer's current contract. Customers only ever have one
+        // Active contract at a time (a new one can't be created until the
+        // old one is terminated), so this lookup is unambiguous.
+        $contractId = null;
+        if ($this->request->cover === 'Contract') {
+            $contractId = Contract::where('customer_id', $this->request->customer_id)
+                ->where('status', 'Active')
+                ->value('id');
+        }
+
         $workOrder = WorkOrder::create([
             'reference' => $reference,
             'customer_id' => $this->request->customer_id,
+            'contract_id' => $contractId,
             'customer_site_id' => $this->request->customer_site_id,
             'equipment_id' => $this->request->equipment_id,
             'equipment_description' => $this->request->equipment_description,

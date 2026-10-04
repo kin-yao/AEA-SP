@@ -92,23 +92,35 @@
                 @endcan
             </nav>
 
-            <div class="border-t border-neutral-200 p-3">
-                <div class="mb-1 flex items-center gap-2.5 rounded-[var(--radius-md)] px-2 py-2">
+            <div class="relative border-t border-neutral-200 p-3" x-data="{ open: false }" @click.outside="open = false">
+                <button type="button" @click="open = ! open"
+                        class="flex w-full items-center gap-2.5 rounded-[var(--radius-md)] px-2 py-2 text-left hover:bg-neutral-50">
                     <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-xs font-semibold text-white">
                         {{ collect(explode(' ', auth()->user()->name))->map(fn ($p) => $p[0] ?? '')->take(2)->implode('') }}
                     </div>
-                    <div class="min-w-0">
+                    <div class="min-w-0 flex-1">
                         <p class="truncate text-sm font-medium text-neutral-900">{{ auth()->user()->name }}</p>
                         <p class="truncate text-xs text-neutral-500">{{ auth()->user()->getRoleNames()->first() }}</p>
                     </div>
+                    <span class="shrink-0 text-xs text-neutral-400" x-text="open ? '▲' : '▼'"></span>
+                </button>
+
+                <div x-show="open" x-transition style="display: none"
+                     class="absolute bottom-full left-3 right-3 mb-2 overflow-hidden rounded-[var(--radius-md)] border border-neutral-200 bg-white py-1 shadow-[var(--shadow-card-hover)]">
+                    <p class="truncate px-3 py-2 text-xs text-neutral-400">{{ auth()->user()->email }}</p>
+                    <a href="/change-password" wire:navigate @click="open = false"
+                       class="flex items-center gap-2 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50">
+                        <x-icon name="lock" class="h-4 w-4" />
+                        Change password
+                    </a>
+                    <form action="/logout" method="POST">
+                        @csrf
+                        <button type="submit" class="flex w-full items-center gap-2 px-3 py-2 text-sm text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700">
+                            <x-icon name="box-arrow-right" class="h-4 w-4" />
+                            Sign out
+                        </button>
+                    </form>
                 </div>
-                <form action="/logout" method="POST">
-                    @csrf
-                    <button type="submit" class="flex w-full items-center gap-2 rounded-[var(--radius-md)] px-3 py-2 text-sm text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700">
-                        <x-icon name="box-arrow-right" class="h-4 w-4" />
-                        Sign out
-                    </button>
-                </form>
             </div>
         </aside>
 
@@ -117,7 +129,7 @@
             <header class="flex h-14 items-center justify-between border-b border-neutral-200 bg-white px-4 md:hidden">
                 <div class="flex items-center gap-2">
                     <div class="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] bg-primary-500 text-[10px] font-bold text-white">AEA</div>
-                    <span class="text-sm font-semibold text-neutral-900">{{ $title ?? 'Service Portal' }}</span>
+                    <span class="text-sm font-semibold text-neutral-900">Service Portal</span>
                 </div>
                 <form action="/logout" method="POST">
                     @csrf
@@ -128,19 +140,11 @@
             </header>
 
             {{-- Desktop topbar --}}
-            <header class="hidden h-16 shrink-0 items-center justify-between border-b border-neutral-200 bg-white px-8 md:flex">
-                <h1 class="text-xl font-semibold text-neutral-900">{{ $title ?? 'Overview' }}</h1>
+            <header class="hidden h-16 shrink-0 items-center justify-end border-b border-neutral-200 bg-white px-8 md:flex">
                 <div class="flex items-center gap-4">
-                    <div class="relative hidden lg:block">
-                        <x-icon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-                        <input type="text" placeholder="Search" class="w-64 rounded-[var(--radius-md)] border border-neutral-200 bg-neutral-50 py-2 pl-9 pr-3 text-sm text-neutral-700 placeholder:text-neutral-400 focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary-500">
-                    </div>
                     <button type="button" class="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 text-neutral-500 hover:bg-neutral-200">
                         <x-icon name="bell" class="h-4.5 w-4.5" />
                     </button>
-                    <div class="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-900 text-xs font-semibold text-white">
-                        {{ collect(explode(' ', auth()->user()->name))->map(fn ($p) => $p[0] ?? '')->take(2)->implode('') }}
-                    </div>
                 </div>
             </header>
 

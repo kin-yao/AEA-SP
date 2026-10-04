@@ -111,6 +111,9 @@ Route::livewire('/contracts/{contract}', 'contracts.show')->middleware(['auth', 
 
 Route::livewire('/dispatch', 'dispatch')->middleware(['auth', 'password.current'])->name('dispatch');
 
+Route::livewire('/technicians', 'technicians')->middleware(['auth', 'password.current'])->name('technicians.index');
+Route::livewire('/technicians/{technician}', 'technicians.show')->middleware(['auth', 'password.current'])->name('technicians.show');
+
 Route::livewire('/customers', 'customers')->middleware(['auth', 'password.current'])->name('customers.index');
 Route::livewire('/customers/create', 'customers.create')->middleware(['auth', 'password.current'])->name('customers.create');
 Route::livewire('/customers/{customer}', 'customers.show')->middleware(['auth', 'password.current'])->name('customers.show');

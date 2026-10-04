@@ -32,6 +32,10 @@ new #[Layout('layouts.app', ['title' => 'New account'])] class extends Component
         // there is nothing for it to pick.
         if (auth()->user()->hasRole('Super Admin')) {
             $this->role = 'ICT';
+        } elseif (in_array(request()->query('role'), $this->assignableRoles(), true)) {
+            // Lets a link such as the Technicians page's "New technician"
+            // button preselect the role without forcing it.
+            $this->role = request()->query('role');
         }
     }
 

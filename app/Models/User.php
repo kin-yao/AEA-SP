@@ -23,7 +23,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'branch_id',
         'customer_id',
         'phone',
+        'specialty',
         'status',
+        'on_leave',
         'must_change_password',
     ];
 
@@ -34,6 +36,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     protected $attributes = [
         'status' => 'Active',
+        'on_leave' => false,
     ];
 
     protected function casts(): array
@@ -42,6 +45,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'must_change_password' => 'boolean',
+            'on_leave' => 'boolean',
         ];
     }
 

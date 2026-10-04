@@ -20,7 +20,7 @@
 
             <nav class="flex-1 space-y-0.5 overflow-y-auto px-3 py-5">
                 <a href="/dashboard" wire:navigate
-                   class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('dashboard') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
+                  class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('dashboard') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
                     <x-icon name="house" class="h-4.5 w-4.5" />
                     Overview
                 </a>
@@ -37,7 +37,7 @@
                 @endcan
                 @can('viewAny', \App\Models\WorkOrder::class)
                     <a href="/jobs" wire:navigate
-                       class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('jobs*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
+                       class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-med-ium {{ request()->is('jobs*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
                         <x-icon name="tools" class="h-4.5 w-4.5" />
                         Jobs
                     </a>
@@ -49,6 +49,18 @@
                         Documents
                     </a>
                 @endcan
+                @if (auth()->user()->hasAnyRole(['Manager', 'Supervisor', 'Service Admin']))
+                    <a href="/dispatch" wire:navigate
+                       class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('dispatch*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
+                        <x-icon name="tools" class="h-4.5 w-4.5" />
+                        Dispatch
+                    </a>
+                    <a href="/technicians" wire:navigate
+                       class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('technicians*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
+                        <x-icon name="universal-access-circle" class="h-4.5 w-4.5" />
+                        Technicians
+                    </a>
+                @endif
                 @can('viewAny', \App\Models\Customer::class)
                     <a href="/customers" wire:navigate
                        class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('customers*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">

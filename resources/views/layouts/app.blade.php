@@ -52,12 +52,12 @@
                 @if (auth()->user()->hasAnyRole(['Manager', 'Supervisor', 'Service Admin']))
                     <a href="/dispatch" wire:navigate
                        class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('dispatch*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
-                        <x-icon name="tools" class="h-4.5 w-4.5" />
+                        <x-icon name="truck" class="h-4.5 w-4.5" />
                         Dispatch
                     </a>
                     <a href="/technicians" wire:navigate
                        class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('technicians*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
-                        <x-icon name="universal-access-circle" class="h-4.5 w-4.5" />
+                        <x-icon name="person-standing" class="h-4.5 w-4.5" />
                         Technicians
                     </a>
                 @endif
@@ -73,6 +73,20 @@
                        class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('contracts*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
                         <x-icon name="chevron-bar-contract" class="h-4.5 w-4.5" />
                         {{ auth()->user()->hasRole('Customer') ? 'My contract' : 'Contracts' }}
+                    </a>
+                @endcan
+                @can('viewAny', \App\Models\Equipment::class)
+                    <a href="/equipment" wire:navigate
+                       class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('equipment*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
+                        <x-icon name="nut" class="h-4.5 w-4.5" />
+                        Equipment
+                    </a>
+                @endcan
+                @can('viewAny', \App\Models\InventoryItem::class)
+                    <a href="/inventory" wire:navigate
+                       class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('inventory*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
+                        <x-icon name="cart-check" class="h-4.5 w-4.5" />
+                        Inventory
                     </a>
                 @endcan
 

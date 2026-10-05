@@ -48,7 +48,12 @@ class Equipment extends Model
             return 'Overdue';
         }
 
-        return $this->next_visit_due_at->isPast() ? 'Overdue'
-            : ($this->next_visit_due_at->diffInDays(now()) <= 30 ? 'Due soon' : 'Active');
+        $due = $this->next_visit_due_at;
+
+        if ($due->lt(today())) {
+            return 'Overdue';
+        }
+
+        return $due->lte(today()->addDays(30)) ? 'Due soon' : 'Active';
     }
 }

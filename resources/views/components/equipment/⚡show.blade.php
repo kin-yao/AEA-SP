@@ -40,7 +40,7 @@ new #[Layout('layouts.app', ['title' => 'Equipment'])] class extends Component
 
     <div class="mb-6 flex items-center gap-3">
         <div class="icon-badge icon-badge-primary h-14 w-14">
-            <x-icon name="tools" class="h-6 w-6" />
+            <x-icon name="nut" class="h-6 w-6" />
         </div>
         <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2">

@@ -57,7 +57,7 @@ new #[Layout('layouts.app', ['title' => 'Edit machine'])] class extends Componen
         $this->authorize('update', $this->equipment);
 
         $validated = $this->validate([
-            'serial_number' => ['required', 'string', 'max:255', Rule::unique('equipmenv', 'serial_number')->ignore($this->equipment->id)],
+            'serial_number' => ['required', 'string', 'max:255', Rule::unique('equipment', 'serial_number')->ignore($this->equipment->id)],
             'model' => ['required', 'string', 'max:255'],
             'customer_id' => ['required', 'exists:customers,id'],
             'customer_site_id' => ['nullable', 'exists:customer_sites,id'],

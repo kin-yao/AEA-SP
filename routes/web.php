@@ -118,6 +118,8 @@ Route::livewire('/equipment/create', 'equipment.create')->middleware(['auth', 'p
 Route::livewire('/equipment/{equipment}', 'equipment.show')->middleware(['auth', 'password.current'])->name('equipment.show');
 Route::livewire('/equipment/{equipment}/edit', 'equipment.edit')->middleware(['auth', 'password.current'])->name('equipment.edit');
 Route::livewire('/inventory', 'inventory')->middleware(['auth', 'password.current'])->name('inventory.index');
+Route::livewire('/inventory/create', 'inventory.create')->middleware(['auth', 'password.current'])->name('inventory.create');
+Route::livewire('/inventory/{inventoryItem}/edit', 'inventory.edit')->middleware(['auth', 'password.current'])->name('inventory.edit');
 
 Route::livewire('/customers', 'customers')->middleware(['auth', 'password.current'])->name('customers.index');
 Route::livewire('/customers/create', 'customers.create')->middleware(['auth', 'password.current'])->name('customers.create');

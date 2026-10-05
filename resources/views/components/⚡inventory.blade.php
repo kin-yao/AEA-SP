@@ -508,7 +508,7 @@ new #[Layout('layouts.app', ['title' => 'Inventory'])] class extends Component
                             @if ($canManage)
                                 <td class="text-right">
                                     <a href="/inventory/{{ $item->id }}/edit" wire:navigate class="btn-outline">Edit</a>
-                                 </td>
+                                </td>
                             @endif
                         </tr>
                     @empty

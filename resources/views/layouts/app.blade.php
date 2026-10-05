@@ -238,6 +238,29 @@
                     </a>
                 @endcan
 
+                {{-- SUPERVISOR REVIEW NAV --}}
+                @if (auth()->user()->hasRole('Supervisor'))
+                    @php $supPending = \App\Models\Quotation::where('status', 'Awaiting Supervisor')->count(); @endphp
+                    <p class="mb-1 mt-6 px-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">Review</p>
+                    <a href="/approvals" wire:navigate
+                       class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('approvals*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
+                        <x-icon name="check2-circle" class="h-4.5 w-4.5" />
+                        Approvals
+                        @if ($supPending > 0)
+                            <span class="ml-auto rounded-full bg-primary-500 px-2 py-0.5 text-[11px] font-bold text-white">{{ $supPending }}</span>
+                        @endif
+                    </a>
+                    <a href="/finance-watch" wire:navigate
+                       class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('finance-watch*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
+                        <x-icon name="receipt" class="h-4.5 w-4.5" />
+                        Finance watch
+                    </a>
+                    <a href="/team-reports" wire:navigate
+                       class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('team-reports*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
+                        <x-icon name="bar-chart-line" class="h-4.5 w-4.5" />
+                        Reports
+                    </a>
+                @else
                 @canany([['viewAny', \App\Models\Quotation::class], ['viewAny', \App\Models\Invoice::class]])
                     <p class="mb-1 mt-6 px-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">Sales</p>
                 @endcanany
@@ -255,6 +278,7 @@
                         Invoices
                     </a>
                 @endcan
+                @endif
 
                 @can('viewAny', \App\Models\User::class)
                     <p class="mb-1 mt-6 px-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">Admin</p>
@@ -341,8 +365,14 @@
                     if ($mu->can('viewAny', \App\Models\Contract::class)) { $mobileLinks[] = ['/contracts', 'contracts*', 'chevron-bar-contract', $mu->hasRole('Customer') ? 'My contract' : 'Contracts']; }
                     if ($mu->can('viewAny', \App\Models\Equipment::class)) { $mobileLinks[] = ['/equipment', 'equipment*', 'nut', 'Equipment']; }
                     if ($mu->can('viewAny', \App\Models\InventoryItem::class)) { $mobileLinks[] = ['/inventory', 'inventory*', 'cart-check', 'Inventory']; }
-                    if ($mu->can('viewAny', \App\Models\Quotation::class)) { $mobileLinks[] = ['/quotations', 'quotations*', 'journal-text', 'Quotations']; }
-                    if ($mu->can('viewAny', \App\Models\Invoice::class)) { $mobileLinks[] = ['/invoices', 'invoices*', 'receipt', 'Invoices']; }
+                    if (! $mu->hasRole('Supervisor') && $mu->can('viewAny', \App\Models\Quotation::class)) { $mobileLinks[] = ['/quotations', 'quotations*', 'journal-text', 'Quotations']; }
+                    if (! $mu->hasRole('Supervisor') && $mu->can('viewAny', \App\Models\Invoice::class)) { $mobileLinks[] = ['/invoices', 'invoices*', 'receipt', 'Invoices']; }
+                    if ($mu->hasRole('Supervisor')) {
+                        $sp = \App\Models\Quotation::where('status', 'Awaiting Supervisor')->count();
+                        $mobileLinks[] = ['/approvals', 'approvals*', 'check2-circle', $sp > 0 ? 'Approvals ('.$sp.')' : 'Approvals'];
+                        $mobileLinks[] = ['/finance-watch', 'finance-watch*', 'receipt', 'Finance watch'];
+                        $mobileLinks[] = ['/team-reports', 'team-reports*', 'bar-chart-line', 'Reports'];
+                    }
                     if ($mu->can('viewAny', \App\Models\User::class)) { $mobileLinks[] = ['/users', 'users*', 'people', 'Accounts']; }
                 }
 

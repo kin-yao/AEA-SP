@@ -128,6 +128,8 @@ Route::livewire('/my-equipment/{equipment}', 'my-equipment.show')->middleware(['
 Route::livewire('/reports', 'reports')->middleware(['auth', 'password.current'])->name('reports');
 Route::livewire('/approvals', 'approvals')->middleware(['auth', 'password.current'])->name('approvals');
 Route::livewire('/performance', 'performance')->middleware(['auth', 'password.current'])->name('performance');
+Route::livewire('/team-reports', 'team-reports')->middleware(['auth', 'password.current'])->name('team-reports');
+Route::livewire('/finance-watch', 'finance-watch')->middleware(['auth', 'password.current'])->name('finance-watch');
 
 Route::livewire('/customers', 'customers')->middleware(['auth', 'password.current'])->name('customers.index');
 Route::livewire('/customers/create', 'customers.create')->middleware(['auth', 'password.current'])->name('customers.create');

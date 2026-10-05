@@ -110,7 +110,7 @@
                         My reports
                     </a>
                     <a href="/my-equipment" wire:navigate
-                       class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->
+                       class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('my-equipment*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
                         <x-icon name="nut" class="h-4.5 w-4.5" />
                         Equipment
                     </a>

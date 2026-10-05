@@ -24,10 +24,23 @@ class ServiceReportDetail extends Model
         'repairer_name',
         'customer_signoff_name',
         'customer_signed_at',
+        'report_date',
+        'tel_no',
+        'equipment_description',
+        'parts_to_order',
+        'customer_comments',
+        'contract_on_file',
+        'voucher_number',
+        'delivery_note_path',
+        'incident_photo_path',
+        'repairer_signature',
+        'customer_signature',
+        'voucher_signature',
     ];
 
     protected $casts = [
         'customer_signed_at' => 'datetime',
+        'report_date' => 'date',
     ];
 
     protected $attributes = [

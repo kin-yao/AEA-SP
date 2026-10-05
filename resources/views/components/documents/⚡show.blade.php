@@ -108,15 +108,25 @@ new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
     </div>
 
     @if ($document->reportDetail)
-        <div class="card mb-4">
-            <dl class="grid grid-cols-2 gap-4 text-sm">
+        @php $rd = $document->reportDetail; @endphp
+
+        <div class="card mb-4" style="border-left: 4px solid var(--color-amber-500)">
+            <dl class="grid gap-4 text-sm" style="grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));">
                 <div>
-                    <dt class="text-neutral-500">Contact</dt>
-                    <dd class="text-neutral-900">{{ $document->reportDetail->contact_name ?? '—' }}</dd>
+                    <dt class="text-neutral-500">Date</dt>
+                    <dd class="text-neutral-900">{{ $rd->report_date?->format('d M Y') ?? $document->created_at->format('d M Y') }}</dd>
                 </div>
                 <div>
-                    <dt class="text-neutral-500">Address</dt>
-                    <dd class="text-neutral-900">{{ $document->reportDetail->address ?? '—' }}</dd>
+                    <dt class="text-neutral-500">Vehicle No.</dt>
+                    <dd class="text-neutral-900">{{ $rd->vehicle ?: '-' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-neutral-500">Branch</dt>
+                    <dd class="text-neutral-900">{{ $rd->branch?->name ?? '-' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-neutral-500">Machine / equipment</dt>
+                    <dd class="text-neutral-900">{{ $rd->equipment_description ?: ($document->workOrder?->equipment_description ?: '-') }}</dd>
                 </div>
                 <div>
                     <dt class="text-neutral-500">Filed by</dt>
@@ -124,7 +134,29 @@ new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
                 </div>
                 <div>
                     <dt class="text-neutral-500">Nature of visit</dt>
-                    <dd class="text-neutral-900">{{ $document->reportDetail->nature_of_visit }}</dd>
+                    <dd class="text-neutral-900">{{ $rd->nature_of_visit }}</dd>
+                </div>
+            </dl>
+        </div>
+
+        <div class="card mb-4">
+            <h2 class="mb-3 text-sm font-semibold text-neutral-900">Customer</h2>
+            <dl class="grid gap-4 text-sm" style="grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));">
+                <div>
+                    <dt class="text-neutral-500">Customer</dt>
+                    <dd class="text-neutral-900">{{ $document->customer->name }}</dd>
+                </div>
+                <div>
+                    <dt class="text-neutral-500">Contact person</dt>
+                    <dd class="text-neutral-900">{{ $rd->contact_name ?: '-' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-neutral-500">Address</dt>
+                    <dd class="text-neutral-900">{{ $rd->address ?: '-' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-neutral-500">Tel. No.</dt>
+                    <dd class="text-neutral-900">{{ $rd->tel_no ?: '-' }}</dd>
                 </div>
             </dl>
         </div>
@@ -134,56 +166,117 @@ new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
             <dl class="space-y-3 text-sm">
                 <div>
                     <dt class="mb-1 text-neutral-500">Fault reported</dt>
-                    <dd class="text-neutral-900">{{ $document->reportDetail->fault_description }}</dd>
+                    <dd class="text-neutral-900">{{ $rd->fault_description ?: '-' }}</dd>
                 </div>
                 <div>
                     <dt class="mb-1 text-neutral-500">Cause</dt>
-                    <dd class="text-neutral-900">{{ $document->reportDetail->cause }}</dd>
+                    <dd class="text-neutral-900">{{ $rd->cause ?: '-' }}</dd>
                 </div>
                 <div>
                     <dt class="mb-1 text-neutral-500">Correction</dt>
-                    <dd class="text-neutral-900">{{ $document->reportDetail->correction }}</dd>
+                    <dd class="text-neutral-900">{{ $rd->correction ?: '-' }}</dd>
                 </div>
                 <div>
                     <dt class="mb-1 text-neutral-500">Final result</dt>
-                    <dd class="text-neutral-900">{{ $document->reportDetail->final_result }}</dd>
+                    <dd class="text-neutral-900">{{ $rd->final_result ?: '-' }}</dd>
                 </div>
+                @if ($rd->parts_to_order)
+                    <div>
+                        <dt class="mb-1 text-neutral-500">Parts to order</dt>
+                        <dd class="text-neutral-900">{{ $rd->parts_to_order }}</dd>
+                    </div>
+                @endif
+                @if ($rd->customer_comments)
+                    <div>
+                        <dt class="mb-1 text-neutral-500">Customer comments</dt>
+                        <dd class="text-neutral-900">{{ $rd->customer_comments }}</dd>
+                    </div>
+                @endif
             </dl>
         </div>
 
-        @if ($document->reportDetail->parts->isNotEmpty())
+        @if ($rd->parts->isNotEmpty())
             <div class="card mb-4">
                 <h2 class="mb-3 text-sm font-semibold text-neutral-900">Parts used</h2>
-                <div class="divide-y divide-neutral-100 text-sm">
-                    @foreach ($document->reportDetail->parts as $part)
-                        <div class="flex items-center justify-between py-2 first:pt-0 last:pb-0">
-                            <span class="text-neutral-900">{{ $part->item }}</span>
-                            <span class="text-neutral-500">{{ $part->quantity }} &middot; {{ $part->part_number ?? '—' }}</span>
-                        </div>
-                    @endforeach
+                <div class="overflow-x-auto">
+                    <table class="table-clean w-full" style="min-width: 480px">
+                        <thead>
+                            <tr><th>Item</th><th>Part number</th><th>Qty</th><th>Source</th><th>Returned</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($rd->parts as $part)
+                                <tr>
+                                    <td class="text-neutral-900">{{ $part->item }}</td>
+                                    <td>{{ $part->part_number ?: '-' }}</td>
+                                    <td>{{ $part->quantity }}</td>
+                                    <td>{{ $part->source ?: '-' }}</td>
+                                    <td>{{ $part->returned ?? 0 }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
             </div>
         @endif
 
-        @if ($document->reportDetail->incident_type !== 'None')
+        @if ($rd->delivery_note_path)
+            <div class="card mb-4">
+                <h2 class="mb-2 text-sm font-semibold text-neutral-900">Delivery note</h2>
+                <a href="{{ Storage::url($rd->delivery_note_path) }}" target="_blank" class="text-xs font-medium text-info-700 hover:text-info-800">View delivery note</a>
+            </div>
+        @endif
+
+        @if ($rd->voucher_number)
+            <div class="card mb-4">
+                <h2 class="mb-3 text-sm font-semibold text-neutral-900">Maintenance voucher</h2>
+                <dl class="grid gap-4 text-sm" style="grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));">
+                    <div>
+                        <dt class="text-neutral-500">Contract on file</dt>
+                        <dd class="text-neutral-900">{{ $rd->contract_on_file ?: '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-neutral-500">Voucher number</dt>
+                        <dd class="text-neutral-900">{{ $rd->voucher_number }}</dd>
+                    </div>
+                </dl>
+                @if ($rd->voucher_signature)
+                    <p class="mb-1 mt-4 text-xs text-neutral-500">Client authorised person signature and stamp</p>
+                    <img src="{{ $rd->voucher_signature }}" alt="Client signature" style="max-height: 90px; border: 1px solid var(--color-neutral-200); border-radius: 8px; background: #fff;">
+                @endif
+            </div>
+        @endif
+
+        @if ($rd->incident_type !== 'None')
             <div class="card mb-4" style="background-color: var(--color-critical-50); border-color: #f5c6cb">
-                <h2 class="mb-2 text-sm font-semibold text-critical-900">Incident: {{ $document->reportDetail->incident_type }}</h2>
-                <p class="text-sm text-critical-800">{{ $document->reportDetail->incident_description }}</p>
+                <h2 class="mb-2 text-sm font-semibold text-critical-900">Incident: {{ $rd->incident_type }}</h2>
+                <p class="text-sm text-critical-800">{{ $rd->incident_description }}</p>
+                @if ($rd->incident_photo_path)
+                    <a href="{{ Storage::url($rd->incident_photo_path) }}" target="_blank" class="mt-3 inline-block text-xs font-medium text-info-700 hover:text-info-800">View photo</a>
+                @endif
             </div>
         @endif
 
         <div class="card mb-4">
             <h2 class="mb-3 text-sm font-semibold text-neutral-900">Sign off</h2>
-            <dl class="grid grid-cols-2 gap-4 text-sm">
+            <div class="grid gap-4 text-sm" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
                 <div>
-                    <dt class="text-neutral-500">Repairer</dt>
-                    <dd class="text-neutral-900">{{ $document->reportDetail->repairer_name }}</dd>
+                    <p class="text-neutral-500">Repairer</p>
+                    <p class="mb-2 text-neutral-900">{{ $rd->repairer_name }}</p>
+                    @if ($rd->repairer_signature)
+                        <img src="{{ $rd->repairer_signature }}" alt="Repairer signature" style="max-height: 90px; border: 1px solid var(--color-neutral-200); border-radius: 8px; background: #fff;">
+                    @endif
                 </div>
                 <div>
-                    <dt class="text-neutral-500">Customer</dt>
-                    <dd class="text-neutral-900">{{ $document->reportDetail->customer_signoff_name ?? '—' }}</dd>
+                    <p class="text-neutral-500">Customer</p>
+                    <p class="mb-2 text-neutral-900">{{ $rd->customer_signoff_name ?: '-' }}</p>
+                    @if ($rd->customer_signature)
+                        <img src="{{ $rd->customer_signature }}" alt="Customer signature" style="max-height: 90px; border: 1px solid var(--color-neutral-200); border-radius: 8px; background: #fff;">
+                        @if ($rd->customer_signed_at)
+                            <p class="mt-1 text-xs text-neutral-400">Signed {{ $rd->customer_signed_at->format('d M Y, H:i') }}</p>
+                        @endif
+                    @endif
                 </div>
-            </dl>
+            </div>
         </div>
     @elseif ($document->certificateDetail)
         <div class="card mb-4">

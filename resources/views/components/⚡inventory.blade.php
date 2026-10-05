@@ -348,7 +348,7 @@ new #[Layout('layouts.app', ['title' => 'Inventory'])] class extends Component
 
 <div>
     <div class="mb-6 flex items-center gap-4">
-        <h1 class="shrink-0 text-xl font-semibold text-neutral-900">Inventory</h1>
+        <h1 class="shrink-0 text-xl font-semibold text-neutral-900">{{ auth()->user()->hasRole('Technician') ? 'Parts' : 'Inventory' }}</h1>
         <div class="h-px flex-1 border-t border-dashed border-neutral-300"></div>
         @if ($canManage)
             <button type="button" wire:click="template" class="btn-outline shrink-0">CSV template</button>

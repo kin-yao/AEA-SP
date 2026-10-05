@@ -13,6 +13,7 @@ class ReportPart extends Model
         'part_number',
         'quantity',
         'source',
+        'returned',
     ];
 
     // Match the DB column default here in PHP too, same lesson as
@@ -20,6 +21,7 @@ class ReportPart extends Model
     // memory immediately, not just after a ->fresh() round-trip.
     protected $attributes = [
         'quantity' => 1,
+        'returned' => 0,
     ];
 
     public function reportDetail(): BelongsTo

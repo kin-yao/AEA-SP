@@ -46,7 +46,7 @@ new #[Layout('layouts.app', ['title' => 'Jobs'])] class extends Component
 <div>
     <div class="mb-6 flex items-center justify-between">
         <div>
-            <h1 class="text-xl font-semibold text-neutral-900">Jobs</h1>
+            <h1 class="text-xl font-semibold text-neutral-900">{{ auth()->user()->hasRole('Technician') ? 'My jobs' : 'Jobs' }}</h1>
             <p class="text-sm text-neutral-500">{{ $jobs->count() }} {{ $statusFilter === 'All' ? 'total' : 'matching' }}</p>
         </div>
     </div>

@@ -305,7 +305,7 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
 ?>
 <div>
     <div class="mb-6">
-        <p class="text-xs font-semibold uppercase tracking-wider text-primary-600">{{ auth()->user()->getRoleNames()->first() }}</p>
+        <p class="text-xs font-semibold uppercase tracking-wider text-primary-600">{{ auth()->user()->hasRole('Technician') ? 'My day' : auth()->user()->getRoleNames()->first() }}</p>
         <h1 class="mt-0.5 text-2xl font-semibold text-neutral-900">
             Good {{ now()->hour < 12 ? 'morning' : (now()->hour < 17 ? 'afternoon' : 'evening') }}, {{ explode(' ', auth()->user()->name)[0] }}
         </h1>

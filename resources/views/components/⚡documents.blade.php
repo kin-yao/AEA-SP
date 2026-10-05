@@ -36,6 +36,10 @@ new #[Layout('layouts.app', ['title' => 'Documents'])] class extends Component
             ->whereIn('type', $scope)
             ->latest();
 
+        if (! $user->hasRole('Technician')) {
+            $query->where('status', '!=', 'Draft');
+        }
+
         if ($user->hasRole('Technician')) {
             $query->whereHas('workOrder', fn ($q) => $q->where('assigned_technician_id', $user->id));
         } elseif ($user->hasRole('Customer')) {

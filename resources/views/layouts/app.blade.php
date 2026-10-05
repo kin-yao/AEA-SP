@@ -119,6 +119,53 @@
                         <x-icon name="box-seam" class="h-4.5 w-4.5" />
                         Parts
                     </a>
+                {{-- MANAGER NAV --}}
+                @elseif (auth()->user()->hasRole('Manager'))
+                    @php $pendingApprovals = \App\Models\Quotation::where('status', 'Awaiting Manager')->count(); @endphp
+                    {{-- MANAGER OVERVIEW --}}
+                    <a href="/dashboard" wire:navigate
+                       class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('dashboard*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
+                        <x-icon name="house" class="h-4.5 w-4.5" />
+                        Overview
+                    </a>
+                    <a href="/jobs" wire:navigate
+                       class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('jobs*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
+                        <x-icon name="tools" class="h-4.5 w-4.5" />
+                        All jobs
+                    </a>
+                    <a href="/performance" wire:navigate
+                       class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('performance*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
+                        <x-icon name="person-standing" class="h-4.5 w-4.5" />
+                        Technician performance
+                    </a>
+                    <a href="/approvals" wire:navigate
+                       class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('approvals*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
+                        <x-icon name="check2-circle" class="h-4.5 w-4.5" />
+                        Approvals
+                        @if ($pendingApprovals > 0)
+                            <span class="ml-auto rounded-full bg-primary-500 px-2 py-0.5 text-[11px] font-bold text-white">{{ $pendingApprovals }}</span>
+                        @endif
+                    </a>
+                    <a href="/customers" wire:navigate
+                       class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('customers*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
+                        <x-icon name="people" class="h-4.5 w-4.5" />
+                        Customers
+                    </a>
+                    <a href="/documents" wire:navigate
+                       class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('documents*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
+                        <x-icon name="folder" class="h-4.5 w-4.5" />
+                        Documents
+                    </a>
+                    <a href="/users" wire:navigate
+                       class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('users*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
+                        <x-icon name="person-circle" class="h-4.5 w-4.5" />
+                        User accounts
+                    </a>
+                    <a href="/reports" wire:navigate
+                       class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('reports*') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
+                        <x-icon name="bar-chart-line" class="h-4.5 w-4.5" />
+                        Reports
+                    </a>
                 @else
                 <a href="/dashboard" wire:navigate
                   class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium {{ request()->is('dashboard') ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50' }}">
@@ -267,6 +314,18 @@
                         ['/my-reports', 'my-reports*', 'journal-text', 'My reports'],
                 ['/my-equipment', 'my-equipment*', 'nut', 'Equipment'],
                         ['/inventory', 'inventory*', 'box-seam', 'Parts'],
+                    ];
+                } elseif ($mu->hasRole('Manager')) {
+                    $pending = \App\Models\Quotation::where('status', 'Awaiting Manager')->count();
+                    $mobileLinks = [
+                        ['/dashboard', 'dashboard', 'house', 'Overview'],
+                        ['/jobs', 'jobs*', 'tools', 'All jobs'],
+                        ['/performance', 'performance*', 'person-standing', 'Technician performance'],
+                        ['/approvals', 'approvals*', 'check2-circle', $pending > 0 ? 'Approvals ('.$pending.')' : 'Approvals'],
+                        ['/customers', 'customers*', 'people', 'Customers'],
+                        ['/documents', 'documents*', 'folder', 'Documents'],
+                        ['/users', 'users*', 'person-circle', 'User accounts'],
+                        ['/reports', 'reports*', 'bar-chart-line', 'Reports'],
                     ];
                 } else {
                     $mobileLinks = [['/dashboard', 'dashboard', 'house', 'Overview']];

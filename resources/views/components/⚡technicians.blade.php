@@ -86,16 +86,15 @@ new #[Layout('layouts.app', ['title' => 'Technicians'])] class extends Component
         <input wire:model="search" type="text" placeholder="Search technician name" class="input min-w-[220px] flex-1">
         <select wire:model="sort" class="input w-auto">
             <option value="name">Sort: name</option>
-            <option value="open_desc">Sort: most open jobs>option>
-            <option value="rate_desc">Sort:
- on-time rate</option>
+            <option value="open_desc">Sort: most open jobs</option>
+            <option value="rate_desc">Sort: on-time rate</option>
             <option value="overdue_desc">Sort: overdue</option>
         </select>
         <button type="button" wire:click="apply" class="btn-primary shrink-0">Apply</button>
         <span class="shrink-0 text-sm text-neutral-400">{{ $technicians->count() }} of {{ $totalTechnicians }} shown</span>
     </div>
 
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid gap-4" style="grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));">
         @forelse ($technicians as $technician)
             @php
                 $ring = $technician->on_time_rate !== null && $technician->on_time_rate >= 90 ? 'amber' : 'primary';
@@ -144,7 +143,7 @@ new #[Layout('layouts.app', ['title' => 'Technicians'])] class extends Component
                 </div>
             </a>
         @empty
-            <div class="card col-span-2 text-center text-sm text-neutral-500">No technician accounts on file yet.</div>
+            <div class="card text-center text-sm text-neutral-500" style="grid-column: 1 / -1">No technician accounts on file yet.</div>
         @endforelse
     </div>
 </div>

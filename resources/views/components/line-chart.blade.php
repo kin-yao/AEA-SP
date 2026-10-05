@@ -1,7 +1,7 @@
-@props(['labels', 'series', 'height' => 240])
+@props(['labels', 'series', 'height' => 240, 'width' => 640])
 @php
     // series: [['name' => 'Billed', 'color' => 'var(--color-primary-500)', 'values' => [..]], ...]
-    $w = 640; $h = $height; $padL = 52; $padR = 14; $padT = 14; $padB = 30;
+    $w = $width; $h = $height; $padL = 52; $padR = 14; $padT = 14; $padB = 30;
     $n = max(count($labels), 1);
     $rawMax = 0;
     foreach ($series as $s) { $rawMax = max($rawMax, max($s['values'] ?: [0])); }

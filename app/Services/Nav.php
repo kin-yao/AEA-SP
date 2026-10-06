@@ -137,6 +137,7 @@ class Nav
             $u->can('viewAny', Quotation::class) ? self::item('/quotations', 'quotations*', 'journal-text', 'Quotations') : null,
             self::lpoItem($u),
             $u->can('viewAny', Invoice::class) ? self::item('/invoices', 'invoices*', 'receipt', 'Invoices') : null,
+            $u->hasRole('Finance') ? self::item('/receipts', 'receipts*', 'check2-circle', 'Receipts') : null,
         ];
 
         $resources = [
@@ -151,6 +152,7 @@ class Nav
             $supervisor ? self::item('/finance-watch', 'finance-watch*', 'receipt', 'Finance watch') : null,
             $supervisor ? self::item('/team-reports', 'team-reports*', 'bar-chart-line', 'Reports') : null,
             $serviceAdmin ? self::item('/service-reports', 'service-reports*', 'bar-chart-line', 'Reports') : null,
+            $u->hasRole('Finance') ? self::item('/finance-reports', 'finance-reports*', 'bar-chart-line', 'Reports') : null,
         ];
 
         $admin = [

@@ -38,7 +38,7 @@
                 <li style="display: flex; align-items: center; gap: 0.6rem; padding: 0.3rem 0; font-size: 0.8125rem; color: #3f3f46">
                     <span style="width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; background: {{ $slice['color'] }}"></span>
                     <span style="flex: 1">{{ $slice['label'] }}</span>
-                    <span style="font-weight: 700; color: #18181b; font-variant-numeric: tabular-nums">{{ $slice['value'] }}</span>
+                    <span style="font-weight: 700; color: #18181b; font-variant-numeric: tabular-nums">{{ $slice['valueLabel'] ?? $slice['value'] }}</span>
                     <span style="width: 2.75rem; text-align: right; font-size: 0.75rem; color: #71717a">{{ round($slice['value'] / $total * 100) }}%</span>
                 </li>
             @endforeach

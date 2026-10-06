@@ -134,6 +134,8 @@ Route::livewire('/approvals', 'approvals')->middleware(['auth', 'password.curren
 Route::livewire('/performance', 'performance')->middleware(['auth', 'password.current'])->name('performance');
 Route::livewire('/team-reports', 'team-reports')->middleware(['auth', 'password.current'])->name('team-reports');
 Route::livewire('/finance-watch', 'finance-watch')->middleware(['auth', 'password.current'])->name('finance-watch');
+Route::livewire('/receipts', 'receipts')->middleware(['auth', 'password.current'])->name('receipts');
+Route::livewire('/finance-reports', 'finance-reports')->middleware(['auth', 'password.current'])->name('finance-reports');
 Route::livewire('/service-reports', 'service-reports')->middleware(['auth', 'password.current'])->name('service-reports');
 
 Route::livewire('/customers', 'customers')->middleware(['auth', 'password.current'])->name('customers.index');

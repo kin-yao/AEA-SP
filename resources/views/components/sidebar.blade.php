@@ -22,7 +22,7 @@
 
 {{-- Desktop sidebar --}}
 <aside class="sb hidden md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 md:flex-col">
-    <a href="/dashboard" wire:navigate style="display: flex; height: 4.5rem; align-items: center; gap: 0.75rem; padding: 0 1.25rem; background: #fff; border-bottom: 1px solid #e4e4e7; text-decoration: none; color: #18181b">
+    <a href="/dashboard" wire:navigate style="display: flex; height: 4.5rem; align-items: center; justify-content: center; padding: 0 1rem; background: #fff; border-bottom: 1px solid #e4e4e7; text-decoration: none; color: #18181b">
         @if ($logo)
             <img src="{{ asset('images/aea_logo.svg') }}" alt="AEA Limited" style="height: 2.5rem; width: auto; max-width: 12rem">
         @else

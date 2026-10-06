@@ -84,7 +84,7 @@
 
             {{-- Desktop topbar --}}
             <header class="hidden h-16 shrink-0 items-center justify-between px-8 md:flex" style="background: #2f2f2f url('{{ asset('images/aea_pattern.png') }}') repeat-x left center / auto 100%; border-bottom: 3px solid var(--color-primary-500, #e31e24)">
-                <div class="ops-hub-title flex items-center gap-3" style="min-width: 0"><span style="font-size: 1.15rem; font-weight: 800; letter-spacing: 0.14em; color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6)">AEA</span><span style="width: 1px; height: 1.4rem; background: rgba(255, 255, 255, 0.45)"></span><span style="font-size: 0.78rem; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; white-space: nowrap; color: rgba(255, 255, 255, 0.92); text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6)">Service Operations Hub</span></div>
+                <div class="ops-hub-title flex items-center gap-3" style="min-width: 0"><span style="font-size: 0.78rem; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; white-space: nowrap; color: rgba(255, 255, 255, 0.92); text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6)">Service Operations Hub</span></div>
                 <div class="flex items-center gap-4">
                     <button type="button" class="flex h-9 w-9 items-center justify-center rounded-full" style="background: rgba(255, 255, 255, 0.16); color: #fff">
                         <x-icon name="bell" class="h-4.5 w-4.5" />

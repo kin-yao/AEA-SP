@@ -31,7 +31,7 @@ class Nav
         }
 
         if ($u->hasRole('Manager')) {
-            return self::manager();
+            return self::manager($u);
         }
 
         return self::generic($u);
@@ -47,6 +47,27 @@ class Nav
         $items = array_values(array_filter($items));
 
         return $items ? ['key' => $key, 'title' => $title, 'items' => $items] : null;
+    }
+
+    /** LPOs sit under Sales for every role that is allowed to see them. */
+    private static function lpoItem(User $u): ?array
+    {
+        $role = $u->roles->first()?->name ?? '';
+
+        return in_array(Document::TYPE_LPO, Document::scopeForRole($role), true)
+            ? self::item('/lpos', 'lpos*', 'file-earmark-text', 'LPOs')
+            : null;
+    }
+
+    /** Documents, minus LPOs which have their own page. Hidden when nothing is left to show. */
+    private static function documentsItem(User $u): ?array
+    {
+        $role = $u->roles->first()?->name ?? '';
+        $types = array_diff(Document::scopeForRole($role), [Document::TYPE_LPO]);
+
+        return $u->can('viewAny', Document::class) && $types
+            ? self::item('/documents', 'documents*', 'folder', 'Documents')
+            : null;
     }
 
     private static function technician(): array
@@ -68,7 +89,7 @@ class Nav
         ]));
     }
 
-    private static function manager(): array
+    private static function manager(User $u): array
     {
         $pending = Quotation::where('status', 'Awaiting Manager')->count();
 
@@ -80,9 +101,12 @@ class Nav
                 self::item('/jobs', 'jobs*', 'tools', 'All jobs'),
                 self::item('/approvals', 'approvals*', 'check2-circle', 'Approvals', $pending),
             ]),
+            self::group('sales', 'Sales', [
+                self::lpoItem($u),
+            ]),
             self::group('resources', 'Resources', [
                 self::item('/customers', 'customers*', 'people', 'Customers'),
-                self::item('/documents', 'documents*', 'folder', 'Documents'),
+                self::documentsItem($u),
             ]),
             self::group('insights', 'Insights', [
                 self::item('/performance', 'performance*', 'person-standing', 'Technician performance'),
@@ -109,8 +133,9 @@ class Nav
             $supervisor ? self::item('/approvals', 'approvals*', 'check2-circle', 'Approvals', $supPending) : null,
         ];
 
-        $sales = $supervisor ? [] : [
+        $sales = $supervisor ? [self::lpoItem($u)] : [
             $u->can('viewAny', Quotation::class) ? self::item('/quotations', 'quotations*', 'journal-text', 'Quotations') : null,
+            self::lpoItem($u),
             $u->can('viewAny', Invoice::class) ? self::item('/invoices', 'invoices*', 'receipt', 'Invoices') : null,
         ];
 
@@ -119,7 +144,7 @@ class Nav
             $u->can('viewAny', Contract::class) ? self::item('/contracts', 'contracts*', 'chevron-bar-contract', $u->hasRole('Customer') ? 'My contract' : 'Contracts') : null,
             $u->can('viewAny', Equipment::class) ? self::item('/equipment', 'equipment*', 'nut', 'Equipment') : null,
             $u->can('viewAny', InventoryItem::class) ? self::item('/inventory', 'inventory*', 'cart-check', 'Inventory') : null,
-            $u->can('viewAny', Document::class) ? self::item('/documents', 'documents*', 'folder', 'Documents') : null,
+            self::documentsItem($u),
         ];
 
         $insights = [

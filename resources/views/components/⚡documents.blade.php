@@ -31,6 +31,8 @@ new #[Layout('layouts.app', ['title' => 'Documents'])] class extends Component
         $user = auth()->user();
         $role = $user->roles->first()?->name;
         $scope = Document::scopeForRole($role ?? '');
+        // LPOs have their own page under Sales.
+        $scope = array_values(array_diff($scope, [Document::TYPE_LPO]));
 
         $query = Document::with(['customer', 'workOrder'])
             ->whereIn('type', $scope)

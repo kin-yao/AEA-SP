@@ -332,7 +332,7 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
         <div class="grid gap-3" style="{{ $tiles }}">
             <x-dash.kpi label="Requests to triage" :value="$s['openRequests']->count()" :sub="$s['requestsThisWeek'].' logged this week'" href="/requests" />
             <x-dash.kpi label="Ready to post" :value="$s['reportsReadyToPost']" sub="checked reports" href="/documents" />
-            <x-dash.kpi label="Awaiting LPO" :value="$s['quotationsAwaitingLpo']" sub="approved quotations" href="/quotations" />
+            <x-dash.kpi label="Awaiting LPO" :value="$s['quotationsAwaitingLpo']" sub="approved quotations" href="/lpos" />
             <x-dash.kpi label="Ready to invoice" :value="$s['readyToInvoice']" sub="released reports" />
             <x-dash.kpi label="Overdue jobs" :value="$s['overdueJobs']" :tone="$s['overdueJobs'] > 0 ? 'bad' : null" href="/jobs" />
         </div>

@@ -77,6 +77,10 @@ Route::livewire('/documents', 'documents')
     ->middleware(['auth', 'password.current'])
     ->name('documents');
 
+Route::livewire('/lpos', 'lpos')
+    ->middleware(['auth', 'password.current'])
+    ->name('lpos');
+
 Route::livewire('/documents/{document}', 'documents.show')
     ->middleware(['auth', 'password.current'])
     ->name('documents.show');

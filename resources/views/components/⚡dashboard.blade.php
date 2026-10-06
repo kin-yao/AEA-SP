@@ -313,7 +313,7 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
         default => 'pill-neutral',
     };
     $brand = '#8f1d1d';
-    $tiles = 'grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));';
+    $tiles = 'grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));';
     $role = auth()->user()->hasRole('Technician') ? 'My day' : auth()->user()->getRoleNames()->first();
 @endphp
 <div class="mx-auto" style="max-width: 72rem">
@@ -330,11 +330,11 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
     {{-- ===================== SERVICE ADMIN ===================== --}}
     @elseif ($s['role'] === 'Service Admin')
         <div class="grid gap-3" style="{{ $tiles }}">
-            <x-dash.kpi label="Requests to triage" :value="$s['openRequests']->count()" :sub="$s['requestsThisWeek'].' logged this week'" href="/requests" />
-            <x-dash.kpi label="Ready to post" :value="$s['reportsReadyToPost']" sub="checked reports" href="/documents" />
-            <x-dash.kpi label="Awaiting LPO" :value="$s['quotationsAwaitingLpo']" sub="approved quotations" href="/lpos" />
-            <x-dash.kpi label="Ready to invoice" :value="$s['readyToInvoice']" sub="released reports" />
-            <x-dash.kpi label="Overdue jobs" :value="$s['overdueJobs']" :tone="$s['overdueJobs'] > 0 ? 'bad' : null" href="/jobs" />
+            <x-dash.kpi label="Requests to triage" tone="warn" :value="$s['openRequests']->count()" :sub="$s['requestsThisWeek'].' logged this week'" href="/requests" />
+            <x-dash.kpi label="Ready to post" tone="warn" :value="$s['reportsReadyToPost']" sub="checked reports" href="/documents" />
+            <x-dash.kpi label="Awaiting LPO" tone="warn" :value="$s['quotationsAwaitingLpo']" sub="approved quotations" href="/lpos" />
+            <x-dash.kpi label="Ready to invoice" tone="warn" :value="$s['readyToInvoice']" sub="released reports" />
+            <x-dash.kpi label="Overdue jobs" tone="bad" :value="$s['overdueJobs']" href="/jobs" />
         </div>
 
         <x-dash.section title="Compliance" />
@@ -394,11 +394,11 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
     {{-- ===================== SUPERVISOR ===================== --}}
     @elseif ($s['role'] === 'Supervisor')
         <div class="grid gap-3" style="{{ $tiles }}">
-            <x-dash.kpi label="Awaiting approval" :value="$s['quotationsAwaiting']->count()" :sub="$short($s['pipelineValueMinor']).' in value'" href="/approvals" />
-            <x-dash.kpi label="Reports to review" :value="$s['reportsAwaitingReview']->count()" />
-            <x-dash.kpi label="Ready to close" :value="$s['jobsReadyToClose']" sub="approved jobs" />
-            <x-dash.kpi label="Overdue jobs" :value="$s['overdueJobsList']->count()" :tone="$s['overdueJobsList']->count() > 0 ? 'bad' : null" href="/jobs" />
-            <x-dash.kpi label="Decided this week" :value="$s['approvalsThisWeek']" sub="quotations" />
+            <x-dash.kpi label="Awaiting approval" tone="warn" :value="$s['quotationsAwaiting']->count()" :sub="$short($s['pipelineValueMinor']).' in value'" href="/approvals" />
+            <x-dash.kpi label="Reports to review" tone="warn" :value="$s['reportsAwaitingReview']->count()" />
+            <x-dash.kpi label="Ready to close" tone="warn" :value="$s['jobsReadyToClose']" sub="approved jobs" />
+            <x-dash.kpi label="Overdue jobs" tone="bad" :value="$s['overdueJobsList']->count()" href="/jobs" />
+            <x-dash.kpi label="Decided this week" tone="good" :value="$s['approvalsThisWeek']" sub="quotations" />
         </div>
 
         <x-dash.section title="Waiting on you" href="/approvals" />
@@ -442,12 +442,12 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
     {{-- ===================== MANAGER ===================== --}}
     @elseif ($s['role'] === 'Manager')
         <div class="grid gap-3" style="{{ $tiles }}">
-            <x-dash.kpi label="Revenue this month" :value="$short($s['revenueThisMonthMinor'])"
+            <x-dash.kpi label="Revenue this month" tone="good" :value="$short($s['revenueThisMonthMinor'])"
                         :sub="$s['revenueDeltaPct'] === null ? 'no earlier month' : (($s['revenueDeltaPct'] >= 0 ? 'up ' : 'down ').abs($s['revenueDeltaPct']).'% on last month')" />
-            <x-dash.kpi label="Jobs closed" :value="$s['jobsClosedThisMonth']" sub="this month" />
-            <x-dash.kpi label="Awaiting approval" :value="$s['quotationsAwaiting']->count()" :sub="$short($s['pipelineValueMinor']).' in value'" href="/approvals" />
-            <x-dash.kpi label="Overdue jobs" :value="$s['overdueJobs']" :tone="$s['overdueJobs'] > 0 ? 'bad' : null" href="/jobs" />
-            <x-dash.kpi label="Active contracts" :value="$s['activeContracts']" :sub="'of '.$s['totalCustomers'].' customers'" />
+            <x-dash.kpi label="Jobs closed" tone="good" :value="$s['jobsClosedThisMonth']" sub="this month" />
+            <x-dash.kpi label="Awaiting approval" tone="warn" :value="$s['quotationsAwaiting']->count()" :sub="$short($s['pipelineValueMinor']).' in value'" href="/approvals" />
+            <x-dash.kpi label="Overdue jobs" tone="bad" :value="$s['overdueJobs']" href="/jobs" />
+            <x-dash.kpi label="Active contracts" tone="info" :value="$s['activeContracts']" :sub="'of '.$s['totalCustomers'].' customers'" />
         </div>
 
         <x-dash.section title="Performance" href="/reports" link="Full reports" />
@@ -498,10 +498,10 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
         @endif
 
         <div class="grid gap-3" style="{{ $tiles }}">
-            <x-dash.kpi label="Open jobs" :value="$s['myJobs']->count()" href="/jobs" />
-            <x-dash.kpi label="Due or overdue" :value="$s['dueTodayOrOverdue']->count()" :tone="$s['dueTodayOrOverdue']->count() > 0 ? 'bad' : null" />
-            <x-dash.kpi label="Reports filed" :value="$s['reportsFiledThisWeek']" sub="this week" />
-            <x-dash.kpi label="Closed" :value="$s['jobsClosedThisMonth']" sub="this month" />
+            <x-dash.kpi label="Open jobs" tone="info" :value="$s['myJobs']->count()" href="/jobs" />
+            <x-dash.kpi label="Due or overdue" tone="bad" :value="$s['dueTodayOrOverdue']->count()" />
+            <x-dash.kpi label="Reports filed" tone="good" :value="$s['reportsFiledThisWeek']" sub="this week" />
+            <x-dash.kpi label="Closed" tone="good" :value="$s['jobsClosedThisMonth']" sub="this month" />
         </div>
 
         <x-dash.section title="Rest of my list" href="/jobs" />
@@ -524,10 +524,10 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
     {{-- ===================== FINANCE ===================== --}}
     @elseif ($s['role'] === 'Finance')
         <div class="grid gap-3" style="{{ $tiles }}">
-            <x-dash.kpi label="Outstanding" :value="$short($s['outstandingBalanceMinor'])" sub="unpaid and part paid" href="/invoices" />
-            <x-dash.kpi label="Collected" :value="$short($s['paidThisMonthMinor'])" sub="this month" />
-            <x-dash.kpi label="Ready to invoice" :value="$s['readyToInvoice']" :sub="$s['readyToInvoiceValueMinor'] > 0 ? $short($s['readyToInvoiceValueMinor']) : null" />
-            <x-dash.kpi label="Overdue invoices" :value="$s['overdueInvoices']->count()" :tone="$s['overdueInvoices']->count() > 0 ? 'bad' : null" />
+            <x-dash.kpi label="Outstanding" tone="warn" :value="$short($s['outstandingBalanceMinor'])" sub="unpaid and part paid" href="/invoices" />
+            <x-dash.kpi label="Collected" tone="good" :value="$short($s['paidThisMonthMinor'])" sub="this month" />
+            <x-dash.kpi label="Ready to invoice" tone="warn" :value="$s['readyToInvoice']" :sub="$s['readyToInvoiceValueMinor'] > 0 ? $short($s['readyToInvoiceValueMinor']) : null" />
+            <x-dash.kpi label="Overdue invoices" tone="bad" :value="$s['overdueInvoices']->count()" />
         </div>
 
         <x-dash.section title="Outstanding by age" />
@@ -581,12 +581,12 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
     {{-- ===================== CUSTOMER ===================== --}}
     @elseif ($s['role'] === 'Customer')
         <div class="grid gap-3" style="{{ $tiles }}">
-            <x-dash.kpi label="Open requests" :value="$s['openRequestsCount']"
+            <x-dash.kpi label="Open requests" tone="info" :value="$s['openRequestsCount']"
                         :sub="$s['nextJob'] ? 'next visit '.$s['nextJob']->due_date->format('d M') : 'no visit booked'" href="/requests" />
-            <x-dash.kpi label="Active jobs" :value="$s['activeJobs']->count()" href="/jobs" />
-            <x-dash.kpi label="Outstanding" :value="$short($s['outstandingBalanceMinor'])"
+            <x-dash.kpi label="Active jobs" tone="info" :value="$s['activeJobs']->count()" href="/jobs" />
+            <x-dash.kpi label="Outstanding" tone="warn" :value="$short($s['outstandingBalanceMinor'])"
                         :sub="$s['overdueInvoicesCount'] > 0 ? $s['overdueInvoicesCount'].' overdue' : 'nothing overdue'"
-                        :tone="$s['overdueInvoicesCount'] > 0 ? 'bad' : null" href="/invoices" />
+                        href="/invoices" />
         </div>
 
         @if ($s['contract'])

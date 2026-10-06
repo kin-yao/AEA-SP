@@ -5,7 +5,7 @@ use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
-new #[Layout('layouts.guest', ['title' => 'Verify your email - AEA Service Portal'])] class extends Component
+new #[Layout('layouts.guest', ['title' => 'Verify your email - AEA Service Operations Hub'])] class extends Component
 {
     public bool $sent = false;
 

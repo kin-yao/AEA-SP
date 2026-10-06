@@ -1,12 +1,12 @@
 @component('mail::message')
-# {{ $isNewAccount ? 'Welcome to the AEA Service Portal' : 'Your password was reset' }}
+# {{ $isNewAccount ? 'Welcome to the AEA Service Operations Hub' : 'Your password was reset' }}
 
 Hi {{ $account->name }},
 
 @if ($isNewAccount)
-An account has been created for you on the AEA Service Portal.
+An account has been created for you on the AEA Service Operations Hub.
 @else
-Your password on the AEA Service Portal has just been reset.
+Your password on the AEA Service Operations Hub has just been reset.
 @endif
 
 **Email:** {{ $account->email }}

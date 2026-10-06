@@ -5,7 +5,7 @@ use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 
-new #[Layout('layouts.guest', ['title' => 'Set a new password - AEA Service Portal'])] class extends Component
+new #[Layout('layouts.guest', ['title' => 'Set a new password - AEA Service Operations Hub'])] class extends Component
 {
     public string $password = '';
     public string $password_confirmation = '';

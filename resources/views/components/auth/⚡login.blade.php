@@ -5,7 +5,7 @@ use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
-new #[Layout('layouts.guest', ['title' => 'Sign in - AEA Service Portal'])] class extends Component
+new #[Layout('layouts.guest', ['title' => 'Sign in - AEA Service Operations Hub'])] class extends Component
 {
     public string $email = '';
     public string $password = '';
@@ -49,7 +49,7 @@ new #[Layout('layouts.guest', ['title' => 'Sign in - AEA Service Portal'])] clas
         <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] bg-primary-500 text-lg font-bold text-white">
             AEA
         </div>
-        <h1 class="text-lg font-semibold text-neutral-900">Service Portal</h1>
+        <h1 class="text-lg font-semibold text-neutral-900">AEA Service Operations Hub</h1>
         <p class="text-sm text-neutral-500">Sign in to continue</p>
     </div>
 

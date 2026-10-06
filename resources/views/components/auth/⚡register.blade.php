@@ -10,7 +10,7 @@ use App\Models\Customer;
 use App\Models\Branch;
 use App\Models\User;
 
-new #[Layout('layouts.guest', ['title' => 'Create your account - AEA Service Portal'])] class extends Component
+new #[Layout('layouts.guest', ['title' => 'Create your account - AEA Service Operations Hub'])] class extends Component
 {
     public string $companyName = '';
     public string $branchId = '';

@@ -24,8 +24,8 @@ class AccountCredentialsMail extends Mailable implements ShouldQueue
     {
         return new Envelope(
             subject: $this->isNewAccount
-                ? 'Your AEA Service Portal account'
-                : 'Your AEA Service Portal password was reset',
+                ? 'Your AEA Service Operations Hub account'
+                : 'Your AEA Service Operations Hub password was reset',
         );
     }
 

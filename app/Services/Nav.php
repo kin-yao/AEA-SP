@@ -26,6 +26,10 @@ class Nav
 {
     public static function groups(User $u): array
     {
+        if ($u->hasAnyRole(['ICT', 'Super Admin'])) {
+            return self::ict($u);
+        }
+
         if ($u->hasRole('Technician')) {
             return self::technician();
         }
@@ -72,6 +76,21 @@ class Nav
         return $u->can('viewAny', Document::class) && $types
             ? self::item('/documents', 'documents*', 'folder', 'Documents')
             : null;
+    }
+
+    private static function ict(User $u): array
+    {
+        return array_values(array_filter([
+            self::group('home', null, [
+                self::item('/dashboard', 'dashboard*', 'house', 'Overview'),
+                self::item('/security', 'security*', 'shield-lock', 'Security'),
+                self::item('/users', 'users*', 'people', 'Users'),
+                self::item('/branches', 'branches*', 'globe', 'Branches and Country'),
+                self::item('/roles', 'roles*', 'diagram-3', 'Roles and Permissions'),
+                self::item('/equipment-categories', 'equipment-categories*', 'tags', 'Equipment categories'),
+                self::item('/audit-trail', 'audit-trail*', 'clock-history', 'Audit trail'),
+            ]),
+        ]));
     }
 
     private static function customer(User $u): array

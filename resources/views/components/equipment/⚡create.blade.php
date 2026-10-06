@@ -115,7 +115,15 @@ new #[Layout('layouts.app', ['title' => 'Register machine'])] class extends Comp
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <label class="label">Category (optional)</label>
-                <input type="text" wire:model="category" placeholder="e.g. Weighbridge, Platform scale" class="input">
+                <select wire:model="category" class="input">
+                    <option value="">None</option>
+                    @foreach (\App\Models\EquipmentCategory::orderBy('name')->pluck('name') as $cat)
+                        <option value="{{ $cat }}">{{ $cat }}</option>
+                    @endforeach
+                    @if ($category !== '' && ! \App\Models\EquipmentCategory::where('name', $category)->exists())
+                        <option value="{{ $category }}">{{ $category }}</option>
+                    @endif
+                </select>
                 @error('category') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
             </div>
             <div>

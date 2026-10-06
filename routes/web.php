@@ -138,6 +138,11 @@ Route::livewire('/receipts', 'receipts')->middleware(['auth', 'password.current'
 Route::livewire('/finance-reports', 'finance-reports')->middleware(['auth', 'password.current'])->name('finance-reports');
 Route::livewire('/my-machines', 'my-machines')->middleware(['auth', 'password.current'])->name('my-machines');
 Route::livewire('/customer-reports', 'customer-reports')->middleware(['auth', 'password.current'])->name('customer-reports');
+Route::livewire('/security', 'security')->middleware(['auth', 'password.current'])->name('security');
+Route::livewire('/branches', 'branches')->middleware(['auth', 'password.current'])->name('branches');
+Route::livewire('/roles', 'roles')->middleware(['auth', 'password.current'])->name('roles');
+Route::livewire('/equipment-categories', 'equipment-categories')->middleware(['auth', 'password.current'])->name('equipment-categories');
+Route::livewire('/audit-trail', 'audit-trail')->middleware(['auth', 'password.current'])->name('audit-trail');
 Route::livewire('/service-reports', 'service-reports')->middleware(['auth', 'password.current'])->name('service-reports');
 
 Route::livewire('/customers', 'customers')->middleware(['auth', 'password.current'])->name('customers.index');

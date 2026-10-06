@@ -20,6 +20,10 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
     {
         $user = auth()->user();
 
+        if ($user->hasAnyRole(['ICT', 'Super Admin'])) {
+            return $this->ictStats();
+        }
+
         if ($user->hasRole('Service Admin')) {
             return $this->serviceAdminStats();
         }
@@ -45,6 +49,21 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
         }
 
         return null;
+    }
+
+    private function ictStats(): array
+    {
+        $viewer = auth()->user();
+
+        return [
+            'role' => 'ICT',
+            'c' => \App\Services\IctReports::counts($viewer),
+            'roleMix' => \App\Services\IctReports::roleMix(),
+            'signIns' => \App\Services\IctReports::perDay('login', 7, $viewer, '#15803d'),
+            'locked' => \App\Services\IctReports::people()->with('roles')->where('status', '!=', 'Active')->orderBy('name')->limit(5)->get(),
+            'tempPassword' => \App\Services\IctReports::people()->with('roles')->where('must_change_password', true)->orderBy('name')->limit(5)->get(),
+            'activity' => \App\Services\IctReports::recentActivity($viewer, 8),
+        ];
     }
 
     private function contractsNeedingAttention()
@@ -577,6 +596,64 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
                         <p class="py-3 text-sm text-neutral-400">No payments yet.</p>
                     @endforelse
                 </div>
+            </div>
+        </div>
+
+    {{-- ===================== ICT ===================== --}}
+    @elseif ($s['role'] === 'ICT')
+        <div class="grid gap-3" style="{{ $tiles }}">
+            <x-dash.kpi label="Active users" tone="info" :value="$s['c']['active']" href="/users" />
+            <x-dash.kpi label="Locked accounts" tone="warn" :value="$s['c']['locked']" href="/security" />
+            <x-dash.kpi label="Failed sign-ins today" tone="bad" :value="$s['c']['failedToday']" href="/security" />
+            <x-dash.kpi label="Signed in today" tone="good" :value="$s['c']['signInsToday']" />
+            <x-dash.kpi label="Branches" tone="info" :value="$s['c']['branches']" href="/branches" />
+        </div>
+
+        <x-dash.section title="Accounts and sign-ins" href="/security" link="Security" />
+        <div class="flex flex-wrap gap-4">
+            <div class="card" style="flex: 1 1 300px; min-width: 0">
+                <h3 class="mb-4 text-sm font-semibold text-neutral-900">People by role</h3>
+                <x-pie-chart :data="$s['roleMix']" :size="150" />
+            </div>
+            <div class="card" style="flex: 2 1 420px; min-width: 0">
+                <h3 class="mb-1 text-sm font-semibold text-neutral-900">Sign-ins per day</h3>
+                <p class="mb-4 text-xs text-neutral-400">Last 7 days</p>
+                <x-column-chart :data="$s['signIns']" :height="190" />
+            </div>
+        </div>
+
+        <x-dash.section title="Needs attention" href="/security" link="Security" />
+        <div class="flex flex-wrap gap-4">
+            <div class="card" style="flex: 1 1 300px; min-width: 0">
+                <h3 class="mb-2 text-sm font-semibold text-neutral-900">Locked accounts</h3>
+                <div class="divide-y divide-neutral-100">
+                    @forelse ($s['locked'] as $u)
+                        <x-dash.row :href="'/users/'.$u->id" :title="$u->name" :meta="$u->roles->first()?->name" pill="Locked" pillClass="pill-danger" />
+                    @empty
+                        <p class="py-3 text-sm text-neutral-400">No accounts are locked.</p>
+                    @endforelse
+                </div>
+            </div>
+            <div class="card" style="flex: 1 1 300px; min-width: 0">
+                <h3 class="mb-2 text-sm font-semibold text-neutral-900">Still on a temporary password</h3>
+                <div class="divide-y divide-neutral-100">
+                    @forelse ($s['tempPassword'] as $u)
+                        <x-dash.row :href="'/users/'.$u->id" :title="$u->name" :meta="$u->roles->first()?->name" />
+                    @empty
+                        <p class="py-3 text-sm text-neutral-400">Everyone has set their own password.</p>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+
+        <x-dash.section title="Recent activity" href="/audit-trail" link="Audit trail" />
+        <div class="card">
+            <div class="divide-y divide-neutral-100">
+                @forelse ($s['activity'] as $a)
+                    <x-dash.row href="/audit-trail" :title="$a->label" :meta="($a->user_name ?? 'Not signed in').', '.$a->created_at->diffForHumans()" />
+                @empty
+                    <p class="py-3 text-sm text-neutral-400">Nothing has been recorded yet.</p>
+                @endforelse
             </div>
         </div>
 

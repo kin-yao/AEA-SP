@@ -43,7 +43,7 @@ new #[Layout('layouts.app', ['title' => 'Requests'])] class extends Component
 <div>
     <div class="mb-5 flex items-start justify-between">
         <div>
-            <h1 class="text-2xl font-semibold text-neutral-900">Requests</h1>
+            <h1 class="text-2xl font-semibold text-neutral-900">{{ auth()->user()->hasRole('Customer') ? 'My requests' : 'Requests' }}</h1>
             <p class="text-sm text-neutral-500">{{ $requests->count() }} shown</p>
         </div>
         @can('create', \App\Models\ServiceRequest::class)

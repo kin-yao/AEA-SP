@@ -25,7 +25,8 @@ class DocumentPolicy
         }
 
         if ($user->hasRole('Customer')) {
-            return $user->customer_id === $document->customer_id;
+            return $user->customer_id === $document->customer_id
+                && ($document->type !== Document::TYPE_REPORT || $document->status === 'Released');
         }
 
         return true;

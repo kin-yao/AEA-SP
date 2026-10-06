@@ -34,6 +34,10 @@ class Nav
             return self::manager($u);
         }
 
+        if ($u->hasRole('Customer')) {
+            return self::customer($u);
+        }
+
         return self::generic($u);
     }
 
@@ -68,6 +72,21 @@ class Nav
         return $u->can('viewAny', Document::class) && $types
             ? self::item('/documents', 'documents*', 'folder', 'Documents')
             : null;
+    }
+
+    private static function customer(User $u): array
+    {
+        return array_values(array_filter([
+            self::group('home', null, [
+                self::item('/dashboard', 'dashboard*', 'house', 'Home'),
+                self::item('/requests', 'requests*', 'envelope', 'My Requests'),
+                self::item('/my-machines', 'my-machines*', 'nut', 'My Machines'),
+                self::documentsItem($u),
+                self::item('/invoices', 'invoices*', 'receipt', 'Invoices'),
+                self::item('/contracts', 'contracts*', 'chevron-bar-contract', 'My contracts'),
+                self::item('/customer-reports', 'customer-reports*', 'file-earmark-text', 'My Reports'),
+            ]),
+        ]));
     }
 
     private static function technician(): array

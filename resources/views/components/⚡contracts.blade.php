@@ -53,7 +53,7 @@ new #[Layout('layouts.app', ['title' => 'Contracts'])] class extends Component
 <div>
     <div class="mb-6 flex items-center justify-between">
         <h1 class="text-xl font-semibold text-neutral-900">
-            {{ auth()->user()->hasRole('Customer') ? 'My contract' : 'Contracts' }}
+            {{ auth()->user()->hasRole('Customer') ? 'My contracts' : 'Contracts' }}
         </h1>
         @can('create', \App\Models\Contract::class)
             <a href="/contracts/create" wire:navigate class="btn-primary">New contract</a>

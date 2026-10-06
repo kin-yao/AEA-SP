@@ -7,6 +7,7 @@ use App\Models\Document;
 use App\Models\Quotation;
 use App\Models\WorkOrder;
 use App\Models\Customer;
+use App\Models\Equipment;
 use App\Models\Contract;
 use App\Models\TechnicianDocument;
 use App\Models\Invoice;
@@ -289,6 +290,7 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
 
         return [
             'role' => 'Customer',
+            'machinesDueCount' => Equipment::where('customer_id', $customerId)->get()->filter(fn ($e) => $e->visitStatus() !== 'Active')->count(),
             'customer' => Customer::find($customerId),
             'openRequestsCount' => $myRequests->whereIn('status', ['Open', 'Assigned', 'Quoted'])->count(),
             'recentRequests' => $myRequests->take(5),
@@ -581,12 +583,10 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
     {{-- ===================== CUSTOMER ===================== --}}
     @elseif ($s['role'] === 'Customer')
         <div class="grid gap-3" style="{{ $tiles }}">
-            <x-dash.kpi label="Open requests" tone="info" :value="$s['openRequestsCount']"
-                        :sub="$s['nextJob'] ? 'next visit '.$s['nextJob']->due_date->format('d M') : 'no visit booked'" href="/requests" />
-            <x-dash.kpi label="Active jobs" tone="info" :value="$s['activeJobs']->count()" href="/jobs" />
-            <x-dash.kpi label="Outstanding" tone="warn" :value="$short($s['outstandingBalanceMinor'])"
-                        :sub="$s['overdueInvoicesCount'] > 0 ? $s['overdueInvoicesCount'].' overdue' : 'nothing overdue'"
-                        href="/invoices" />
+            <x-dash.kpi label="Open requests" tone="info" :value="$s['openRequestsCount']" href="/requests" />
+            <x-dash.kpi label="Machines due" tone="warn" :value="$s['machinesDueCount']" href="/my-machines" />
+            <x-dash.kpi label="Outstanding" tone="warn" :value="$short($s['outstandingBalanceMinor'])" href="/invoices" />
+            <x-dash.kpi label="Overdue invoices" tone="bad" :value="$s['overdueInvoicesCount']" href="/invoices" />
         </div>
 
         @if ($s['contract'])

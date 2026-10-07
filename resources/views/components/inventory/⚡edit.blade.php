@@ -166,13 +166,13 @@ new #[Layout('layouts.app', ['title' => 'Edit inventory item'])] class extends C
             <div>
                 <label class="label">Reorder level</label>
                 <input type="number" min="0" wire:model="reorder_level" class="input">
-                <p class="mt-1 text-xs text-neutral-400">Flagged when stock is at or below this.</p>
+                <p class="mt-1 text-xs text-neutral-400">Alert level.</p>
                 @error('reorder_level') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="label">Current stock</label>
                 <input type="text" value="{{ $item->quantity }}" disabled class="input">
-                <p class="mt-1 text-xs text-neutral-400">Change stock from the Movements tab.</p>
+                <p class="mt-1 text-xs text-neutral-400">Change stock under Movements.</p>
             </div>
         </div>
 

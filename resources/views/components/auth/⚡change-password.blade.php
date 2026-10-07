@@ -40,7 +40,7 @@ new #[Layout('layouts.guest', ['title' => 'Set a new password - AEA Service Oper
             AEA
         </div>
         <h1 class="text-lg font-semibold text-neutral-900">Set a new password</h1>
-        <p class="text-sm text-neutral-500">Your account was just created or reset. Choose a password only you know before continuing.</p>
+        <p class="text-sm text-neutral-500">Choose a password only you know.</p>
     </div>
 
     <form wire:submit="save" class="card">

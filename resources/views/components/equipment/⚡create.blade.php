@@ -72,7 +72,6 @@ new #[Layout('layouts.app', ['title' => 'Register machine'])] class extends Comp
 
     <div class="mb-6">
         <h1 class="text-xl font-semibold text-neutral-900">Register machine</h1>
-        <p class="text-sm text-neutral-500">Add a customer's weighing equipment to the register.</p>
     </div>
 
     <form wire:submit="save" class="card space-y-4">

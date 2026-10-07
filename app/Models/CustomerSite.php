@@ -11,6 +11,7 @@ class CustomerSite extends Model
     protected $fillable = [
         'customer_id',
         'name',
+        'address',
         'contact_name',
         'lat',
         'lng',
@@ -29,5 +30,17 @@ class CustomerSite extends Model
     public function hasCoordinates(): bool
     {
         return $this->lat !== null && $this->lng !== null;
+    }
+
+    /** Google Maps directions to this site, or null when there is nothing to navigate to. */
+    public function directionsUrl(): ?string
+    {
+        if ($this->hasCoordinates()) {
+            return 'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='.$this->lat.','.$this->lng;
+        }
+
+        $place = trim((string) $this->address);
+
+        return $place !== '' ? 'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='.urlencode($place) : null;
     }
 }

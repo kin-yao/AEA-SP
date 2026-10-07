@@ -275,7 +275,7 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
                 <div class="mb-3">
                     <label class="label">LPO reference</label>
                     <input wire:model="lpoReference" type="text" placeholder="e.g. KSM-LPO-2291" class="input">
-                    <p class="mt-1 text-xs text-neutral-400">Leave blank if the customer gave no number. The system will number it from the LPO series.</p>
+                    <p class="mt-1 text-xs text-neutral-400">Blank to auto-number.</p>
                     @error('lpoReference') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
                 </div>
                 <div class="mb-3">

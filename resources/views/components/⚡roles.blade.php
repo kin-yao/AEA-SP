@@ -31,7 +31,7 @@ new #[Layout('layouts.app', ['title' => 'Roles and Permissions'])] class extends
 <div class="mx-auto" style="max-width: 72rem">
     <div class="mb-5">
         <h1 class="text-xl font-semibold text-neutral-900">Roles and Permissions</h1>
-        <p class="text-sm text-neutral-500">What each role is allowed to do. This page is for reading only.</p>
+        <p class="text-sm text-neutral-500">What each role can do. Read only.</p>
     </div>
 
     <div class="card mb-4" style="padding: 0">
@@ -70,5 +70,5 @@ new #[Layout('layouts.app', ['title' => 'Roles and Permissions'])] class extends
         </div>
     </div>
 
-    <p class="text-xs text-neutral-400">Customers hold no permissions here. They are limited to their own company's requests, machines, documents, invoices and contracts. Technicians are limited to their own jobs. Those limits are built into each page and are not listed above.</p>
+    <p class="text-xs text-neutral-400">Customers and Technicians only see their own records.</p>
 </div>

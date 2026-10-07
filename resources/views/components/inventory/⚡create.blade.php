@@ -104,7 +104,6 @@ new #[Layout('layouts.app', ['title' => 'New inventory item'])] class extends Co
 
     <div class="mb-6">
         <h1 class="text-xl font-semibold text-neutral-900">New inventory item</h1>
-        <p class="text-sm text-neutral-500">Add a part, machine or consumable to the stock list.</p>
     </div>
 
     <form wire:submit="save" class="card space-y-4">
@@ -173,13 +172,13 @@ new #[Layout('layouts.app', ['title' => 'New inventory item'])] class extends Co
             <div>
                 <label class="label">Opening stock</label>
                 <input type="number" min="0" wire:model="quantity" class="input">
-                <p class="mt-1 text-xs text-neutral-400">Recorded as a Stock in movement.</p>
+                <p class="mt-1 text-xs text-neutral-400">Recorded as stock in.</p>
                 @error('quantity') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="label">Reorder level</label>
                 <input type="number" min="0" wire:model="reorder_level" class="input">
-                <p class="mt-1 text-xs text-neutral-400">Flagged when stock is at or below this.</p>
+                <p class="mt-1 text-xs text-neutral-400">Alert level.</p>
                 @error('reorder_level') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
             </div>
         </div>

@@ -77,7 +77,6 @@ new #[Layout('layouts.app', ['title' => 'My equipment'])] class extends Componen
 <div>
     <div class="mb-5">
         <h1 class="text-xl font-semibold text-neutral-900">My equipment</h1>
-        <p class="text-sm text-neutral-500">Machines on jobs assigned to you</p>
     </div>
 
     <div class="mb-5 grid gap-3" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">

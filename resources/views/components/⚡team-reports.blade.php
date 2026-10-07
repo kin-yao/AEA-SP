@@ -253,7 +253,6 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
                 <div class="flex items-start justify-between gap-3">
                     <div>
                         <h2 class="text-base font-semibold text-neutral-900">Export all reports</h2>
-                        <p class="mt-1 text-sm text-neutral-500">Pick the dates the figures should cover.</p>
                     </div>
                     <button type="button" wire:click="closeExport" class="btn-ghost" aria-label="Close">Close</button>
                 </div>
@@ -342,14 +341,12 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
                     <p class="text-sm text-neutral-500">No technician accounts yet.</p>
                 @endforelse
             </div>
-            <p class="mt-4 text-xs text-neutral-400">Share of working days in the last 30 days with at least one visit booked.</p>
         </div>
 
         {{-- Approval route --}}
         <div class="card">
             <h2 class="mb-4 text-sm font-semibold text-neutral-900">Approval route</h2>
             <x-pie-chart :data="$route" :size="150" />
-            <p class="mt-3 text-xs text-neutral-400">Quotations raised in the last 60 days.</p>
         </div>
     </div>
 

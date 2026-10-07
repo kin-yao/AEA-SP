@@ -281,7 +281,6 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
                 <div class="flex items-start justify-between gap-3">
                     <div>
                         <h2 class="text-base font-semibold text-neutral-900">Export all reports</h2>
-                        <p class="mt-1 text-sm text-neutral-500">Every tab, charts included. Pick the dates the figures should cover.</p>
                     </div>
                     <button type="button" wire:click="closeExport" class="btn-ghost" aria-label="Close">Close</button>
                 </div>
@@ -398,7 +397,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
             <p class="mt-0.5 text-xs text-neutral-400">of {{ $kpis['stockItems'] }} stock items</p>
         </div>
     </div>
-    <p class="mb-5 mt-2 text-xs text-neutral-400">Requests and the request to job rate follow the dates above. The other four are live, they show what needs doing today.</p>
+    <div class="mb-5"></div>
 
     {{-- Tabs --}}
     <div class="mb-5 flex flex-wrap gap-2">
@@ -421,8 +420,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
                 <x-pie-chart :data="$requestMix" :size="150" />
             </div>
             <div class="card" style="flex: 2 1 420px; min-width: 0">
-                <h3 class="mb-1 text-sm font-semibold text-neutral-900">Work pipeline</h3>
-                <p class="mb-4 text-xs text-neutral-400">From request to invoice, counts for the chosen dates</p>
+                <h3 class="mb-4 text-sm font-semibold text-neutral-900">Work pipeline</h3>
                 <x-column-chart :data="$pipelineRows" :height="190" />
             </div>
             <div class="card" style="flex: 2 1 420px; min-width: 0">
@@ -451,7 +449,6 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
             <div class="card">
                 <p class="text-xs font-medium text-neutral-500">Value won</p>
                 <p class="mt-2 font-mono text-2xl font-bold text-neutral-900">{{ $kes($quoteTiles['wonMinor'], true) }}</p>
-                <p class="mt-0.5 text-xs text-neutral-400">accepted or converted to jobs</p>
             </div>
             <div class="card">
                 <p class="text-xs font-medium text-neutral-500">Approved quotes with an LPO</p>
@@ -476,7 +473,6 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
 
         <div class="card" style="padding: 0">
             <h3 class="px-5 pt-5 text-sm font-semibold text-neutral-900">Quotations that need action</h3>
-            <p class="px-5 text-xs text-neutral-400">Live, longest waiting first</p>
             <div class="mt-3 overflow-x-auto">
                 <table class="table-clean" style="min-width: 640px">
                     <thead><tr><th>Quotation</th><th>Customer</th><th class="text-right">Amount</th><th>Waiting for</th><th class="text-right">Days</th></tr></thead>
@@ -571,7 +567,6 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
             <div class="card">
                 <p class="text-xs font-medium text-neutral-500">Reports waiting for you to post</p>
                 <p @class(['mt-2 font-mono text-2xl font-bold', 'text-amber-700' => $toPost > 0, 'text-neutral-900' => $toPost === 0])>{{ $toPost }}</p>
-                <p class="mt-0.5 text-xs text-neutral-400">checked by a Supervisor, live</p>
             </div>
             <div class="card">
                 <p class="text-xs font-medium text-neutral-500">Technician documents flagged</p>
@@ -585,8 +580,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
                 <x-pie-chart :data="$reportMix" :size="150" />
             </div>
             <div class="card" style="flex: 2 1 420px; min-width: 0">
-                <h3 class="mb-1 text-sm font-semibold text-neutral-900">Open jobs per technician</h3>
-                <p class="mb-4 text-xs text-neutral-400">Live. Red means at least one of them is overdue</p>
+                <h3 class="mb-4 text-sm font-semibold text-neutral-900">Open jobs per technician</h3>
                 <x-column-chart :data="$workloadRows" :height="190" />
             </div>
         </div>
@@ -676,7 +670,6 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
             <div class="card">
                 <p class="text-xs font-medium text-neutral-500">Ending within {{ setting('contract_warn_days') }} days</p>
                 <p @class(['mt-2 font-mono text-2xl font-bold', 'text-amber-700' => $expiring > 0, 'text-neutral-900' => $expiring === 0])>{{ $expiring }}</p>
-                <p class="mt-0.5 text-xs text-neutral-400">includes any already past their end date</p>
             </div>
             <div class="card">
                 <p class="text-xs font-medium text-neutral-500">Out of visits</p>
@@ -685,8 +678,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
         </div>
         <div class="flex flex-wrap gap-4">
             <div class="card" style="flex: 1 1 320px; min-width: 0">
-                <h3 class="mb-1 text-sm font-semibold text-neutral-900">Visits remaining, lowest first</h3>
-                <p class="mb-4 text-xs text-neutral-400">Red is none left, amber is 1 to 3, green is 4 or more</p>
+                <h3 class="mb-4 text-sm font-semibold text-neutral-900">Visits remaining, lowest first</h3>
                 <x-column-chart :data="$contractChart" :height="190" />
             </div>
             <div class="card" style="padding: 0; flex: 2 1 440px; min-width: 0; align-self: flex-start">

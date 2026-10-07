@@ -190,7 +190,6 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
                 <div class="flex items-start justify-between gap-3">
                     <div>
                         <h2 class="text-base font-semibold text-neutral-900">Export all reports</h2>
-                        <p class="mt-1 text-sm text-neutral-500">Every section on this page. Pick the dates the figures should cover.</p>
                     </div>
                     <button type="button" wire:click="closeExport" class="btn-ghost" aria-label="Close">Close</button>
                 </div>
@@ -215,7 +214,6 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
                     </div>
                 </div>
 
-                <p class="mt-3 text-xs text-neutral-400">The customer and country filters you have applied are kept. Dates follow the invoice issue date.</p>
 
                 <div class="mt-5 flex flex-wrap gap-2">
                     <button type="button" wire:click="exportAllPdf" wire:loading.attr="disabled" wire:target="exportAllPdf,exportAllCsv" class="btn-primary">
@@ -283,10 +281,9 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
         <div class="card">
             <p class="text-xs font-medium text-neutral-500">VAT collected</p>
             <p class="mt-2 font-mono text-xl font-bold whitespace-nowrap text-neutral-900">{{ $kes($kpis['vatMinor'], true) }}</p>
-            <p class="mt-0.5 text-xs text-neutral-400">on the same invoices as revenue</p>
         </div>
     </div>
-    <p class="mb-5 mt-2 text-xs text-neutral-400">Drafts are not counted as revenue or as money owed. Dates follow the invoice issue date.</p>
+    <div class="mb-5"></div>
 
     {{-- Revenue by customer --}}
     <div class="mb-3 flex items-center gap-3">

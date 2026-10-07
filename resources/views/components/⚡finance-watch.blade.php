@@ -98,7 +98,7 @@ new #[Layout('layouts.app', ['title' => 'Finance watch'])] class extends Compone
     <div class="mb-5 flex flex-wrap items-baseline gap-x-4 gap-y-1">
         <h1 class="text-xl font-semibold text-neutral-900">Finance watch</h1>
         <div class="hidden flex-1 border-t border-neutral-200 sm:block"></div>
-        <p class="text-sm text-neutral-500">Read only. Finance raises and settles invoices, the Service Admin raises quotations.</p>
+        <p class="text-sm text-neutral-500">Read only.</p>
     </div>
 
     <div class="mb-4 grid gap-3" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">

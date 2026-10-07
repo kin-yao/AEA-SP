@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules\Password;
 use App\Models\Customer;
+use App\Models\CustomerSite;
 use App\Models\Branch;
 use App\Models\User;
 
@@ -16,6 +17,9 @@ new #[Layout('layouts.guest', ['title' => 'Create your account - AEA Service Ope
     public string $branchId = '';
     public string $kraPin = '';
     public string $poBox = '';
+    public string $siteAddress = '';
+    public string $siteLat = '';
+    public string $siteLng = '';
     public string $contactName = '';
     public string $email = '';
     public string $phone = '';
@@ -36,6 +40,9 @@ new #[Layout('layouts.guest', ['title' => 'Create your account - AEA Service Ope
             'branchId' => ['required', 'exists:branches,id'],
             'kraPin' => ['nullable', 'string', 'max:255'],
             'poBox' => ['nullable', 'string', 'max:255'],
+            'siteAddress' => ['nullable', 'string', 'max:500'],
+            'siteLat' => ['nullable', 'numeric', 'between:-90,90'],
+            'siteLng' => ['nullable', 'numeric', 'between:-180,180'],
             'contactName' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'max:255'],
@@ -58,6 +65,16 @@ new #[Layout('layouts.guest', ['title' => 'Create your account - AEA Service Ope
             // this company is on a contract, and their balance, is an
             // AEA business decision, not something a signup form grants.
         ]);
+
+        if ($validated['siteLat'] !== '' || trim($validated['siteAddress'] ?? '') !== '') {
+            CustomerSite::create([
+                'customer_id' => $customer->id,
+                'name' => 'Main location',
+                'address' => trim($validated['siteAddress'] ?? '') ?: null,
+                'lat' => $validated['siteLat'] ?: null,
+                'lng' => $validated['siteLng'] ?: null,
+            ]);
+        }
 
         $user = User::create([
             'name' => $validated['contactName'],
@@ -99,7 +116,6 @@ new #[Layout('layouts.guest', ['title' => 'Create your account - AEA Service Ope
             AEA
         </div>
         <h1 class="text-lg font-semibold text-neutral-900">Create your account</h1>
-        <p class="text-sm text-neutral-500">For customers requesting equipment service</p>
     </div>
 
     <form wire:submit="register" class="card">
@@ -128,6 +144,14 @@ new #[Layout('layouts.guest', ['title' => 'Create your account - AEA Service Ope
             <div>
                 <label for="poBox" class="label">P.O. Box (optional)</label>
                 <input wire:model="poBox" type="text" id="poBox" class="input">
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label for="siteAddress" class="label">Location (optional)</label>
+            <input wire:model="siteAddress" type="text" id="siteAddress" class="input" placeholder="Address or landmark">
+            <div class="mt-2">
+                <x-location-picker lat="siteLat" lng="siteLng" />
             </div>
         </div>
 

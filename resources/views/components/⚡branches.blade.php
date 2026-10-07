@@ -172,7 +172,7 @@ new #[Layout('layouts.app', ['title' => 'Branches and Country'])] class extends 
 <div class="mx-auto" style="max-width: 72rem">
     <div class="mb-5">
         <h1 class="text-xl font-semibold text-neutral-900">Branches and Country</h1>
-        <p class="text-sm text-neutral-500">The countries AEA works in and the branches under each. Staff, customers and stock are tied to a branch.</p>
+        <p class="text-sm text-neutral-500">Countries and their branches.</p>
     </div>
 
     @if ($notice)
@@ -200,8 +200,8 @@ new #[Layout('layouts.app', ['title' => 'Branches and Country'])] class extends 
                             <option value="{{ $cur->code }}">{{ $cur->code }} - {{ $cur->name }}</option>
                         @endforeach
                     </select>
-                    <p class="mt-1 text-xs text-neutral-400">Not on the list? Add it under ICT, System settings, Money and tax.</p>
-                    <p class="mt-1 text-xs text-neutral-400">Every quotation, invoice and receipt for this country's customers is billed in this currency.</p>
+                    <p class="mt-1 text-xs text-neutral-400">Add new ones under System settings.</p>
+                    <p class="mt-1 text-xs text-neutral-400">Used for all billing in this country.</p>
                     @error('currency') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
                 </div>
                 <div class="mt-3">
@@ -212,7 +212,7 @@ new #[Layout('layouts.app', ['title' => 'Branches and Country'])] class extends 
                 <div class="mt-3">
                     <label class="label" for="ca">Manager approval from</label>
                     <input id="ca" type="number" step="any" wire:model="approval" class="input" style="font-size: 16px" placeholder="Leave blank for the default">
-                    <p class="mt-1 text-xs text-neutral-400">Quotation total, in this country's currency, from which a Manager must approve.</p>
+                    <p class="mt-1 text-xs text-neutral-400">Totals from here need a Manager.</p>
                     @error('approval') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
                 </div>
                 <div class="mt-5 flex gap-2">

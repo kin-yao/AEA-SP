@@ -135,6 +135,28 @@ new #[Layout('layouts.app', ['title' => 'Job'])] class extends Component
         @endif
     </div>
 
+    @php $directions = $job->directionsUrl(); @endphp
+    @if ($job->site)
+        <div class="card mb-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div style="min-width: 0">
+                    <p class="text-sm font-semibold text-neutral-900">{{ $job->site->name }}</p>
+                    @if ($job->site->address)
+                        <p class="text-sm text-neutral-500">{{ $job->site->address }}</p>
+                    @endif
+                    @if ($job->site->contact_name)
+                        <p class="text-xs text-neutral-400">{{ $job->site->contact_name }}</p>
+                    @endif
+                </div>
+                @if ($directions)
+                    <a href="{{ $directions }}" target="_blank" rel="noopener" class="btn-primary">Get directions</a>
+                @else
+                    <span class="text-xs text-neutral-400">No map pin</span>
+                @endif
+            </div>
+        </div>
+    @endif
+
     @if ($job->status === 'On site' && auth()->id() === $job->assigned_technician_id)
         <a href="/jobs/{{ $job->id }}/report" wire:navigate class="btn-primary w-full">
             File service report

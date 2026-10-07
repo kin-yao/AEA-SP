@@ -178,7 +178,6 @@ new #[Layout('layouts.app', ['title' => 'My Reports'])] class extends Component
                 <div class="flex items-start justify-between gap-3">
                     <div>
                         <h2 class="text-base font-semibold text-neutral-900">Export all reports</h2>
-                        <p class="mt-1 text-sm text-neutral-500">Everything on this page, charts included. Pick the dates the figures should cover.</p>
                     </div>
                     <button type="button" wire:click="closeExport" class="btn-ghost" aria-label="Close">Close</button>
                 </div>
@@ -203,7 +202,6 @@ new #[Layout('layouts.app', ['title' => 'My Reports'])] class extends Component
                     </div>
                 </div>
 
-                <p class="mt-3 text-xs text-neutral-400">Machines, unpaid invoices and contracts are always shown as they stand today.</p>
 
                 <div class="mt-5 flex flex-wrap gap-2">
                     <button type="button" wire:click="exportAllPdf" wire:loading.attr="disabled" wire:target="exportAllPdf,exportAllCsv" class="btn-primary">
@@ -241,7 +239,7 @@ new #[Layout('layouts.app', ['title' => 'My Reports'])] class extends Component
         <x-dash.kpi label="Invoiced" tone="info" :value="$kes($kpis['invoicedMinor'], true)" />
         <x-dash.kpi label="Outstanding" tone="warn" :value="$kes($kpis['outstandingMinor'], true)" />
     </div>
-    <p class="mb-6 mt-2 text-xs text-neutral-400">Machines, unpaid invoices and contracts below are always as they stand today. The rest follows the dates above.</p>
+    <div class="mb-6"></div>
 
     {{-- Service activity --}}
     <div class="mb-3 flex items-center gap-3">
@@ -254,14 +252,12 @@ new #[Layout('layouts.app', ['title' => 'My Reports'])] class extends Component
             <x-pie-chart :data="$requestMix" :size="150" />
         </div>
         <div class="card" style="flex: 2 1 420px; min-width: 0">
-            <h3 class="mb-1 text-sm font-semibold text-neutral-900">Requests per month</h3>
-            <p class="mb-4 text-xs text-neutral-400">How many service requests you raised</p>
+            <h3 class="mb-4 text-sm font-semibold text-neutral-900">Requests per month</h3>
             <x-column-chart :data="$requestMonths" :height="190" />
         </div>
     </div>
     <div class="card mb-6">
-        <h3 class="mb-1 text-sm font-semibold text-neutral-900">Jobs by type of visit</h3>
-        <p class="mb-4 text-xs text-neutral-400">Visits to your machines in the chosen dates</p>
+        <h3 class="mb-4 text-sm font-semibold text-neutral-900">Jobs by type of visit</h3>
         <x-column-chart :data="$natureRows" :height="190" />
     </div>
 

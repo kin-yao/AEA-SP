@@ -598,6 +598,5 @@ new #[Layout('layouts.app', ['title' => 'Inventory'])] class extends Component
                 </tbody>
             </table>
         </div>
-        <p class="mt-2 text-xs text-neutral-400">Showing the latest 100 movements.</p>
     @endif
 </div>

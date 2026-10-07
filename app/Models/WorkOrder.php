@@ -65,6 +65,11 @@ class WorkOrder extends Model
         return $this->belongsTo(CustomerSite::class, 'customer_site_id');
     }
 
+    public function directionsUrl(): ?string
+    {
+        return $this->site?->directionsUrl();
+    }
+
     public function equipment(): BelongsTo
     {
         return $this->belongsTo(Equipment::class);

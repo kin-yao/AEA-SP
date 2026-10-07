@@ -6,6 +6,7 @@
     <title>{{ $title ?? 'AEA Service Operations Hub' }}</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script src="{{ asset('js/location-picker.js') }}"></script>
     <style>
         /* rf: service report form */
         .rf { max-width: 42rem; margin: 0 auto; }

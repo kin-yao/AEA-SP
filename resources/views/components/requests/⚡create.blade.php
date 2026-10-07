@@ -13,6 +13,13 @@ new #[Layout('layouts.app', ['title' => 'Log a request'])] class extends Compone
 {
     public string $customer_id = '';
     public string $customer_site_id = '';
+
+    // A new location pinned on the map while logging the request.
+    public bool $addingSite = false;
+    public string $siteName = '';
+    public string $siteAddress = '';
+    public string $siteLat = '';
+    public string $siteLng = '';
     public string $equipment_id = '';
     public string $equipment_description = '';
     public string $contact_name = '';
@@ -80,9 +87,49 @@ new #[Layout('layouts.app', ['title' => 'Log a request'])] class extends Compone
         $this->newCustomerContactPhone = '';
     }
 
+    public function toggleSite(): void
+    {
+        $this->addingSite = ! $this->addingSite;
+        $this->reset(['siteName', 'siteAddress', 'siteLat', 'siteLng']);
+        $this->resetValidation();
+    }
+
+    public function saveSite(): void
+    {
+        $this->authorize('create', ServiceRequest::class);
+
+        if (auth()->user()->hasRole('Customer')) {
+            $this->customer_id = (string) auth()->user()->customer_id;
+        }
+
+        $v = $this->validate([
+            'customer_id' => ['required', 'exists:customers,id'],
+            'siteName' => ['required', 'string', 'max:255'],
+            'siteAddress' => ['nullable', 'string', 'max:500'],
+            'siteLat' => ['required', 'numeric', 'between:-90,90'],
+            'siteLng' => ['required', 'numeric', 'between:-180,180'],
+        ], [
+            'siteLat.required' => 'Drop a pin on the map first.',
+            'siteLng.required' => 'Drop a pin on the map first.',
+        ], ['siteName' => 'location name']);
+
+        $site = CustomerSite::create([
+            'customer_id' => $v['customer_id'],
+            'name' => $v['siteName'],
+            'address' => $v['siteAddress'] ?: null,
+            'lat' => $v['siteLat'],
+            'lng' => $v['siteLng'],
+        ]);
+
+        $this->customer_site_id = (string) $site->id;
+        $this->addingSite = false;
+        $this->reset(['siteName', 'siteAddress', 'siteLat', 'siteLng']);
+    }
+
     public function updatedCustomerId(): void
     {
         $this->customer_site_id = '';
+        $this->addingSite = false;
         $this->equipment_id = '';
     }
 
@@ -241,15 +288,40 @@ new #[Layout('layouts.app', ['title' => 'Log a request'])] class extends Compone
                         @endif
                     </div>
                     <div>
-                        <label class="label">Site (optional)</label>
+                        <label class="label">Location (optional)</label>
                         <select wire:model="customer_site_id" class="input">
-                            <option value="">No specific site</option>
+                            <option value="">No specific location</option>
                             @foreach ($this->sites as $site)
-                                <option value="{{ $site->id }}">{{ $site->name }}</option>
+                                <option value="{{ $site->id }}">{{ $site->name }}{{ $site->hasCoordinates() ? '' : ' (no pin)' }}</option>
                             @endforeach
                         </select>
+                        @if ($customer_id)
+                            <button type="button" wire:click="toggleSite" class="mt-1.5 text-xs font-semibold text-primary-600 hover:text-primary-700">
+                                {{ $addingSite ? 'Cancel' : '+ Pin a new location' }}
+                            </button>
+                        @endif
                     </div>
                 </div>
+
+                @if ($addingSite)
+                    <div class="mb-3 space-y-3 rounded-[var(--radius-md)] border border-neutral-200 p-3">
+                        <div>
+                            <label class="label">Location name</label>
+                            <input wire:model="siteName" type="text" class="input" placeholder="e.g. Head office, Mombasa depot">
+                            @error('siteName') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="label">Address or landmark</label>
+                            <input wire:model="siteAddress" type="text" class="input" placeholder="Gate, floor, nearby landmark">
+                        </div>
+                        <div>
+                            <label class="label">Pin on the map</label>
+                            <x-location-picker lat="siteLat" lng="siteLng" />
+                            @error('siteLat') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        </div>
+                        <button type="button" wire:click="saveSite" wire:loading.attr="disabled" wire:target="saveSite" class="btn-dark">Save location</button>
+                    </div>
+                @endif
 
                 <div class="mb-3 grid grid-cols-2 gap-4">
                     <div>

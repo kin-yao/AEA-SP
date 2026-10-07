@@ -20,7 +20,9 @@ new #[Layout('layouts.app', ['title' => 'Customer'])] class extends Component
     public string $main_contact_phone = '';
 
     public bool $addingSite = false;
+    public ?int $siteId = null;
     public string $siteName = '';
+    public string $siteAddress = '';
     public string $siteContact = '';
     public string $siteLat = '';
     public string $siteLng = '';
@@ -80,10 +82,26 @@ new #[Layout('layouts.app', ['title' => 'Customer'])] class extends Component
     {
         $this->authorize('update', $this->customer);
         $this->addingSite = ! $this->addingSite;
+        $this->siteId = null;
         $this->siteName = '';
+        $this->siteAddress = '';
         $this->siteContact = '';
         $this->siteLat = '';
         $this->siteLng = '';
+    }
+
+    public function editSite(int $id): void
+    {
+        $this->authorize('update', $this->customer);
+
+        $site = $this->customer->sites()->findOrFail($id);
+        $this->siteId = $site->id;
+        $this->siteName = $site->name;
+        $this->siteAddress = (string) $site->address;
+        $this->siteContact = (string) $site->contact_name;
+        $this->siteLat = $site->lat !== null ? (string) $site->lat : '';
+        $this->siteLng = $site->lng !== null ? (string) $site->lng : '';
+        $this->addingSite = true;
     }
 
     public function addSite(): void
@@ -92,18 +110,25 @@ new #[Layout('layouts.app', ['title' => 'Customer'])] class extends Component
 
         $validated = $this->validate([
             'siteName' => ['required', 'string', 'max:255'],
+            'siteAddress' => ['nullable', 'string', 'max:500'],
             'siteContact' => ['nullable', 'string', 'max:255'],
             'siteLat' => ['nullable', 'numeric', 'between:-90,90'],
             'siteLng' => ['nullable', 'numeric', 'between:-180,180'],
         ]);
 
-        CustomerSite::create([
-            'customer_id' => $this->customer->id,
+        $data = [
             'name' => $validated['siteName'],
+            'address' => $validated['siteAddress'] ?: null,
             'contact_name' => $validated['siteContact'] ?: null,
             'lat' => $validated['siteLat'] ?: null,
             'lng' => $validated['siteLng'] ?: null,
-        ]);
+        ];
+
+        if ($this->siteId) {
+            $this->customer->sites()->findOrFail($this->siteId)->update($data);
+        } else {
+            CustomerSite::create(['customer_id' => $this->customer->id] + $data);
+        }
 
         $this->addingSite = false;
     }
@@ -271,20 +296,18 @@ new #[Layout('layouts.app', ['title' => 'Customer'])] class extends Component
                         <input wire:model="siteContact" type="text" class="input">
                         @error('siteContact') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="label">Latitude</label>
-                            <input wire:model="siteLat" type="text" class="input" placeholder="-1.2921">
-                            @error('siteLat') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
-                        </div>
-                        <div>
-                            <label class="label">Longitude</label>
-                            <input wire:model="siteLng" type="text" class="input" placeholder="36.8219">
-                            @error('siteLng') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
-                        </div>
+                    <div>
+                        <label class="label">Address or landmark</label>
+                        <input wire:model="siteAddress" type="text" class="input" placeholder="Gate, floor, nearby landmark">
+                        @error('siteAddress') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="label">Map location</label>
+                        <x-location-picker lat="siteLat" lng="siteLng" wire:key="site-picker-{{ $siteId ?? 'new' }}" />
+                        @error('siteLat') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
                     </div>
                     <div class="flex justify-end">
-                        <button type="submit" class="btn-primary">Add site</button>
+                        <button type="submit" class="btn-primary">{{ $siteId ? 'Save site' : 'Add site' }}</button>
                     </div>
                 </form>
             @endif
@@ -294,13 +317,23 @@ new #[Layout('layouts.app', ['title' => 'Customer'])] class extends Component
                     <div class="flex items-center justify-between rounded-[var(--radius-md)] border border-neutral-100 px-3 py-2">
                         <div>
                             <p class="text-sm font-medium text-neutral-900">{{ $site->name }}</p>
+                            @if ($site->address)
+                                <p class="text-xs text-neutral-500">{{ $site->address }}</p>
+                            @endif
                             @if ($site->contact_name)
                                 <p class="text-xs text-neutral-500">{{ $site->contact_name }}</p>
                             @endif
                         </div>
-                        @if ($site->hasCoordinates())
-                            <span class="pill-neutral">{{ $site->lat }}, {{ $site->lng }}</span>
-                        @endif
+                        <div class="flex shrink-0 items-center gap-3 text-xs font-semibold">
+                            @if ($site->directionsUrl())
+                                <a href="{{ $site->directionsUrl() }}" target="_blank" rel="noopener" class="text-primary-700">Directions</a>
+                            @else
+                                <span class="font-normal text-neutral-400">No pin</span>
+                            @endif
+                            @can('update', $customer)
+                                <button type="button" wire:click="editSite({{ $site->id }})" class="text-neutral-600">Edit</button>
+                            @endcan
+                        </div>
                     </div>
                 @empty
                     <p class="text-sm text-neutral-500">No sites recorded yet.</p>
@@ -316,7 +349,7 @@ new #[Layout('layouts.app', ['title' => 'Customer'])] class extends Component
                         <div class="min-w-0">
                             <p class="truncate text-sm font-medium text-neutral-900">{{ $item->model }}</p>
                             <p class="text-xs text-neutral-500">
-                                {{ $item->serial_number }}{{ $item->site ? ' &middot; '.$item->site->name : '' }}
+                                {{ $item->serial_number }}@if ($item->site) &middot; {{ $item->site->name }}@endif
                             </p>
                         </div>
                         <span class="pill-{{ match ($item->visitStatus()) { 'Overdue' => 'danger', 'Due soon' => 'amber', default => 'success' } }}">

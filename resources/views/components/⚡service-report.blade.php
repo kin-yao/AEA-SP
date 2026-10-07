@@ -27,7 +27,6 @@ new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Compon
 <div>
     <div class="mb-6">
         <h1 class="text-xl font-semibold text-neutral-900">Service report</h1>
-        <p class="text-sm text-neutral-500">File the report for a job you are on site for.</p>
     </div>
 
     <h2 class="mb-3 text-sm font-semibold text-neutral-900">Ready to file</h2>

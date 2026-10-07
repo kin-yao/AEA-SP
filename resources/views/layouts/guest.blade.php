@@ -6,6 +6,7 @@
     <title>{{ $title ?? 'AEA Service Operations Hub' }}</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script src="{{ asset('js/location-picker.js') }}"></script>
     @livewireStyles
 </head>
 <body class="min-h-screen antialiased">

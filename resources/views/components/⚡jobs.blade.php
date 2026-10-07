@@ -139,7 +139,7 @@ new #[Layout('layouts.app', ['title' => 'Jobs'])] class extends Component
                                 <td>
                                     <p class="font-medium text-neutral-900">{{ $job->customer->name }}</p>
                                     @if ($job->site)
-                                        <p class="text-xs text-neutral-400">{{ $job->site->name }}</p>
+                                        <p class="text-xs text-neutral-400">{{ $job->site->name }}@if ($job->directionsUrl()) &middot; <a href="{{ $job->directionsUrl() }}" target="_blank" rel="noopener" class="font-semibold text-primary-700">Directions</a>@endif</p>
                                     @endif
                                 </td>
                                 <td class="text-neutral-600">{{ $job->nature_of_visit }}</td>

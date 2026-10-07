@@ -101,6 +101,7 @@ class Nav
                 self::item('/dashboard', 'dashboard*', 'house', 'Home'),
                 self::item('/requests', 'requests*', 'envelope', 'My Requests'),
                 self::item('/my-machines', 'my-machines*', 'nut', 'My Machines'),
+                self::item('/my-locations', 'my-locations*', 'geo-alt', 'My Locations'),
                 self::documentsItem($u),
                 self::item('/invoices', 'invoices*', 'receipt', 'Invoices'),
                 self::item('/contracts', 'contracts*', 'chevron-bar-contract', 'My contracts'),

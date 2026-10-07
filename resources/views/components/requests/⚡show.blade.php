@@ -201,6 +201,17 @@ new #[Layout('layouts.app', ['title' => 'Request'])] class extends Component
             <dt class="mb-1 text-sm text-neutral-500">Fault reported</dt>
             <dd class="text-sm text-neutral-900">{{ $request->fault_description }}</dd>
         </div>
+        @if ($request->site)
+            <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
+                <div>
+                    <dt class="mb-1 text-sm text-neutral-500">Location</dt>
+                    <dd class="text-sm text-neutral-900">{{ $request->site->name }}@if ($request->site->address) <span class="text-neutral-500">&middot; {{ $request->site->address }}</span>@endif</dd>
+                </div>
+                @if ($request->site->directionsUrl())
+                    <a href="{{ $request->site->directionsUrl() }}" target="_blank" rel="noopener" class="btn-outline">Directions</a>
+                @endif
+            </div>
+        @endif
     </div>
 
     @can('assign', $request)

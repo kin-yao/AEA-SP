@@ -40,7 +40,7 @@ new #[Layout('layouts.app', ['title' => 'Security'])] class extends Component
 <div class="mx-auto" style="max-width: 72rem">
     <div class="mb-5">
         <h1 class="text-xl font-semibold text-neutral-900">Security</h1>
-        <p class="text-sm text-neutral-500">Who is locked out, who keeps failing to sign in, and which accounts are not fully set up.</p>
+        <p class="text-sm text-neutral-500">Lockouts, failed sign-ins and accounts not yet set up.</p>
     </div>
 
     <div class="grid gap-3" style="grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));">
@@ -50,7 +50,7 @@ new #[Layout('layouts.app', ['title' => 'Security'])] class extends Component
         <x-dash.kpi label="Temporary passwords" tone="warn" :value="$c['tempPassword']" />
         <x-dash.kpi label="Unverified emails" tone="warn" :value="$c['unverified']" />
     </div>
-    <p class="mb-6 mt-2 text-xs text-neutral-400">Sign-in history starts from the day this feature went live.</p>
+    <div class="mb-6"></div>
 
     <div class="mb-4 flex flex-wrap gap-4">
         <div class="card" style="flex: 1 1 340px; min-width: 0">
@@ -67,7 +67,7 @@ new #[Layout('layouts.app', ['title' => 'Security'])] class extends Component
 
     <div class="card mb-4" style="padding: 0">
         <h3 class="text-sm font-semibold text-neutral-900" style="padding: 1.25rem 1.25rem 0">Failed sign-ins, last 24 hours</h3>
-        <p class="px-5 text-xs text-neutral-400">Grouped by the email that was tried. Many failures on one email can mean someone is guessing the password.</p>
+        <p class="px-5 text-xs text-neutral-400">Grouped by the email tried.</p>
         <div class="mt-3 overflow-x-auto">
             <table class="table-clean" style="min-width: 560px">
                 <thead><tr><th>Email tried</th><th>Attempts</th><th>Last attempt</th><th>From</th><th>Account</th></tr></thead>
@@ -116,7 +116,6 @@ new #[Layout('layouts.app', ['title' => 'Security'])] class extends Component
     <div class="mb-4 flex flex-wrap gap-4">
         <div class="card" style="flex: 1 1 340px; min-width: 0; padding: 0">
             <h3 class="text-sm font-semibold text-neutral-900" style="padding: 1.25rem 1.25rem 0">Still on a temporary password</h3>
-            <p class="px-5 text-xs text-neutral-400">They have not chosen their own password yet.</p>
             <div class="mt-3 overflow-x-auto">
                 <table class="table-clean">
                     <thead><tr><th>Name</th><th>Role</th></tr></thead>
@@ -135,7 +134,6 @@ new #[Layout('layouts.app', ['title' => 'Security'])] class extends Component
         </div>
         <div class="card" style="flex: 1 1 340px; min-width: 0; padding: 0">
             <h3 class="text-sm font-semibold text-neutral-900" style="padding: 1.25rem 1.25rem 0">Email not verified</h3>
-            <p class="px-5 text-xs text-neutral-400">Password reset emails may not reach these people.</p>
             <div class="mt-3 overflow-x-auto">
                 <table class="table-clean">
                     <thead><tr><th>Name</th><th>Role</th></tr></thead>

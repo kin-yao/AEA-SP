@@ -105,7 +105,7 @@ new #[Layout('layouts.app', ['title' => 'Audit trail'])] class extends Component
     <div class="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
             <h1 class="text-xl font-semibold text-neutral-900">Audit trail</h1>
-            <p class="text-sm text-neutral-500">Who signed in, and who created, changed or deleted what. Newest first.</p>
+            <p class="text-sm text-neutral-500">Sign-ins and changes, newest first.</p>
         </div>
         <button type="button" wire:click="exportCsv" wire:loading.attr="disabled" class="btn-dark">
             <x-icon name="file-earmark-text" class="h-4 w-4" />

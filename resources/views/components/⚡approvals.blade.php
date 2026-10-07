@@ -192,7 +192,7 @@ new #[Layout('layouts.app', ['title' => 'Approvals'])] class extends Component
     @if ($role === 'Supervisor')
         <div class="card" style="padding: 0">
             <h2 class="px-5 pt-5 text-sm font-semibold text-neutral-900">Escalated to the Manager, last 60 days</h2>
-            <p class="px-5 pt-1 text-xs text-neutral-500">Read only. These were over the limit, so the Manager decides them.</p>
+            <p class="px-5 pt-1 text-xs text-neutral-500">Read only. Decided by the Manager.</p>
             <div class="mt-3 overflow-x-auto">
                 <table class="table-clean" style="min-width: 640px">
                     <thead>

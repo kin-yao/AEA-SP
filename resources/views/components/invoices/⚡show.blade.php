@@ -171,7 +171,7 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
                 @endif
 
                 @if (! $invoice->workOrder->sourceQuotation && ! $invoice->workOrder->sourceRequest)
-                    <p class="text-xs text-neutral-400">This job wasn't traced back to a request or quotation, likely created before that link existed.</p>
+                    <p class="text-xs text-neutral-400">No linked request or quotation.</p>
                 @endif
             </div>
         </div>
@@ -218,7 +218,7 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
                 </div>
             </div>
         @else
-            <p class="text-sm text-neutral-500">No itemized lines on file for this invoice, likely created before this was tracked.</p>
+            <p class="text-sm text-neutral-500">No itemized lines.</p>
         @endif
     </div>
 

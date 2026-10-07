@@ -110,7 +110,6 @@ new #[Layout('layouts.app', ['title' => 'Equipment categories'])] class extends 
     <div class="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
             <h1 class="text-xl font-semibold text-neutral-900">Equipment categories</h1>
-            <p class="text-sm text-neutral-500">The list people pick from when they register a machine.</p>
         </div>
         <button type="button" wire:click="create" class="btn-primary">Add category</button>
     </div>

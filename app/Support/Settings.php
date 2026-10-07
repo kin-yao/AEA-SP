@@ -20,13 +20,13 @@ class Settings
     public static function groups(): array
     {
         return [
-            'company' => ['Company', 'AEA details printed on quotations, invoices and receipts.'],
-            'banks' => ['Bank accounts', 'Where customers send payment. Add as many as you need.'],
-            'finance' => ['Money and tax', 'Default currency, VAT and the approval limit. Each country can override these on the Branches and Country page.'],
-            'documents' => ['Documents and terms', 'Due dates, validity and the lists people pick from.'],
-            'numbering' => ['Reference numbers', 'The letters and counter behind every document number. Add your own.'],
-            'alerts' => ['Alerts and targets', 'When something counts as due soon, and what response is expected.'],
-            'system' => ['Security and region', 'Password rule and the time zone shown to staff.'],
+            'company' => ['Company', 'Printed on quotations, invoices and receipts.'],
+            'banks' => ['Bank accounts', 'Where customers pay.'],
+            'finance' => ['Money and tax', 'Defaults. Each country can override them.'],
+            'documents' => ['Documents and terms', 'Due dates, validity and pick lists.'],
+            'numbering' => ['Reference numbers', 'Prefix and counter for each document number.'],
+            'alerts' => ['Alerts and targets', 'When things count as due soon.'],
+            'system' => ['Security and region', 'Password rule and time zone.'],
         ];
     }
 
@@ -42,41 +42,41 @@ class Settings
         return [
             'company' => [
                 'company_name' => ['Company name', 'text', 'AEA Limited', null, null],
-                'company_kra_pin' => ['KRA PIN', 'text', '', 'Shown on quotations and invoices.', null],
+                'company_kra_pin' => ['KRA PIN', 'text', '', null, null],
                 'company_po_box' => ['Postal address', 'text', '', null, null],
                 'company_phone' => ['Phone', 'text', '', null, null],
                 'company_email' => ['Email', 'text', '', null, null],
-                'signatory_name' => ['Authorised signatory', 'text', '', 'Name that signs documents.', null],
+                'signatory_name' => ['Authorised signatory', 'text', '', null, null],
                 'signatory_title' => ['Signatory title', 'text', '', null, null],
             ],
             'finance' => [
-                'currency' => ['Default currency', 'text', 'KES', 'Used when a customer\'s country has no currency set, and for company-wide totals.', null],
-                'vat_rate' => ['VAT rate', 'percent', 16, 'Used when a customer\'s country has no VAT rate of its own. Existing documents keep their own rate.', '%'],
-                'approval_threshold' => ['Manager approval from', 'money', 3000000, 'Quotations at or above this total go to a Manager, unless the customer\'s country has its own limit.', null],
+                'currency' => ['Default currency', 'text', 'KES', 'Used when a country has none.', null],
+                'vat_rate' => ['VAT rate', 'percent', 16, 'Used when a country has none. Old documents keep theirs.', '%'],
+                'approval_threshold' => ['Manager approval from', 'money', 3000000, 'Totals from here need a Manager.', null],
             ],
             'documents' => [
-                'payment_terms' => ['Payment terms', 'textarea', 'Payment due within 30 days of invoice date.', 'Printed on quotations and invoices.', null],
-                'invoice_due_days' => ['Invoice due after', 'number', 30, 'Pre-filled due date on a new invoice.', 'days'],
-                'quotation_validity_days' => ['Quotation valid for', 'number', 30, 'Pre-filled on a new quotation.', 'days'],
-                'job_due_days' => ['Job due after', 'number', 3, 'Pre-filled due date when a job is created from a request or quotation.', 'days'],
-                'payment_methods' => ['Payment methods', 'list', "Bank transfer\nM-Pesa\nCheque", 'One per line. The first is the default.', null],
-                'nature_of_visit' => ['Nature of visit', 'list', "Planned maintenance\nService\nRepairs\nNormal customer visit", 'One per line. Offered on service reports.', null],
-                'part_sources' => ['Where parts come from', 'list', "Vehicle stock\nNairobi store\nCustomer supplied\nOrdered", 'One per line. Offered on service reports.', null],
-                'stock_categories' => ['Stock categories', 'list', "Spare part\nEquipment\nTest equipment\nConsumable", 'One per line. Used in inventory.', null],
+                'payment_terms' => ['Payment terms', 'textarea', 'Payment due within 30 days of invoice date.', null, null],
+                'invoice_due_days' => ['Invoice due after', 'number', 30, null, 'days'],
+                'quotation_validity_days' => ['Quotation valid for', 'number', 30, null, 'days'],
+                'job_due_days' => ['Job due after', 'number', 3, null, 'days'],
+                'payment_methods' => ['Payment methods', 'list', "Bank transfer\nM-Pesa\nCheque", 'One per line. First is the default.', null],
+                'nature_of_visit' => ['Nature of visit', 'list', "Planned maintenance\nService\nRepairs\nNormal customer visit", 'One per line.', null],
+                'part_sources' => ['Where parts come from', 'list', "Vehicle stock\nNairobi store\nCustomer supplied\nOrdered", 'One per line.', null],
+                'stock_categories' => ['Stock categories', 'list', "Spare part\nEquipment\nTest equipment\nConsumable", 'One per line.', null],
             ],
             'alerts' => [
-                'visit_due_days' => ['Machine visit due soon', 'number', 30, 'A machine shows "Due soon" this many days before its next visit.', 'days'],
+                'visit_due_days' => ['Machine visit due soon', 'number', 30, null, 'days'],
                 'certificate_warn_days' => ['Certificate expiring soon', 'number', 30, null, 'days'],
-                'document_warn_days' => ['Staff documents expiring soon', 'number', 60, 'Technician licences and similar.', 'days'],
+                'document_warn_days' => ['Staff documents expiring soon', 'number', 60, null, 'days'],
                 'contract_warn_days' => ['Contracts ending soon', 'number', 60, null, 'days'],
-                'stage_warn_pct' => ['First warning at', 'number', 50, 'Share of a contract or document term used.', '%'],
-                'stage_urgent_pct' => ['Second warning at', 'number', 75, 'Must be higher than the first warning.', '%'],
-                'response_target_hours' => ['Request response target', 'number', 24, 'Hours to answer a new service request.', 'hours'],
-                'response_target_pct' => ['Response compliance goal', 'number', 90, 'Share of requests that should meet the target.', '%'],
+                'stage_warn_pct' => ['First warning at', 'number', 50, 'Share of the term used.', '%'],
+                'stage_urgent_pct' => ['Second warning at', 'number', 75, null, '%'],
+                'response_target_hours' => ['Request response target', 'number', 24, null, 'hours'],
+                'response_target_pct' => ['Response compliance goal', 'number', 90, null, '%'],
             ],
             'system' => [
-                'password_min' => ['Minimum password length', 'number', 8, 'Applies when people register or change their password.', 'characters'],
-                'timezone' => ['Time zone', 'timezone', 'Africa/Nairobi', 'Times on the audit trail and security pages. Records are stored in UTC.', null],
+                'password_min' => ['Minimum password length', 'number', 8, null, 'characters'],
+                'timezone' => ['Time zone', 'timezone', 'Africa/Nairobi', null, null],
             ],
         ];
     }

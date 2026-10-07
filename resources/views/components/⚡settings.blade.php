@@ -390,7 +390,7 @@ new #[Layout('layouts.app', ['title' => 'System settings'])] class extends Compo
 <div class="mx-auto" style="max-width: 60rem">
     <div class="mb-5">
         <h1 class="text-xl font-semibold text-neutral-900">System settings</h1>
-        <p class="text-sm text-neutral-500">The business values the system uses everywhere. Change them here, no code needed.</p>
+        <p class="text-sm text-neutral-500">Business values used across the system.</p>
     </div>
 
     <div class="mb-4 flex flex-wrap gap-2">
@@ -408,7 +408,7 @@ new #[Layout('layouts.app', ['title' => 'System settings'])] class extends Compo
             <div class="flex flex-wrap items-center justify-between gap-3" style="padding: 1.25rem 1.25rem 0">
                 <div>
                     <h2 class="text-base font-semibold text-neutral-900">{{ $groups[$tab][0] }}</h2>
-                    <p class="text-sm text-neutral-500">Quotations and invoices print the active accounts that match their currency and the customer's country. If none match, every active account is shown.</p>
+                    <p class="text-sm text-neutral-500">Documents print the active accounts that match their currency and country.</p>
                 </div>
                 <button type="button" wire:click="newBank" class="btn-primary" style="padding: 0.4rem 0.9rem">Add bank account</button>
             </div>
@@ -440,7 +440,7 @@ new #[Layout('layouts.app', ['title' => 'System settings'])] class extends Compo
             <div class="flex flex-wrap items-center justify-between gap-3" style="padding: 1.25rem 1.25rem 0">
                 <div>
                     <h2 class="text-base font-semibold text-neutral-900">{{ $groups[$tab][0] }}</h2>
-                    <p class="text-sm text-neutral-500">Each series has its own counter. Built-in series are used by their screens. A series you add is ready to use as soon as a screen is attached to it.</p>
+                    <p class="text-sm text-neutral-500">One counter per series.</p>
                 </div>
                 <button type="button" wire:click="newSeries" class="btn-primary" style="padding: 0.4rem 0.9rem">Add reference number</button>
             </div>
@@ -516,7 +516,7 @@ new #[Layout('layouts.app', ['title' => 'System settings'])] class extends Compo
             <div class="flex flex-wrap items-center justify-between gap-3" style="padding: 1.25rem 1.25rem 0">
                 <div>
                     <h2 class="text-base font-semibold text-neutral-900">Currencies</h2>
-                    <p class="text-sm text-neutral-500">Every currency the system can bill in, including those of all supported countries. Countries, bank accounts, contracts and the default pick from this list.</p>
+                    <p class="text-sm text-neutral-500">Currencies the system can bill in.</p>
                 </div>
                 <button type="button" wire:click="newCurrency" class="btn-primary" style="padding: 0.4rem 0.9rem">Add currency</button>
             </div>
@@ -620,7 +620,7 @@ new #[Layout('layouts.app', ['title' => 'System settings'])] class extends Compo
                                 <option value="{{ $c->id }}">{{ $c->name }} ({{ $c->currency_code }})</option>
                             @endforeach
                         </select>
-                        <p class="mt-1 text-xs text-neutral-400">Pick a country if only its customers should be asked to pay into this account.</p>
+                        <p class="mt-1 text-xs text-neutral-400">Leave blank for all countries.</p>
                     </div>
                 </div>
                 <label class="mt-3 flex items-center gap-2 text-sm text-neutral-700"><input type="checkbox" wire:model="bActive" class="rounded border-neutral-300"> Active, print it on documents</label>

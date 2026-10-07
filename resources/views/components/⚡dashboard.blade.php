@@ -475,14 +475,14 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
         <div class="flex flex-wrap gap-4">
             <div class="card" style="flex: 1 1 340px; min-width: 0">
                 <h3 class="mb-1 text-sm font-semibold text-neutral-900">Revenue, last 6 months</h3>
-                <p class="mb-4 text-xs text-neutral-400">{{ currency() }}, by invoice date</p>
+                <p class="mb-4 text-xs text-neutral-400">{{ currency() }}</p>
                 <x-column-chart :height="170" :minCol="40" :data="collect($s['monthlyRevenueTrend'])->map(fn ($v, $i) => [
                     'label' => now()->subMonthsNoOverflow(5 - $i)->format('M'), 'value' => $v, 'valueLabel' => \App\Services\ServiceAdminReports::short((int) $v), 'color' => $brand,
                 ])->all()" />
             </div>
             <div class="card" style="flex: 1 1 340px; min-width: 0">
                 <h3 class="mb-1 text-sm font-semibold text-neutral-900">Top technicians</h3>
-                <p class="mb-4 text-xs text-neutral-400">{{ currency() }} invoiced on their jobs</p>
+                <p class="mb-4 text-xs text-neutral-400">{{ currency() }}</p>
                 <x-column-chart :height="170" :data="$s['technicianPerformance']->map(fn ($t) => [
                     'label' => explode(' ', $t->name)[0], 'value' => $t->revenueMinor, 'valueLabel' => \App\Services\ServiceAdminReports::short((int) $t->revenueMinor), 'color' => $brand,
                 ])->all()" />
@@ -509,11 +509,16 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
                             <p class="mt-2 text-sm text-neutral-600">{{ $n->sourceRequest->fault_description }}</p>
                         @endif
                     </div>
-                    @if ($n->status === 'On site')
-                        <a href="/jobs/{{ $n->id }}/report" wire:navigate class="btn-primary">File service report</a>
-                    @else
-                        <a href="/jobs/{{ $n->id }}" wire:navigate class="btn-dark">Open job</a>
-                    @endif
+                    <div class="flex flex-wrap gap-2">
+                        @if ($n->directionsUrl())
+                            <a href="{{ $n->directionsUrl() }}" target="_blank" rel="noopener" class="btn-outline">Directions</a>
+                        @endif
+                        @if ($n->status === 'On site')
+                            <a href="/jobs/{{ $n->id }}/report" wire:navigate class="btn-primary">File service report</a>
+                        @else
+                            <a href="/jobs/{{ $n->id }}" wire:navigate class="btn-dark">Open job</a>
+                        @endif
+                    </div>
                 </div>
             </div>
         @endif

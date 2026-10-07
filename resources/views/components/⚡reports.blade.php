@@ -301,7 +301,6 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
                 <div class="flex items-start justify-between gap-3">
                     <div>
                         <h2 class="text-base font-semibold text-neutral-900">Export all reports</h2>
-                        <p class="mt-1 text-sm text-neutral-500">Pick the dates the figures should cover.</p>
                     </div>
                     <button type="button" wire:click="closeExport" class="btn-ghost" aria-label="Close">Close</button>
                 </div>

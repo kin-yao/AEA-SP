@@ -1,0 +1,1 @@
+@include('errors.layout', ['code' => '500', 'heading' => 'Something went wrong', 'text' => "We hit a problem and have logged it. Your saved work is safe. Try again, and tell ICT if it keeps happening.", 'reload' => true])

@@ -53,17 +53,17 @@ new #[Layout('layouts.app', ['title' => 'Edit inventory item'])] class extends C
         $this->authorize('update', $this->item);
 
         $this->validate([
-            'code' => ['required', 'string', 'max:255', Rule::unique('inventory_items', 'code')->ignore($this->item->id)],
-            'name' => ['required', 'string', 'max:255'],
-            'category' => ['required', Rule::in(['Spare part', 'Equipment', 'Test equipment', 'Consumable'])],
-            'manufacturer' => ['nullable', 'string', 'max:255'],
-            'model' => ['nullable', 'string', 'max:255'],
-            'unit' => ['required', 'string', 'max:50'],
+            'code' => ['required', 'string', 'min:2', 'max:50', 'regex:/^[A-Za-z0-9][A-Za-z0-9 ._\/-]*$/', Rule::unique('inventory_items', 'code')->ignore($this->item->id)],
+            'name' => ['required', 'string', 'min:2', 'max:150'],
+            'category' => ['required', Rule::in(setting('stock_categories'))],
+            'manufacturer' => ['nullable', 'string', 'max:100'],
+            'model' => ['nullable', 'string', 'max:100'],
+            'unit' => ['required', 'string', 'max:30'],
             'serial_tracked' => ['boolean'],
             'branch_id' => ['required', 'exists:branches,id'],
-            'reorder_level' => ['nullable', 'integer', 'min:0'],
-            'cost' => ['nullable', 'numeric', 'min:0'],
-            'price' => ['nullable', 'numeric', 'min:0'],
+            'reorder_level' => ['nullable', 'integer', 'min:0', 'max:1000000'],
+            'cost' => \App\Support\Rules::money(false),
+            'price' => \App\Support\Rules::money(false),
         ]);
 
         // Stock quantity is deliberately not editable here. It only changes
@@ -105,7 +105,7 @@ new #[Layout('layouts.app', ['title' => 'Edit inventory item'])] class extends C
             <div>
                 <label class="label">Item code</label>
                 <input type="text" wire:model="code" placeholder="e.g. ITM-0142" class="input">
-                @error('code') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('code') <p class="field-error">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="label">Category</label>
@@ -114,26 +114,26 @@ new #[Layout('layouts.app', ['title' => 'Edit inventory item'])] class extends C
                         <option value="{{ $c }}">{{ $c }}</option>
                     @endforeach
                 </select>
-                @error('category') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('category') <p class="field-error">{{ $message }}</p> @enderror
             </div>
         </div>
 
         <div>
             <label class="label">Item name</label>
             <input type="text" wire:model="name" class="input">
-            @error('name') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+            @error('name') <p class="field-error">{{ $message }}</p> @enderror
         </div>
 
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <label class="label">Manufacturer (optional)</label>
                 <input type="text" wire:model="manufacturer" class="input">
-                @error('manufacturer') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('manufacturer') <p class="field-error">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="label">Model (optional)</label>
                 <input type="text" wire:model="model" class="input">
-                @error('model') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('model') <p class="field-error">{{ $message }}</p> @enderror
             </div>
         </div>
 
@@ -148,7 +148,7 @@ new #[Layout('layouts.app', ['title' => 'Edit inventory item'])] class extends C
                     <option value="Box"></option>
                     <option value="Litre"></option>
                 </datalist>
-                @error('unit') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('unit') <p class="field-error">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="label">Store (branch)</label>
@@ -158,7 +158,7 @@ new #[Layout('layouts.app', ['title' => 'Edit inventory item'])] class extends C
                         <option value="{{ $branch->id }}">{{ $branch->name }}</option>
                     @endforeach
                 </select>
-                @error('branch_id') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('branch_id') <p class="field-error">{{ $message }}</p> @enderror
             </div>
         </div>
 
@@ -167,7 +167,7 @@ new #[Layout('layouts.app', ['title' => 'Edit inventory item'])] class extends C
                 <label class="label">Reorder level</label>
                 <input type="number" min="0" wire:model="reorder_level" class="input">
                 <p class="mt-1 text-xs text-neutral-400">Alert level.</p>
-                @error('reorder_level') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('reorder_level') <p class="field-error">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="label">Current stock</label>
@@ -180,12 +180,12 @@ new #[Layout('layouts.app', ['title' => 'Edit inventory item'])] class extends C
             <div>
                 <label class="label">Cost, {{ currency() }} (optional)</label>
                 <input type="text" inputmode="decimal" wire:model="cost" placeholder="e.g. 1250.00" class="input">
-                @error('cost') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('cost') <p class="field-error">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="label">Selling price, {{ currency() }} (optional)</label>
                 <input type="text" inputmode="decimal" wire:model="price" placeholder="e.g. 1800.00" class="input">
-                @error('price') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('price') <p class="field-error">{{ $message }}</p> @enderror
             </div>
         </div>
 

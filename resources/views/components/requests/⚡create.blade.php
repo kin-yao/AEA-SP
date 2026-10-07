@@ -63,10 +63,10 @@ new #[Layout('layouts.app', ['title' => 'Log a request'])] class extends Compone
         abort_unless(auth()->user()->hasRole('Service Admin'), 403);
 
         $validated = $this->validate([
-            'newCustomerName' => ['required', 'string', 'max:255'],
+            'newCustomerName' => \App\Support\Rules::company(),
             'newCustomerBranchId' => ['required', 'exists:branches,id'],
-            'newCustomerContactName' => ['nullable', 'string', 'max:255'],
-            'newCustomerContactPhone' => ['nullable', 'string', 'max:255'],
+            'newCustomerContactName' => \App\Support\Rules::person(false),
+            'newCustomerContactPhone' => \App\Support\Rules::phone(),
         ]);
 
         $reference = \App\Models\ReferenceSeries::next('customer');
@@ -104,7 +104,7 @@ new #[Layout('layouts.app', ['title' => 'Log a request'])] class extends Compone
 
         $v = $this->validate([
             'customer_id' => ['required', 'exists:customers,id'],
-            'siteName' => ['required', 'string', 'max:255'],
+            'siteName' => ['required', 'string', 'min:2', 'max:100'],
             'siteAddress' => ['nullable', 'string', 'max:500'],
             'siteLat' => ['required', 'numeric', 'between:-90,90'],
             'siteLng' => ['required', 'numeric', 'between:-180,180'],
@@ -164,8 +164,8 @@ new #[Layout('layouts.app', ['title' => 'Log a request'])] class extends Compone
             'customer_site_id' => ['nullable', 'exists:customer_sites,id'],
             'equipment_id' => ['nullable', 'exists:equipment,id'],
             'equipment_description' => ['nullable', 'string', 'max:255'],
-            'contact_name' => ['nullable', 'string', 'max:255'],
-            'fault_description' => ['required', 'string'],
+            'contact_name' => \App\Support\Rules::person(false),
+            'fault_description' => ['required', 'string', 'min:10', 'max:2000'],
             'cover' => ['required', 'in:Chargeable,Contract'],
             'priority' => ['required', 'in:Low,Medium,High'],
         ]);
@@ -234,7 +234,7 @@ new #[Layout('layouts.app', ['title' => 'Log a request'])] class extends Compone
                         <div>
                             <label class="label">Company name</label>
                             <input wire:model="newCustomerName" type="text" class="input">
-                            @error('newCustomerName') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                            @error('newCustomerName') <p class="field-error">{{ $message }}</p> @enderror
                         </div>
                         <div>
                             <label class="label">Branch</label>
@@ -244,17 +244,19 @@ new #[Layout('layouts.app', ['title' => 'Log a request'])] class extends Compone
                                     <option value="{{ $branch->id }}">{{ $branch->name }}</option>
                                 @endforeach
                             </select>
-                            @error('newCustomerBranchId') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                            @error('newCustomerBranchId') <p class="field-error">{{ $message }}</p> @enderror
                         </div>
                     </div>
                     <div class="mb-3 grid grid-cols-2 gap-4">
                         <div>
                             <label class="label">Contact name (optional)</label>
                             <input wire:model="newCustomerContactName" type="text" class="input">
+                            @error('newCustomerContactName') <p class="field-error">{{ $message }}</p> @enderror
                         </div>
                         <div>
                             <label class="label">Contact phone (optional)</label>
                             <input wire:model="newCustomerContactPhone" type="text" class="input">
+                            @error('newCustomerContactPhone') <p class="field-error">{{ $message }}</p> @enderror
                         </div>
                     </div>
                     <button type="button" wire:click="createCustomer" class="btn-primary">
@@ -281,7 +283,7 @@ new #[Layout('layouts.app', ['title' => 'Log a request'])] class extends Compone
                                     <option value="{{ $customer->id }}">{{ $customer->name }}</option>
                                 @endforeach
                             </select>
-                            @error('customer_id') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                            @error('customer_id') <p class="field-error">{{ $message }}</p> @enderror
                             <button type="button" wire:click="toggleNewCustomer" class="mt-1.5 text-xs font-semibold text-primary-600 hover:text-primary-700">
                                 {{ $addingNewCustomer ? 'Cancel' : '+ Add a new customer' }}
                             </button>
@@ -308,16 +310,17 @@ new #[Layout('layouts.app', ['title' => 'Log a request'])] class extends Compone
                         <div>
                             <label class="label">Location name</label>
                             <input wire:model="siteName" type="text" class="input" placeholder="e.g. Head office, Mombasa depot">
-                            @error('siteName') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                            @error('siteName') <p class="field-error">{{ $message }}</p> @enderror
                         </div>
                         <div>
                             <label class="label">Address or landmark</label>
                             <input wire:model="siteAddress" type="text" class="input" placeholder="Gate, floor, nearby landmark">
+                            @error('siteAddress') <p class="field-error">{{ $message }}</p> @enderror
                         </div>
                         <div>
                             <label class="label">Pin on the map</label>
                             <x-location-picker lat="siteLat" lng="siteLng" />
-                            @error('siteLat') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                            @error('siteLat') <p class="field-error">{{ $message }}</p> @enderror
                         </div>
                         <button type="button" wire:click="saveSite" wire:loading.attr="disabled" wire:target="saveSite" class="btn-dark">Save location</button>
                     </div>
@@ -336,18 +339,20 @@ new #[Layout('layouts.app', ['title' => 'Log a request'])] class extends Compone
                     <div>
                         <label class="label">Equipment description (optional)</label>
                         <input wire:model="equipment_description" type="text" placeholder="If not on record" class="input">
+                        @error('equipment_description') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                 </div>
 
                 <div class="mb-3">
                     <label class="label">Contact name (optional)</label>
                     <input wire:model="contact_name" type="text" class="input">
+                    @error('contact_name') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
                     <label class="label">Fault reported</label>
                     <textarea wire:model="fault_description" rows="3" class="input"></textarea>
-                    @error('fault_description') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('fault_description') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
             </div>
 

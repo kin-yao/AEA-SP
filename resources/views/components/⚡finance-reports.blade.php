@@ -205,12 +205,12 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
                     <div>
                         <label class="label" for="ex-from">From</label>
                         <input id="ex-from" type="date" wire:model="exportFrom" class="input" style="font-size: 16px">
-                        @error('exportFrom') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        @error('exportFrom') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label class="label" for="ex-to">To</label>
                         <input id="ex-to" type="date" wire:model="exportTo" class="input" style="font-size: 16px">
-                        @error('exportTo') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        @error('exportTo') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                 </div>
 
@@ -253,7 +253,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
         <div>
             <label class="label" for="f-to">To</label>
             <input id="f-to" type="date" wire:model="toInput" class="input" style="font-size: 16px">
-            @error('toInput') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+            @error('toInput') <p class="field-error">{{ $message }}</p> @enderror
         </div>
         <div class="flex gap-2">
             <button type="submit" class="btn-primary">Apply filter</button>

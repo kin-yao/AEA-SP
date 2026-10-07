@@ -55,13 +55,13 @@ new #[Layout('layouts.app', ['title' => 'Customer'])] class extends Component
         $this->authorize('update', $this->customer);
 
         $validated = $this->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => \App\Support\Rules::company(),
             'branch_id' => ['required', 'exists:branches,id'],
-            'kra_pin' => ['nullable', 'string', 'max:255'],
-            'po_box' => ['nullable', 'string', 'max:255'],
-            'main_contact_name' => ['nullable', 'string', 'max:255'],
-            'main_contact_email' => ['nullable', 'email', 'max:255'],
-            'main_contact_phone' => ['nullable', 'string', 'max:255'],
+            'kra_pin' => \App\Support\Rules::kraPin(),
+            'po_box' => \App\Support\Rules::text(60),
+            'main_contact_name' => \App\Support\Rules::person(false),
+            'main_contact_email' => array_merge(\App\Support\Rules::email(false), [\Illuminate\Validation\Rule::unique('customers', 'main_contact_email')->ignore($this->customer->id)]),
+            'main_contact_phone' => \App\Support\Rules::phone(),
         ]);
 
         $this->customer->update([
@@ -109,9 +109,9 @@ new #[Layout('layouts.app', ['title' => 'Customer'])] class extends Component
         $this->authorize('update', $this->customer);
 
         $validated = $this->validate([
-            'siteName' => ['required', 'string', 'max:255'],
+            'siteName' => ['required', 'string', 'min:2', 'max:100'],
             'siteAddress' => ['nullable', 'string', 'max:500'],
-            'siteContact' => ['nullable', 'string', 'max:255'],
+            'siteContact' => \App\Support\Rules::person(false),
             'siteLat' => ['nullable', 'numeric', 'between:-90,90'],
             'siteLng' => ['nullable', 'numeric', 'between:-180,180'],
         ]);
@@ -184,7 +184,7 @@ new #[Layout('layouts.app', ['title' => 'Customer'])] class extends Component
                 <div>
                     <label class="label">Company name</label>
                     <input wire:model="name" type="text" class="input">
-                    @error('name') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('name') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="label">Branch</label>
@@ -193,32 +193,32 @@ new #[Layout('layouts.app', ['title' => 'Customer'])] class extends Component
                             <option value="{{ $branch->id }}">{{ $branch->name }}</option>
                         @endforeach
                     </select>
-                    @error('branch_id') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('branch_id') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="label">KRA PIN</label>
                     <input wire:model="kra_pin" type="text" class="input">
-                    @error('kra_pin') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('kra_pin') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="label">P.O. Box</label>
                     <input wire:model="po_box" type="text" class="input">
-                    @error('po_box') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('po_box') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="label">Main contact name</label>
                     <input wire:model="main_contact_name" type="text" class="input">
-                    @error('main_contact_name') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('main_contact_name') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="label">Main contact email</label>
                     <input wire:model="main_contact_email" type="email" class="input">
-                    @error('main_contact_email') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('main_contact_email') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="label">Main contact phone</label>
                     <input wire:model="main_contact_phone" type="text" class="input">
-                    @error('main_contact_phone') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('main_contact_phone') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
             </div>
             <div class="flex justify-end gap-2">
@@ -289,22 +289,22 @@ new #[Layout('layouts.app', ['title' => 'Customer'])] class extends Component
                     <div>
                         <label class="label">Site name</label>
                         <input wire:model="siteName" type="text" class="input" placeholder="e.g. Head office, Mombasa branch">
-                        @error('siteName') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        @error('siteName') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label class="label">Site contact</label>
                         <input wire:model="siteContact" type="text" class="input">
-                        @error('siteContact') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        @error('siteContact') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label class="label">Address or landmark</label>
                         <input wire:model="siteAddress" type="text" class="input" placeholder="Gate, floor, nearby landmark">
-                        @error('siteAddress') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        @error('siteAddress') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label class="label">Map location</label>
                         <x-location-picker lat="siteLat" lng="siteLng" wire:key="site-picker-{{ $siteId ?? 'new' }}" />
-                        @error('siteLat') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        @error('siteLat') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                     <div class="flex justify-end">
                         <button type="submit" class="btn-primary">{{ $siteId ? 'Save site' : 'Add site' }}</button>

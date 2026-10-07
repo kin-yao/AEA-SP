@@ -1,0 +1,1 @@
+@include('errors.layout', ['code' => '403', 'heading' => 'Access denied', 'text' => "You do not have permission to open this page. If you think this is a mistake, ask a Manager or ICT to check your role."])

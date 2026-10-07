@@ -84,7 +84,7 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
 
         $this->validate([
             'lpoReference' => ['nullable', 'string', 'max:100'],
-            'lpoReceivedVia' => ['required', 'string'],
+            'lpoReceivedVia' => ['required', 'in:E-mail,Hand delivered,Post'],
             'lpoFile' => ['nullable', 'file', 'max:10240', 'mimes:pdf,jpg,jpeg,png'],
         ]);
 
@@ -104,7 +104,7 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
 
         $this->validate([
             'jobTechnicianId' => ['required', 'exists:users,id'],
-            'jobDueDate' => ['required', 'date'],
+            'jobDueDate' => ['required', 'date', 'after_or_equal:today'],
         ]);
 
         $reference = \App\Models\ReferenceSeries::next('work_order');
@@ -276,7 +276,7 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
                     <label class="label">LPO reference</label>
                     <input wire:model="lpoReference" type="text" placeholder="e.g. KSM-LPO-2291" class="input">
                     <p class="mt-1 text-xs text-neutral-400">Blank to auto-number.</p>
-                    @error('lpoReference') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('lpoReference') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
                 <div class="mb-3">
                     <label class="label">Received via</label>
@@ -291,7 +291,7 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
                     <input wire:model="lpoFile" type="file" accept=".pdf,.jpg,.jpeg,.png"
                            class="input file:mr-3 file:border-0 file:bg-neutral-100 file:px-3 file:py-1.5 file:text-xs file:font-medium">
                     <div wire:loading wire:target="lpoFile" class="mt-1 text-xs text-neutral-500">Uploading...</div>
-                    @error('lpoFile') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('lpoFile') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
                 <button wire:click="logLpo" wire:loading.attr="disabled" wire:target="logLpo,lpoFile" class="btn-primary w-full">
                     Log LPO
@@ -319,12 +319,12 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
                             <option value="{{ $technician->id }}">{{ $technician->name }}</option>
                         @endforeach
                     </select>
-                    @error('jobTechnicianId') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('jobTechnicianId') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
                 <div class="mb-4">
                     <label class="label">Due date</label>
                     <input wire:model="jobDueDate" type="date" class="input">
-                    @error('jobDueDate') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('jobDueDate') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
                 <button wire:click="convertToJob" wire:loading.attr="disabled" wire:target="convertToJob" class="btn-primary w-full">
                     Generate job

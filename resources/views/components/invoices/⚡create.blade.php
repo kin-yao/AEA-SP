@@ -92,12 +92,12 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
     public function submit(): void
     {
         $this->validate([
-            'items' => ['required', 'array', 'min:1'],
-            'items.*.description' => ['required', 'string'],
-            'items.*.quantity' => ['required', 'numeric', 'min:0.01'],
-            'items.*.rate' => ['required', 'numeric', 'min:0'],
+            'items' => ['required', 'array', 'min:1', 'max:100'],
+            'items.*.description' => ['required', 'string', 'min:2', 'max:500'],
+            'items.*.quantity' => ['required', 'numeric', 'min:0.01', 'max:1000000', 'decimal:0,2'],
+            'items.*.rate' => \App\Support\Rules::money(),
             'vatRate' => ['required', 'numeric', 'min:0', 'max:100'],
-            'dueAt' => ['required', 'date'],
+            'dueAt' => ['required', 'date', 'after_or_equal:today'],
         ]);
 
         $invoice = Invoice::create([
@@ -155,9 +155,12 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
                         </button>
                     @endif
                 </div>
+                @foreach (['description', 'quantity', 'rate'] as $col)
+                    @error("items.$index.$col") <p class="field-error" data-for="items.{{ $index }}.{{ $col }}" style="margin:-0.25rem 0 0.5rem">{{ $message }}</p> @enderror
+                @endforeach
             @endforeach
         </div>
-        @error('items') <p class="mb-3 text-xs text-critical-700">{{ $message }}</p> @enderror
+        @error('items') <p class="field-error">{{ $message }}</p> @enderror
 
         <button type="button" wire:click="addItem" class="mb-4 text-xs font-medium text-info-700 hover:text-info-800">
             + Add line
@@ -168,7 +171,7 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
             <input wire:model.live="vatRate" type="text" inputmode="decimal" class="input w-16 text-right">
             <span class="text-sm text-neutral-600">%</span>
         </div>
-        @error('vatRate') <p class="mb-3 text-right text-xs text-critical-700">{{ $message }}</p> @enderror
+        @error('vatRate') <p class="field-error">{{ $message }}</p> @enderror
 
         <div class="mb-4 flex justify-end">
             <div class="w-56 text-sm">
@@ -190,7 +193,7 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
         <div class="mb-4">
             <label class="label">Due date</label>
             <input wire:model="dueAt" type="date" class="input">
-            @error('dueAt') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+            @error('dueAt') <p class="field-error">{{ $message }}</p> @enderror
         </div>
 
         <button type="submit" wire:loading.attr="disabled" wire:target="submit" class="btn-primary w-full">

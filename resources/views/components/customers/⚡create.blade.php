@@ -32,13 +32,13 @@ new #[Layout('layouts.app', ['title' => 'New customer'])] class extends Componen
         $this->authorize('create', Customer::class);
 
         $validated = $this->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => \App\Support\Rules::company(),
             'branch_id' => ['required', 'exists:branches,id'],
-            'kra_pin' => ['nullable', 'string', 'max:255'],
-            'po_box' => ['nullable', 'string', 'max:255'],
-            'main_contact_name' => ['nullable', 'string', 'max:255'],
-            'main_contact_email' => ['nullable', 'email', 'max:255', 'unique:customers,main_contact_email'],
-            'main_contact_phone' => ['nullable', 'string', 'max:255'],
+            'kra_pin' => \App\Support\Rules::kraPin(),
+            'po_box' => \App\Support\Rules::text(60),
+            'main_contact_name' => \App\Support\Rules::person(false),
+            'main_contact_email' => array_merge(\App\Support\Rules::email(false), ['unique:customers,main_contact_email']),
+            'main_contact_phone' => \App\Support\Rules::phone(),
         ]);
 
         $reference = \App\Models\ReferenceSeries::next('customer');
@@ -78,7 +78,7 @@ new #[Layout('layouts.app', ['title' => 'New customer'])] class extends Componen
             <div class="col-span-2">
                 <label class="label">Company name</label>
                 <input wire:model="name" type="text" class="input">
-                @error('name') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('name') <p class="field-error">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="label">Branch</label>
@@ -88,32 +88,32 @@ new #[Layout('layouts.app', ['title' => 'New customer'])] class extends Componen
                         <option value="{{ $branch->id }}">{{ $branch->name }}</option>
                     @endforeach
                 </select>
-                @error('branch_id') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('branch_id') <p class="field-error">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="label">KRA PIN</label>
                 <input wire:model="kra_pin" type="text" class="input">
-                @error('kra_pin') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('kra_pin') <p class="field-error">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="label">P.O. Box</label>
                 <input wire:model="po_box" type="text" class="input">
-                @error('po_box') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('po_box') <p class="field-error">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="label">Main contact name</label>
                 <input wire:model="main_contact_name" type="text" class="input">
-                @error('main_contact_name') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('main_contact_name') <p class="field-error">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="label">Main contact email</label>
                 <input wire:model="main_contact_email" type="email" class="input">
-                @error('main_contact_email') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('main_contact_email') <p class="field-error">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="label">Main contact phone</label>
                 <input wire:model="main_contact_phone" type="text" class="input">
-                @error('main_contact_phone') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('main_contact_phone') <p class="field-error">{{ $message }}</p> @enderror
             </div>
         </div>
 

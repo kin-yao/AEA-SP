@@ -142,8 +142,8 @@ new #[Layout('layouts.app', ['title' => 'Receipts'])] class extends Component
                 @endif
             </div>
         </div>
-        @error('from') <p class="mt-2 text-xs text-critical-700">{{ $message }}</p> @enderror
-        @error('to') <p class="mt-2 text-xs text-critical-700">{{ $message }}</p> @enderror
+        @error('from') <p class="field-error">{{ $message }}</p> @enderror
+        @error('to') <p class="field-error">{{ $message }}</p> @enderror
     </form>
 
     {{-- List --}}

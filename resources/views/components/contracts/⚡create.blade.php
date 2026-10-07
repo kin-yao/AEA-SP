@@ -58,10 +58,10 @@ new #[Layout('layouts.app', ['title' => 'New contract'])] class extends Componen
         $validated = $this->validate([
             'customer_id' => ['required', 'exists:customers,id'],
             'type' => ['required', 'in:Full service,Call out,Maintenance only'],
-            'starts_at' => ['required', 'date'],
-            'ends_at' => ['required', 'date', 'after:starts_at'],
-            'visits_included' => ['required', 'integer', 'min:0'],
-            'value' => ['nullable', 'numeric', 'min:0'],
+            'starts_at' => ['required', 'date', 'after:2000-01-01'],
+            'ends_at' => ['required', 'date', 'after:starts_at', 'before:+15 years'],
+            'visits_included' => ['required', 'integer', 'min:0', 'max:365'],
+            'value' => \App\Support\Rules::money(false),
             'currency_code' => ['required', \Illuminate\Validation\Rule::in($this->currencyChoices())],
             'scan' => ['required', 'file', 'max:10240', 'mimes:pdf,jpg,jpeg,png'],
         ]);
@@ -119,7 +119,7 @@ new #[Layout('layouts.app', ['title' => 'New contract'])] class extends Componen
                             <option value="{{ $customer->id }}">{{ $customer->name }}</option>
                         @endforeach
                     </select>
-                    @error('customer_id') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('customer_id') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
 
                 <div class="mb-3">
@@ -129,18 +129,19 @@ new #[Layout('layouts.app', ['title' => 'New contract'])] class extends Componen
                         <option>Call out</option>
                         <option>Maintenance only</option>
                     </select>
+                    @error('type') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
 
                 <div class="mb-3 grid grid-cols-2 gap-4">
                     <div>
                         <label class="label">Start date</label>
                         <input wire:model="starts_at" type="date" class="input">
-                        @error('starts_at') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        @error('starts_at') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label class="label">End date</label>
                         <input wire:model="ends_at" type="date" class="input">
-                        @error('ends_at') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        @error('ends_at') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                 </div>
 
@@ -148,7 +149,7 @@ new #[Layout('layouts.app', ['title' => 'New contract'])] class extends Componen
                     <div>
                         <label class="label">Visits included</label>
                         <input wire:model="visits_included" type="number" min="0" class="input">
-                        @error('visits_included') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        @error('visits_included') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                     <div class="grid grid-cols-2 gap-2">
                         <div>
@@ -158,10 +159,12 @@ new #[Layout('layouts.app', ['title' => 'New contract'])] class extends Componen
                                     <option>{{ $code }}</option>
                                 @endforeach
                             </select>
+                            @error('currency_code') <p class="field-error">{{ $message }}</p> @enderror
                         </div>
                         <div>
                             <label class="label">Value (optional)</label>
                             <input wire:model="value" type="number" step="0.01" min="0" class="input">
+                            @error('value') <p class="field-error">{{ $message }}</p> @enderror
                         </div>
                     </div>
                 </div>
@@ -170,7 +173,7 @@ new #[Layout('layouts.app', ['title' => 'New contract'])] class extends Componen
             <div class="card">
                 <label class="label">Signed contract (PDF or image)</label>
                 <input wire:model="scan" type="file" accept=".pdf,.jpg,.jpeg,.png" class="input">
-                @error('scan') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('scan') <p class="field-error">{{ $message }}</p> @enderror
             </div>
 
             <button type="submit" wire:loading.attr="disabled" wire:target="submit,scan" class="btn-primary w-full">

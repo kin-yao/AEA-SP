@@ -131,7 +131,7 @@ new #[Layout('layouts.app', ['title' => 'Equipment categories'])] class extends 
                 <div class="mt-4">
                     <label class="label" for="ecn">Category name</label>
                     <input id="ecn" type="text" wire:model="name" class="input" style="font-size: 16px" placeholder="e.g. Weighbridge">
-                    @error('name') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('name') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
                 <div class="mt-5 flex gap-2">
                     <button type="submit" class="btn-primary">Save</button>

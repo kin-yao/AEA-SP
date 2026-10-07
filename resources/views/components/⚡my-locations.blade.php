@@ -54,9 +54,9 @@ new #[Layout('layouts.app', ['title' => 'My locations'])] class extends Componen
     public function save(): void
     {
         $v = $this->validate([
-            'siteName' => ['required', 'string', 'max:255'],
+            'siteName' => ['required', 'string', 'min:2', 'max:100'],
             'siteAddress' => ['nullable', 'string', 'max:500'],
-            'siteContact' => ['nullable', 'string', 'max:255'],
+            'siteContact' => \App\Support\Rules::person(false),
             'siteLat' => ['required', 'numeric', 'between:-90,90'],
             'siteLng' => ['required', 'numeric', 'between:-180,180'],
         ], [
@@ -138,20 +138,22 @@ new #[Layout('layouts.app', ['title' => 'My locations'])] class extends Componen
             <div>
                 <label class="label" for="ml-name">Name</label>
                 <input id="ml-name" wire:model="siteName" type="text" class="input" placeholder="e.g. Head office, Mombasa depot">
-                @error('siteName') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('siteName') <p class="field-error">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="label" for="ml-address">Address or landmark</label>
                 <input id="ml-address" wire:model="siteAddress" type="text" class="input" placeholder="Gate, floor, nearby landmark">
+                @error('siteAddress') <p class="field-error">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="label" for="ml-contact">Contact on site</label>
                 <input id="ml-contact" wire:model="siteContact" type="text" class="input">
+                @error('siteContact') <p class="field-error">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="label">Pin on the map</label>
                 <x-location-picker lat="siteLat" lng="siteLng" wire:key="ml-picker-{{ $siteId ?? 'new' }}" />
-                @error('siteLat') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('siteLat') <p class="field-error">{{ $message }}</p> @enderror
             </div>
             <div class="flex gap-2">
                 <button type="submit" class="btn-primary" wire:loading.attr="disabled" wire:target="save">Save</button>

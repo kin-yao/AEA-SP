@@ -36,16 +36,16 @@ new #[Layout('layouts.guest', ['title' => 'Create your account - AEA Service Ope
     public function register(): void
     {
         $validated = $this->validate([
-            'companyName' => ['required', 'string', 'max:255'],
+            'companyName' => \App\Support\Rules::company(),
             'branchId' => ['required', 'exists:branches,id'],
-            'kraPin' => ['nullable', 'string', 'max:255'],
-            'poBox' => ['nullable', 'string', 'max:255'],
+            'kraPin' => \App\Support\Rules::kraPin(),
+            'poBox' => \App\Support\Rules::text(60),
             'siteAddress' => ['nullable', 'string', 'max:500'],
             'siteLat' => ['nullable', 'numeric', 'between:-90,90'],
             'siteLng' => ['nullable', 'numeric', 'between:-180,180'],
-            'contactName' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:users,email'],
-            'phone' => ['nullable', 'string', 'max:255'],
+            'contactName' => \App\Support\Rules::person(),
+            'email' => array_merge(\App\Support\Rules::email(), ['unique:users,email']),
+            'phone' => \App\Support\Rules::phone(),
             'password' => ['required', 'confirmed', Password::min((int) setting('password_min'))],
         ]);
 
@@ -122,7 +122,7 @@ new #[Layout('layouts.guest', ['title' => 'Create your account - AEA Service Ope
         <div class="mb-4">
             <label for="companyName" class="label">Company name</label>
             <input wire:model="companyName" type="text" id="companyName" class="input">
-            @error('companyName') <p class="mt-1.5 text-xs text-critical-700">{{ $message }}</p> @enderror
+            @error('companyName') <p class="field-error">{{ $message }}</p> @enderror
         </div>
 
         <div class="mb-4">
@@ -133,23 +133,26 @@ new #[Layout('layouts.guest', ['title' => 'Create your account - AEA Service Ope
                     <option value="{{ $branch->id }}">{{ $branch->name }}</option>
                 @endforeach
             </select>
-            @error('branchId') <p class="mt-1.5 text-xs text-critical-700">{{ $message }}</p> @enderror
+            @error('branchId') <p class="field-error">{{ $message }}</p> @enderror
         </div>
 
         <div class="mb-4 grid grid-cols-2 gap-4">
             <div>
                 <label for="kraPin" class="label">KRA PIN (optional)</label>
                 <input wire:model="kraPin" type="text" id="kraPin" class="input">
+                @error('kraPin') <p class="field-error">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label for="poBox" class="label">P.O. Box (optional)</label>
                 <input wire:model="poBox" type="text" id="poBox" class="input">
+                @error('poBox') <p class="field-error">{{ $message }}</p> @enderror
             </div>
         </div>
 
         <div class="mb-4">
             <label for="siteAddress" class="label">Location (optional)</label>
             <input wire:model="siteAddress" type="text" id="siteAddress" class="input" placeholder="Address or landmark">
+            @error('siteAddress') <p class="field-error">{{ $message }}</p> @enderror
             <div class="mt-2">
                 <x-location-picker lat="siteLat" lng="siteLng" />
             </div>
@@ -158,24 +161,25 @@ new #[Layout('layouts.guest', ['title' => 'Create your account - AEA Service Ope
         <div class="mb-4">
             <label for="contactName" class="label">Your name</label>
             <input wire:model="contactName" type="text" id="contactName" class="input">
-            @error('contactName') <p class="mt-1.5 text-xs text-critical-700">{{ $message }}</p> @enderror
+            @error('contactName') <p class="field-error">{{ $message }}</p> @enderror
         </div>
 
         <div class="mb-4">
             <label for="email" class="label">Email</label>
             <input wire:model="email" type="email" id="email" autocomplete="email" class="input">
-            @error('email') <p class="mt-1.5 text-xs text-critical-700">{{ $message }}</p> @enderror
+            @error('email') <p class="field-error">{{ $message }}</p> @enderror
         </div>
 
         <div class="mb-4">
             <label for="phone" class="label">Phone (optional)</label>
             <input wire:model="phone" type="text" id="phone" class="input">
+            @error('phone') <p class="field-error">{{ $message }}</p> @enderror
         </div>
 
         <div class="mb-4">
             <label for="password" class="label">Password</label>
             <input wire:model="password" type="password" id="password" autocomplete="new-password" class="input">
-            @error('password') <p class="mt-1.5 text-xs text-critical-700">{{ $message }}</p> @enderror
+            @error('password') <p class="field-error">{{ $message }}</p> @enderror
         </div>
 
         <div class="mb-5">

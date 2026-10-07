@@ -6,6 +6,8 @@
     <title>{{ $title ?? 'AEA Service Operations Hub' }}</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <link rel="stylesheet" href="{{ asset('css/forms.css') }}">
+    <script src="{{ asset('js/form-feedback.js') }}" defer></script>
     <script src="{{ asset('js/location-picker.js') }}"></script>
     <style>
         /* rf: service report form */
@@ -57,8 +59,6 @@
         .rf-sign-hint { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 1rem; font-size: 0.9375rem; color: #a1a1aa; pointer-events: none; z-index: 2; }
         .rf-sign-sub { font-size: 0.75rem; color: #a1a1aa; }
         .rf-signed { font-size: 0.8125rem; font-weight: 700; color: #189913; }
-
-        .rf-err { margin-top: 0.375rem; font-size: 0.8125rem; font-weight: 600; color: #a71d2a; }
 
         .rf-bar { position: sticky; bottom: 0; z-index: 20; margin: 1rem -1rem 0; padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px)); background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(8px); border-top: 1px solid #e4e4e7; }
         .rf-bar-hint { margin-bottom: 0.5rem; text-align: center; font-size: 0.75rem; color: #71717a; }

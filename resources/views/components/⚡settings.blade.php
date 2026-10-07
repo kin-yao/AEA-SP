@@ -87,6 +87,9 @@ new #[Layout('layouts.app', ['title' => 'System settings'])] class extends Compo
             $key === 'currency' => ['required', Rule::in(Currency::codes())],
             str_starts_with($key, 'ref_') && $key !== 'ref_digits' => ['required', 'alpha_num', 'max:8'],
             $key === 'ref_digits' => ['required', 'integer', 'min:1', 'max:8'],
+            $key === 'company_email' => \App\Support\Rules::email(false),
+            $key === 'company_phone' => \App\Support\Rules::phone(),
+            $key === 'company_kra_pin' => \App\Support\Rules::kraPin(),
             $key === 'password_min' => ['required', 'integer', 'min:6', 'max:64'],
             in_array($key, ['invoice_due_days', 'quotation_validity_days'], true) => ['required', 'integer', 'min:1', 'max:3650'],
             in_array($key, ['stage_warn_pct', 'stage_urgent_pct', 'response_target_pct'], true) => ['required', 'integer', 'min:1', 'max:100'],
@@ -193,11 +196,11 @@ new #[Layout('layouts.app', ['title' => 'System settings'])] class extends Compo
         $v = $this->validate([
             'bCountry' => ['nullable', 'exists:countries,id'],
             'bCurrency' => ['required', Rule::in(Currency::codes())],
-            'bBank' => ['required', 'string', 'max:255'],
-            'bName' => ['required', 'string', 'max:255'],
-            'bNumber' => ['required', 'string', 'max:255'],
+            'bBank' => ['required', 'string', 'min:2', 'max:100'],
+            'bName' => ['required', 'string', 'min:2', 'max:150'],
+            'bNumber' => ['required', 'string', 'max:40', 'regex:/^[A-Za-z0-9 -]+$/'],
             'bBranch' => ['nullable', 'string', 'max:255'],
-            'bSwift' => ['nullable', 'string', 'max:255'],
+            'bSwift' => ['nullable', 'alpha_num', 'min:8', 'max:11'],
         ], [], [
             'bCurrency' => 'currency', 'bBank' => 'bank', 'bName' => 'account name', 'bNumber' => 'account number',
         ]);
@@ -329,7 +332,7 @@ new #[Layout('layouts.app', ['title' => 'System settings'])] class extends Compo
             'sLabel' => ['required', 'string', 'max:100', Rule::unique('reference_series', 'label')->ignore($this->seriesId)],
             'sPrefix' => ['required', 'alpha_num', 'max:10'],
             'sDigits' => ['required', 'integer', 'min:1', 'max:10'],
-            'sNext' => ['required', 'integer', 'min:1'],
+            'sNext' => ['required', 'integer', 'min:1', 'max:999999999'],
         ], [
             'sLabel.unique' => 'There is already a series with that name.',
         ], [
@@ -496,7 +499,7 @@ new #[Layout('layouts.app', ['title' => 'System settings'])] class extends Compo
                         <input id="f-{{ $key }}" type="{{ in_array($meta[1], ['number', 'percent', 'money'], true) ? 'number' : 'text' }}" @if ($meta[1] !== 'number') step="any" @endif wire:model="values.{{ $key }}" class="input" style="font-size: 16px">
                     @endif
 
-                    @error('values.'.$key) <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('values.'.$key) <p class="field-error">{{ $message }}</p> @enderror
                     @if ($meta[3]) <p class="mt-1 text-xs text-neutral-400">{{ $meta[3] }}</p> @endif
                     @if (\App\Support\Settings::isCustom($key))
                         <button type="button" wire:click="reset_to_default('{{ $key }}')" wire:confirm="Go back to the built-in default for {{ $meta[0] }}?" class="mt-1 text-xs text-neutral-500 underline">Use the default</button>
@@ -520,7 +523,7 @@ new #[Layout('layouts.app', ['title' => 'System settings'])] class extends Compo
                 </div>
                 <button type="button" wire:click="newCurrency" class="btn-primary" style="padding: 0.4rem 0.9rem">Add currency</button>
             </div>
-            @error('currency_in_use') <p class="mt-3 text-sm text-critical-700" style="padding: 0 1.25rem">{{ $message }}</p> @enderror
+            @error('currency_in_use') <p class="field-error" style="padding: 0 1.25rem">{{ $message }}</p> @enderror
             <div class="mt-3 overflow-x-auto">
                 <table class="table-clean" style="min-width: 560px">
                     <thead><tr><th>Code</th><th>Name</th><th>Used by</th><th></th></tr></thead>
@@ -560,12 +563,12 @@ new #[Layout('layouts.app', ['title' => 'System settings'])] class extends Compo
                 <div class="mt-4">
                     <label class="label" for="cu-code">Code</label>
                     <input id="cu-code" type="text" wire:model="cuCode" maxlength="3" @if ($curId) readonly @endif class="input" style="font-size: 16px; text-transform: uppercase" placeholder="e.g. AOA">
-                    @error('cuCode') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('cuCode') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
                 <div class="mt-3">
                     <label class="label" for="cu-name">Name</label>
                     <input id="cu-name" type="text" wire:model="cuName" class="input" style="font-size: 16px" placeholder="e.g. Angolan kwanza">
-                    @error('cuName') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('cuName') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
                 <div class="mt-5 flex gap-2">
                     <button type="submit" class="btn-primary">Save</button>
@@ -583,7 +586,7 @@ new #[Layout('layouts.app', ['title' => 'System settings'])] class extends Compo
                     <div>
                         <label class="label" for="b-bank">Bank</label>
                         <input id="b-bank" type="text" wire:model="bBank" class="input" style="font-size: 16px">
-                        @error('bBank') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        @error('bBank') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label class="label" for="b-branch">Branch</label>
@@ -592,12 +595,12 @@ new #[Layout('layouts.app', ['title' => 'System settings'])] class extends Compo
                     <div>
                         <label class="label" for="b-name">Account name</label>
                         <input id="b-name" type="text" wire:model="bName" class="input" style="font-size: 16px">
-                        @error('bName') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        @error('bName') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label class="label" for="b-number">Account number</label>
                         <input id="b-number" type="text" wire:model="bNumber" class="input" style="font-size: 16px">
-                        @error('bNumber') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        @error('bNumber') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label class="label" for="b-cur">Currency</label>
@@ -606,7 +609,7 @@ new #[Layout('layouts.app', ['title' => 'System settings'])] class extends Compo
                                 <option value="{{ $code }}">{{ $code }}</option>
                             @endforeach
                         </select>
-                        @error('bCurrency') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        @error('bCurrency') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label class="label" for="b-swift">SWIFT code</label>
@@ -639,23 +642,23 @@ new #[Layout('layouts.app', ['title' => 'System settings'])] class extends Compo
                 <div class="mt-4">
                     <label class="label" for="s-label">Used for</label>
                     <input id="s-label" type="text" wire:model="sLabel" class="input" style="font-size: 16px" placeholder="e.g. Purchase orders">
-                    @error('sLabel') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('sLabel') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
                 <div style="display: grid; gap: 0.8rem; margin-top: 0.8rem; grid-template-columns: repeat(3, 1fr)">
                     <div>
                         <label class="label" for="s-prefix">Prefix</label>
                         <input id="s-prefix" type="text" wire:model.live.debounce.300ms="sPrefix" maxlength="10" class="input" style="font-size: 16px; text-transform: uppercase" placeholder="PO">
-                        @error('sPrefix') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        @error('sPrefix') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label class="label" for="s-digits">Digits</label>
                         <input id="s-digits" type="number" wire:model.live.debounce.300ms="sDigits" class="input" style="font-size: 16px">
-                        @error('sDigits') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        @error('sDigits') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label class="label" for="s-next">Next number</label>
                         <input id="s-next" type="number" wire:model.live.debounce.300ms="sNext" class="input" style="font-size: 16px">
-                        @error('sNext') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        @error('sNext') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                 </div>
                 @if ($sPrefix !== '' && ctype_digit($sDigits) && ctype_digit($sNext) && (int) $sDigits > 0)

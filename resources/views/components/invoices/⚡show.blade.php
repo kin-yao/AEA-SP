@@ -48,8 +48,8 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
         $this->authorize('recordPayment', $this->invoice);
 
         $this->validate([
-            'paymentAmount' => ['required', 'numeric', 'min:1'],
-            'paymentMethod' => ['required', 'string'],
+            'paymentAmount' => ['required', 'numeric', 'min:0.01', 'max:999999999', 'decimal:0,2'],
+            'paymentMethod' => ['required', \Illuminate\Validation\Rule::in(setting('payment_methods'))],
         ]);
 
         $amountMinor = (int) round(((float) $this->paymentAmount) * 100);
@@ -275,7 +275,7 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
             <div class="mb-3">
                 <label class="label">Amount, {{ $invoice->currency_code }}</label>
                 <input wire:model="paymentAmount" type="text" inputmode="decimal" placeholder="0.00" class="input">
-                @error('paymentAmount') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('paymentAmount') <p class="field-error">{{ $message }}</p> @enderror
             </div>
             <div class="mb-4">
                 <label class="label">Method</label>
@@ -284,6 +284,7 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
                         <option>{{ $method }}</option>
                     @endforeach
                 </select>
+                @error('paymentMethod') <p class="field-error">{{ $message }}</p> @enderror
             </div>
             <button wire:click="recordPayment" wire:loading.attr="disabled" wire:target="recordPayment" class="btn-primary w-full">
                 Record payment

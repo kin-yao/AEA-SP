@@ -99,7 +99,7 @@ new #[Layout('layouts.app', ['title' => 'Inventory'])] class extends Component
         $this->validate([
             'moveItemId' => ['required', 'exists:inventory_items,id'],
             'moveType' => ['required', Rule::in(['Issue', 'Stock in', 'Adjustment'])],
-            'moveQty' => ['required', 'integer', 'not_in:0'],
+            'moveQty' => ['required', 'integer', 'not_in:0', 'between:-1000000,1000000'],
         ], [
             'moveItemId.required' => 'Choose an item.',
             'moveQty.required' => 'Enter a quantity.',
@@ -398,7 +398,7 @@ new #[Layout('layouts.app', ['title' => 'Inventory'])] class extends Component
                     <span wire:loading wire:target="import">Importing...</span>
                 </button>
             </div>
-            @error('csv') <p class="text-xs text-critical-700">{{ $message }}</p> @enderror
+            @error('csv') <p class="field-error">{{ $message }}</p> @enderror
 
             @if ($importResult)
                 <div class="rounded-[var(--radius-md)] bg-neutral-50 p-3 text-sm">
@@ -526,7 +526,7 @@ new #[Layout('layouts.app', ['title' => 'Inventory'])] class extends Component
                                 <option value="{{ $p->id }}">{{ $p->code }} - {{ $p->name }} ({{ $p->quantity }} in stock)</option>
                             @endforeach
                         </select>
-                        @error('moveItemId') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        @error('moveItemId') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label class="label">Type</label>
@@ -537,12 +537,12 @@ new #[Layout('layouts.app', ['title' => 'Inventory'])] class extends Component
                                 <option value="Adjustment">Adjustment (+/-)</option>
                             @endif
                         </select>
-                        @error('moveType') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        @error('moveType') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label class="label">Quantity</label>
                         <input type="number" wire:model="moveQty" class="input">
-                        @error('moveQty') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                        @error('moveQty') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                 </div>
                 <div class="flex items-center gap-3">

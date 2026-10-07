@@ -44,16 +44,23 @@ new #[Layout('layouts.app', ['title' => 'Register machine'])] class extends Comp
         $this->authorize('create', Equipment::class);
 
         $validated = $this->validate([
-            'serial_number' => ['required', 'string', 'max:255', Rule::unique('equipment', 'serial_number')],
-            'model' => ['required', 'string', 'max:255'],
+            'serial_number' => ['required', 'string', 'min:2', 'max:100', 'regex:/^[A-Za-z0-9][A-Za-z0-9 .\/_-]*$/', Rule::unique('equipment', 'serial_number')],
+            'model' => ['required', 'string', 'min:2', 'max:100'],
             'customer_id' => ['required', 'exists:customers,id'],
             'customer_site_id' => ['nullable', 'exists:customer_sites,id'],
-            'category' => ['nullable', 'string', 'max:255'],
+            'category' => ['nullable', 'string', 'max:100'],
             'cover' => ['required', Rule::in(['Chargeable', 'Warranty', 'Contract'])],
-            'installed_at' => ['nullable', 'date'],
-            'warranty_expires_at' => ['nullable', 'date'],
-            'next_visit_due_at' => ['nullable', 'date'],
-        ]);
+            'installed_at' => ['nullable', 'date', 'before_or_equal:today', 'after:1990-01-01'],
+            'warranty_expires_at' => array_merge(['nullable', 'date', 'before:+30 years'], filled($this->installed_at) ? ['after_or_equal:installed_at'] : []),
+            'next_visit_due_at' => array_merge(['nullable', 'date', 'before:+10 years'], filled($this->installed_at) ? ['after_or_equal:installed_at'] : []),
+        ], [
+            'serial_number.regex' => 'Use letters, numbers, spaces and . / _ - only.',
+            'serial_number.unique' => 'A machine with this serial number is already registered.',
+            'installed_at.before_or_equal' => 'The install date cannot be in the future.',
+            'installed_at.after' => 'Check the install date, it looks too old.',
+            'warranty_expires_at.after_or_equal' => 'Warranty cannot end before the install date.',
+            'next_visit_due_at.after_or_equal' => 'The next visit cannot be before the install date.',
+        ], ['serial_number' => 'serial number', 'installed_at' => 'install date', 'warranty_expires_at' => 'warranty end date', 'next_visit_due_at' => 'next visit date']);
 
         $equipment = Equipment::create($validated);
 
@@ -79,12 +86,12 @@ new #[Layout('layouts.app', ['title' => 'Register machine'])] class extends Comp
             <div>
                 <label class="label">Serial number</label>
                 <input type="text" wire:model="serial_number" class="input">
-                @error('serial_number') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('serial_number') <p class="field-error">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="label">Model</label>
                 <input type="text" wire:model="model" class="input">
-                @error('model') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('model') <p class="field-error">{{ $message }}</p> @enderror
             </div>
         </div>
 
@@ -97,7 +104,7 @@ new #[Layout('layouts.app', ['title' => 'Register machine'])] class extends Comp
                         <option value="{{ $customer->id }}">{{ $customer->name }}</option>
                     @endforeach
                 </select>
-                @error('customer_id') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('customer_id') <p class="field-error">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="label">Site (optional)</label>
@@ -107,7 +114,7 @@ new #[Layout('layouts.app', ['title' => 'Register machine'])] class extends Comp
                         <option value="{{ $site->id }}">{{ $site->name }}</option>
                     @endforeach
                 </select>
-                @error('customer_site_id') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('customer_site_id') <p class="field-error">{{ $message }}</p> @enderror
             </div>
         </div>
 
@@ -123,7 +130,7 @@ new #[Layout('layouts.app', ['title' => 'Register machine'])] class extends Comp
                         <option value="{{ $category }}">{{ $category }}</option>
                     @endif
                 </select>
-                @error('category') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('category') <p class="field-error">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="label">Cover</label>
@@ -132,7 +139,7 @@ new #[Layout('layouts.app', ['title' => 'Register machine'])] class extends Comp
                     <option value="Warranty">Warranty</option>
                     <option value="Contract">Contract</option>
                 </select>
-                @error('cover') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('cover') <p class="field-error">{{ $message }}</p> @enderror
             </div>
         </div>
 
@@ -140,17 +147,17 @@ new #[Layout('layouts.app', ['title' => 'Register machine'])] class extends Comp
             <div>
                 <label class="label">Installed on (optional)</label>
                 <input type="date" wire:model="installed_at" class="input">
-                @error('installed_at') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('installed_at') <p class="field-error">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="label">Warranty expires (optional)</label>
                 <input type="date" wire:model="warranty_expires_at" class="input">
-                @error('warranty_expires_at') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('warranty_expires_at') <p class="field-error">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="label">Next visit due (optional)</label>
                 <input type="date" wire:model="next_visit_due_at" class="input">
-                @error('next_visit_due_at') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('next_visit_due_at') <p class="field-error">{{ $message }}</p> @enderror
             </div>
         </div>
 

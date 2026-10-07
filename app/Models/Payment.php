@@ -58,7 +58,7 @@ class Payment extends Model
     {
         if ($amountMinor > $invoice->balanceMinor()) {
             throw new \DomainException(
-                "Payment of {$amountMinor} exceeds the outstanding balance of {$invoice->balanceMinor()} on invoice {$invoice->reference}."
+                'That is more than the balance owed. This invoice has '.$invoice->currency_code.' '.number_format($invoice->balanceMinor() / 100, 2).' left to pay.'
             );
         }
 

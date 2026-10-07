@@ -64,8 +64,8 @@ new #[Layout('layouts.auth-split', ['title' => 'Sign in - AEA Service Operations
                 >
             </div>
             @error('email')
-                <p style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.4rem; border-radius: 0.5rem; background: #fff; padding: 0.45rem 0.7rem; font-size: 0.8rem; font-weight: 600; color: #a8151a">
-                    <x-icon name="exclamation-circle" class="h-3.5 w-3.5" /> {{ $message }}
+                <p class="field-error">
+                     {{ $message }}
                 </p>
             @enderror
         </div>
@@ -90,8 +90,8 @@ new #[Layout('layouts.auth-split', ['title' => 'Sign in - AEA Service Operations
                 </button>
             </div>
             @error('password')
-                <p style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.4rem; border-radius: 0.5rem; background: #fff; padding: 0.45rem 0.7rem; font-size: 0.8rem; font-weight: 600; color: #a8151a">
-                    <x-icon name="exclamation-circle" class="h-3.5 w-3.5" /> {{ $message }}
+                <p class="field-error">
+                     {{ $message }}
                 </p>
             @enderror
         </div>

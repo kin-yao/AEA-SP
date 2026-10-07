@@ -62,9 +62,9 @@ new #[Layout('layouts.app', ['title' => 'New account'])] class extends Component
         $allowedRoles = $this->assignableRoles();
 
         $validated = $this->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
-            'phone' => ['nullable', 'string', 'max:30'],
+            'name' => \App\Support\Rules::person(),
+            'email' => array_merge(\App\Support\Rules::email(), [Rule::unique('users', 'email')]),
+            'phone' => \App\Support\Rules::phone(),
             'role' => ['required', Rule::in($allowedRoles)],
             'branch_id' => ['nullable', 'exists:branches,id'],
             'customer_id' => [Rule::requiredIf($this->role === 'Customer'), 'nullable', 'exists:customers,id'],
@@ -139,19 +139,19 @@ new #[Layout('layouts.app', ['title' => 'New account'])] class extends Component
             <div>
                 <label class="label">Full name</label>
                 <input type="text" wire:model="name" class="input">
-                @error('name') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('name') <p class="field-error">{{ $message }}</p> @enderror
             </div>
 
             <div>
                 <label class="label">Email</label>
                 <input type="email" wire:model="email" class="input">
-                @error('email') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('email') <p class="field-error">{{ $message }}</p> @enderror
             </div>
 
             <div>
                 <label class="label">Phone (optional)</label>
                 <input type="text" wire:model="phone" class="input">
-                @error('phone') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('phone') <p class="field-error">{{ $message }}</p> @enderror
             </div>
 
             <div>
@@ -166,7 +166,7 @@ new #[Layout('layouts.app', ['title' => 'New account'])] class extends Component
                         @endforeach
                     </select>
                 @endif
-                @error('role') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('role') <p class="field-error">{{ $message }}</p> @enderror
             </div>
 
             @if ($role === 'Customer')
@@ -178,7 +178,7 @@ new #[Layout('layouts.app', ['title' => 'New account'])] class extends Component
                             <option value="{{ $customer->id }}">{{ $customer->name }}</option>
                         @endforeach
                     </select>
-                    @error('customer_id') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('customer_id') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
             @elseif ($role !== '')
                 <div>
@@ -189,7 +189,7 @@ new #[Layout('layouts.app', ['title' => 'New account'])] class extends Component
                             <option value="{{ $branch->id }}">{{ $branch->name }}</option>
                         @endforeach
                     </select>
-                    @error('branch_id') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('branch_id') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
             @endif
 

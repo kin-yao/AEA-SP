@@ -50,7 +50,7 @@ class StockMovement extends Model
     {
         if ($item->quantity + $quantityDelta < 0) {
             throw new \DomainException(
-                "Movement of {$quantityDelta} would take {$item->name} below zero, current stock is {$item->quantity}."
+                "Not enough stock. {$item->name} has {$item->quantity} in stock, so that cannot be taken out."
             );
         }
 

@@ -190,7 +190,7 @@ new #[Layout('layouts.app', ['title' => 'Branches and Country'])] class extends 
                 <div class="mt-4">
                     <label class="label" for="cn">Country</label>
                     <input id="cn" type="text" wire:model="countryName" class="input" style="font-size: 16px">
-                    @error('countryName') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('countryName') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
                 <div class="mt-3">
                     <label class="label" for="cc">Currency code</label>
@@ -202,18 +202,18 @@ new #[Layout('layouts.app', ['title' => 'Branches and Country'])] class extends 
                     </select>
                     <p class="mt-1 text-xs text-neutral-400">Add new ones under System settings.</p>
                     <p class="mt-1 text-xs text-neutral-400">Used for all billing in this country.</p>
-                    @error('currency') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('currency') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
                 <div class="mt-3">
                     <label class="label" for="cv">VAT rate (%)</label>
                     <input id="cv" type="number" step="any" wire:model="vat" class="input" style="font-size: 16px" placeholder="Leave blank for the default">
-                    @error('vat') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('vat') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
                 <div class="mt-3">
                     <label class="label" for="ca">Manager approval from</label>
                     <input id="ca" type="number" step="any" wire:model="approval" class="input" style="font-size: 16px" placeholder="Leave blank for the default">
                     <p class="mt-1 text-xs text-neutral-400">Totals from here need a Manager.</p>
-                    @error('approval') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('approval') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
                 <div class="mt-5 flex gap-2">
                     <button type="submit" class="btn-primary">Save</button>
@@ -235,12 +235,12 @@ new #[Layout('layouts.app', ['title' => 'Branches and Country'])] class extends 
                             <option value="{{ $c->id }}">{{ $c->name }}</option>
                         @endforeach
                     </select>
-                    @error('branchCountry') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('branchCountry') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
                 <div class="mt-3">
                     <label class="label" for="bn">Branch name</label>
                     <input id="bn" type="text" wire:model="branchName" class="input" style="font-size: 16px">
-                    @error('branchName') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('branchName') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
                 <div class="mt-5 flex gap-2">
                     <button type="submit" class="btn-primary">Save</button>

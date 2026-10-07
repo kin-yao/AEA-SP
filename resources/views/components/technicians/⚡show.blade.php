@@ -31,7 +31,7 @@ new #[Layout('layouts.app', ['title' => 'Technician'])] class extends Component
     public function saveSpecialty(): void
     {
         $validated = $this->validate([
-            'specialty' => ['nullable', 'string', 'max:255'],
+            'specialty' => ['nullable', 'string', 'max:150'],
         ]);
 
         $this->technician->update(['specialty' => $validated['specialty'] ?: null]);
@@ -98,7 +98,7 @@ new #[Layout('layouts.app', ['title' => 'Technician'])] class extends Component
                         <button type="submit" class="btn-primary shrink-0">Save</button>
                         <button type="button" wire:click="toggleEditSpecialty" class="btn-ghost shrink-0">Cancel</button>
                     </form>
-                    @error('specialty') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('specialty') <p class="field-error">{{ $message }}</p> @enderror
                 @else
                     <p class="mt-1 text-sm text-neutral-900">{{ $technician->specialty ?: 'Not set' }}</p>
                 @endif

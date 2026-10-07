@@ -21,6 +21,7 @@ new #[Layout('layouts.app', ['title' => 'Request'])] class extends Component
         $this->authorize('view', $request);
         $this->request = $request;
         $this->dueDate = now()->addDays((int) setting('job_due_days'))->toDateString();
+        $this->natureOfVisit = setting('nature_of_visit')[0] ?? 'Service';
     }
 
     public function getTechniciansProperty()
@@ -34,7 +35,7 @@ new #[Layout('layouts.app', ['title' => 'Request'])] class extends Component
 
         $this->validate([
             'technicianId' => ['required', 'exists:users,id'],
-            'natureOfVisit' => ['required', 'string'],
+            'natureOfVisit' => ['required', \Illuminate\Validation\Rule::in(setting('nature_of_visit'))],
         ]);
 
         $technician = User::findOrFail($this->technicianId);
@@ -89,7 +90,7 @@ new #[Layout('layouts.app', ['title' => 'Request'])] class extends Component
         }
 
         $this->validate([
-            'dueDate' => ['required', 'date'],
+            'dueDate' => ['required', 'date', 'after_or_equal:today'],
         ]);
 
         $reference = \App\Models\ReferenceSeries::next('work_order');
@@ -226,17 +227,17 @@ new #[Layout('layouts.app', ['title' => 'Request'])] class extends Component
                         <option value="{{ $technician->id }}">{{ $technician->name }}</option>
                     @endforeach
                 </select>
-                @error('technicianId') <p class="mt-1 text-xs text-primary-600">{{ $message }}</p> @enderror
+                @error('technicianId') <p class="field-error">{{ $message }}</p> @enderror
             </div>
 
             <div class="mb-4">
                 <label class="label">Nature of visit</label>
                 <select wire:model="natureOfVisit" class="input">
-                    <option>Service</option>
-                    <option>Repairs</option>
-                    <option>Planned maintenance</option>
-                    <option>Calibration</option>
+                    @foreach (setting('nature_of_visit') as $nature)
+                        <option>{{ $nature }}</option>
+                    @endforeach
                 </select>
+                @error('natureOfVisit') <p class="field-error">{{ $message }}</p> @enderror
             </div>
 
             <div class="flex gap-2">
@@ -254,12 +255,12 @@ new #[Layout('layouts.app', ['title' => 'Request'])] class extends Component
         @if ($request->status === 'Assigned' && ! $generatedReference)
             <div class="card">
                 <h2 class="mb-3 text-sm font-semibold text-neutral-900">Generate the job</h2>
-                @error('job') <p class="mb-3 text-xs text-primary-600">{{ $message }}</p> @enderror
+                @error('job') <p class="field-error">{{ $message }}</p> @enderror
 
                 <div class="mb-4">
                     <label class="label">Due date</label>
                     <input type="date" wire:model="dueDate" class="input">
-                    @error('dueDate') <p class="mt-1 text-xs text-primary-600">{{ $message }}</p> @enderror
+                    @error('dueDate') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
 
                 <button wire:click="generateJob" wire:loading.attr="disabled" wire:target="generateJob" class="btn-primary">

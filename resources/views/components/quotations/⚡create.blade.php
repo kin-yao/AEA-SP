@@ -89,12 +89,23 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
     {
         $this->validate([
             'customerId' => ['required', 'exists:customers,id'],
-            'scope' => ['required', 'string'],
-            'labour' => ['nullable', 'numeric', 'min:0'],
-            'validityDays' => ['required', 'integer', 'min:1'],
-            'items' => ['required', 'array', 'min:1'],
-            'items.*.description' => ['required_with:items.*.rate', 'nullable', 'string'],
+            'scope' => ['required', 'string', 'min:5', 'max:5000'],
+            'labour' => \App\Support\Rules::money(false),
+            'validityDays' => ['required', 'integer', 'min:1', 'max:365'],
+            'items' => ['required', 'array', 'min:1', 'max:100'],
+            'items.*.description' => ['required_with:items.*.rate', 'nullable', 'string', 'max:500'],
+            'items.*.quantity' => ['nullable', 'integer', 'min:1', 'max:1000000'],
+            'items.*.rate' => \App\Support\Rules::money(false),
+        ], [
+            'items.*.quantity.integer' => 'Quantity must be a whole number.',
+            'items.*.description.required_with' => 'Describe this item or clear its price.',
         ]);
+
+        if (collect($this->items)->every(fn ($i) => blank($i['description'] ?? null))) {
+            $this->addError('items.0.description', 'Add at least one item with a description.');
+
+            return;
+        }
 
         $quotation = Quotation::create([
             'reference' => \App\Models\ReferenceSeries::next('quotation'),
@@ -160,7 +171,7 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
                             <option value="{{ $customer->id }}">{{ $customer->name }}</option>
                         @endforeach
                     </select>
-                    @error('customerId') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                    @error('customerId') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="label">Site</label>
@@ -175,7 +186,7 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
             <div>
                 <label class="label">Scope of work</label>
                 <input wire:model="scope" type="text" placeholder="e.g. Weighbridge load cell replacement" class="input">
-                @error('scope') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                @error('scope') <p class="field-error">{{ $message }}</p> @enderror
             </div>
         </div>
 
@@ -198,16 +209,23 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
                         </button>
                     @endif
                 </div>
+                @foreach (['description', 'quantity', 'rate'] as $col)
+                    @error("items.$index.$col") <p class="field-error" data-for="items.{{ $index }}.{{ $col }}" style="margin:-0.25rem 0 0.5rem">{{ $message }}</p> @enderror
+                @endforeach
             @endforeach
+
+            @error('items') <p class="field-error">{{ $message }}</p> @enderror
 
             <div class="mt-4 grid grid-cols-2 gap-4 border-t border-neutral-100 pt-4">
                 <div>
                     <label class="label">Labour, {{ $this->currencyCode }}</label>
                     <input wire:model.live="labour" type="text" inputmode="decimal" placeholder="0.00" class="input">
+                    @error('labour') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="label">Validity, days</label>
                     <input wire:model="validityDays" type="number" min="1" class="input">
+                    @error('validityDays') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
             </div>
         </div>

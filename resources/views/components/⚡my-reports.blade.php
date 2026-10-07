@@ -236,8 +236,8 @@ new #[Layout('layouts.app', ['title' => 'My reports'])] class extends Component
                 <button type="button" wire:click="resetFilter" class="btn-outline">Reset</button>
             </div>
         </div>
-        @error('fromInput') <p class="mt-2 text-xs text-critical-700">{{ $message }}</p> @enderror
-        @error('toInput') <p class="mt-2 text-xs text-critical-700">{{ $message }}</p> @enderror
+        @error('fromInput') <p class="field-error">{{ $message }}</p> @enderror
+        @error('toInput') <p class="field-error">{{ $message }}</p> @enderror
     </div>
 
     {{-- KPIs --}}

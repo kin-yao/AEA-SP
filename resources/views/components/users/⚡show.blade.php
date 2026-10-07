@@ -48,8 +48,8 @@ new #[Layout('layouts.app', ['title' => 'User account'])] class extends Componen
 
         $validated = $this->validate([
             'documentType' => ['required', 'in:Medical cover / insurance,Driving licence,Trade certification,Medical certificate'],
-            'issuedAt' => ['required', 'date'],
-            'validityMonths' => ['required', 'integer', 'min:1'],
+            'issuedAt' => ['required', 'date', 'before_or_equal:today', 'after:1990-01-01'],
+            'validityMonths' => ['required', 'integer', 'min:1', 'max:120'],
             'documentFile' => ['nullable', 'file', 'max:10240', 'mimes:pdf,jpg,jpeg,png'],
         ]);
 
@@ -203,24 +203,24 @@ new #[Layout('layouts.app', ['title' => 'User account'])] class extends Componen
                                 <option>Trade certification</option>
                                 <option>Medical certificate</option>
                             </select>
-                            @error('documentType') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                            @error('documentType') <p class="field-error">{{ $message }}</p> @enderror
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="label">Issued on</label>
                                 <input wire:model="issuedAt" type="date" class="input">
-                                @error('issuedAt') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                                @error('issuedAt') <p class="field-error">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="label">Valid for (months)</label>
                                 <input wire:model="validityMonths" type="number" min="1" class="input">
-                                @error('validityMonths') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                                @error('validityMonths') <p class="field-error">{{ $message }}</p> @enderror
                             </div>
                         </div>
                         <div>
                             <label class="label">Scanned copy (optional)</label>
                             <input wire:model="documentFile" type="file" accept=".pdf,.jpg,.jpeg,.png" class="input">
-                            @error('documentFile') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                            @error('documentFile') <p class="field-error">{{ $message }}</p> @enderror
                         </div>
                         <button type="submit" wire:loading.attr="disabled" wire:target="addDocument,documentFile" class="btn-primary w-full">
                             Save document

@@ -277,7 +277,7 @@ new #[Layout('layouts.app', ['title' => 'Dispatch board'])] class extends Compon
                                 </select>
                                 <button type="submit" class="btn-primary shrink-0">Move job</button>
                             </form>
-                            @error('newTechnicianId') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                            @error('newTechnicianId') <p class="field-error">{{ $message }}</p> @enderror
                     @endif
                 </div>
                 @empty

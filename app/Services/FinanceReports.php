@@ -80,9 +80,16 @@ class FinanceReports
             ->values();
     }
 
+    private static ?int $todayTs = null;
+
+    private static function todayTs(): int
+    {
+        return self::$todayTs ??= today()->timestamp;
+    }
+
     public static function isOverdue(Invoice $i): bool
     {
-        return in_array($i->status, ['Unpaid', 'Part paid'], true) && $i->due_at->lt(today());
+        return in_array($i->status, ['Unpaid', 'Part paid'], true) && $i->due_at->timestamp < self::todayTs();
     }
 
     /** Status as the Finance team reads it: past-due money shows as Overdue. */
@@ -167,14 +174,10 @@ class FinanceReports
             ['label' => 'Over 90 days late', 'min' => 91, 'max' => null, 'color' => '#8f1d1d'],
         ];
         $ageing = [];
-        foreach ($buckets as $b) {
-            $set = $owing->filter(function ($i) use ($b) {
-                $late = (int) today()->diffInDays($i->due_at, false) * -1;
-
-                return ($b['min'] === null ? $late <= 0 : $late >= $b['min']) && ($b['max'] === null || $late <= $b['max']);
-            });
-            $sum = (int) $set->sum(fn ($i) => $i->balanceMinor());
-            $ageing[] = ['label' => $b['label'], 'value' => $sum, 'valueLabel' => self::short($sum), 'color' => $b['color'], 'count' => $set->count()];
+        foreach (\App\Support\Ageing::sort($owing, $buckets) as $k => $row) {
+            $b = $buckets[$k];
+            $sum = (int) $row['sum'];
+            $ageing[] = ['label' => $b['label'], 'value' => $sum, 'valueLabel' => self::short($sum), 'color' => $b['color'], 'count' => $row['count']];
         }
         $ageingMix = array_values(array_filter($ageing, fn ($a) => $a['value'] > 0));
 

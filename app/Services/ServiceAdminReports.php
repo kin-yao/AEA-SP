@@ -226,7 +226,7 @@ class ServiceAdminReports
 
     public static function contracts(array $f): Collection
     {
-        $q = Contract::with('customer.branch.country')->where('status', 'Active');
+        $q = Contract::withVisitCounts()->with('customer.branch.country')->where('status', 'Active');
         if ($f['customer']) {
             $q->where('customer_id', $f['customer']);
         }
@@ -292,8 +292,10 @@ class ServiceAdminReports
         $stock = self::stock($f);
         $contracts = self::contracts($f);
 
-        $quotesLive = self::quotations($live);
-        $jobsLive = self::jobRows($live);
+        // With no dates chosen the live view and the period view are the same rows, so load them once.
+        $sameRows = $f['from'] === null && $f['to'] === null;
+        $quotesLive = $sameRows ? $quotations : self::quotations($live);
+        $jobsLive = $sameRows ? $jobs : self::jobRows($live);
 
         // ---- KPIs
         $converted = $requests->filter(fn ($r) => $r->workOrder !== null || $r->status === 'Converted')->count();
@@ -387,7 +389,8 @@ class ServiceAdminReports
         $paid = $invoices->where('status', 'Paid');
         $draftPart = $invoices->whereIn('status', ['Draft', 'Part paid']);
         $owing = $invoices->whereIn('status', ['Unpaid', 'Part paid']);
-        $overdue = $owing->filter(fn ($i) => $i->due_at->lt(today()));
+        $todayTs = today()->timestamp;
+        $overdue = $owing->filter(fn ($i) => $i->due_at->timestamp < $todayTs);
         $buckets = [
             ['label' => 'Not yet due', 'min' => null, 'max' => 0, 'color' => '#15803d'],
             ['label' => '1 to 30 days late', 'min' => 1, 'max' => 30, 'color' => '#e0ac2e'],
@@ -396,14 +399,10 @@ class ServiceAdminReports
             ['label' => 'Over 90 days late', 'min' => 91, 'max' => null, 'color' => '#8f1d1d'],
         ];
         $ageing = [];
-        foreach ($buckets as $b) {
-            $set = $owing->filter(function ($i) use ($b) {
-                $late = (int) today()->diffInDays($i->due_at, false) * -1;
-
-                return ($b['min'] === null ? $late <= 0 : $late >= $b['min']) && ($b['max'] === null || $late <= $b['max']);
-            });
-            $sum = (int) $set->sum(fn ($i) => $i->balanceMinor());
-            $ageing[] = ['label' => $b['label'], 'value' => $sum, 'valueLabel' => self::short($sum), 'color' => $b['color'], 'count' => $set->count()];
+        foreach (\App\Support\Ageing::sort($owing, $buckets) as $k => $row) {
+            $b = $buckets[$k];
+            $sum = (int) $row['sum'];
+            $ageing[] = ['label' => $b['label'], 'value' => $sum, 'valueLabel' => self::short($sum), 'color' => $b['color'], 'count' => $row['count']];
         }
 
         $finance = [

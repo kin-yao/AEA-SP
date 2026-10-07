@@ -46,7 +46,15 @@ class Contract extends Model
     // instead of trusting that stored counter.
     public function visitsUsed(): int
     {
-        return $this->workOrders()->where('status', 'Closed')->count();
+        // Lists load this count for every contract in one query (see scopeWithVisitCounts).
+        $loaded = $this->getAttribute('closed_work_orders_count');
+
+        return $loaded !== null ? (int) $loaded : $this->workOrders()->where('status', 'Closed')->count();
+    }
+
+    public function scopeWithVisitCounts($query)
+    {
+        return $query->withCount(['workOrders as closed_work_orders_count' => fn ($q) => $q->where('status', 'Closed')]);
     }
 
     public function visitsRemaining(): int

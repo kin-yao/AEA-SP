@@ -209,7 +209,7 @@ class ManagerReports
     {
         $days ??= (int) setting('contract_warn_days');
 
-        return Contract::with('customer')
+        return Contract::withVisitCounts()->with('customer')
             ->where('status', 'Active')
             ->where('ends_at', '<=', today()->addDays($days))
             ->orderBy('ends_at')

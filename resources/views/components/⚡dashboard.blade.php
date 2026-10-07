@@ -68,7 +68,7 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
 
     private function contractsNeedingAttention()
     {
-        return Contract::with('customer')->get()
+        return Contract::withVisitCounts()->with('customer')->get()
             ->filter(fn (Contract $c) => $c->expiryStage() !== 'fresh')
             ->sortByDesc(fn (Contract $c) => $c->percentOfTermUsed())
             ->values();

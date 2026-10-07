@@ -25,7 +25,7 @@ new #[Layout('layouts.app', ['title' => 'Contracts'])] class extends Component
     {
         $user = auth()->user();
 
-        $query = Contract::with('customer')->orderBy('ends_at');
+        $query = Contract::withVisitCounts()->with('customer')->orderBy('ends_at');
 
         if ($user->hasRole('Customer')) {
             $query->where('customer_id', $user->customer_id);

@@ -25,7 +25,7 @@ new #[Layout('layouts.app', ['title' => 'Quotations'])] class extends Component
     {
         $user = auth()->user();
 
-        $query = Quotation::with('customer')->latest();
+        $query = Quotation::with(['customer', 'items'])->latest();
 
         if ($user->hasRole('Customer')) {
             $query->where('customer_id', $user->customer_id);

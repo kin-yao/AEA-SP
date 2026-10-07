@@ -162,7 +162,7 @@ class CustomerReports
         $machineMix = self::mix($machines->groupBy(fn ($e) => $e->visitStatus())->map->count(), ['Active', 'Due soon', 'Overdue'], self::MACHINE_COLORS);
 
         // ---- Contracts (today)
-        $contractRows = Contract::where('customer_id', $customerId)->orderBy('ends_at')->get()->map(fn ($c) => [
+        $contractRows = Contract::withVisitCounts()->where('customer_id', $customerId)->orderBy('ends_at')->get()->map(fn ($c) => [
             'c' => $c,
             'left' => $c->visitsRemaining(),
             'used' => $c->visitsUsed(),

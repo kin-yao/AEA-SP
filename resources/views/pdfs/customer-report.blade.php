@@ -40,6 +40,7 @@
         };
     @endphp
 
+    @include('pdfs._brand')
     <h1>AEA Limited, My reports</h1>
     <p class="meta">{{ $company }} &middot; prepared for {{ $person }} &middot; {{ $label }} &middot; {{ now()->format('d M Y, H:i') }}</p>
 

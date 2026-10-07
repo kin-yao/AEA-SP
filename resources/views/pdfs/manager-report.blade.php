@@ -33,6 +33,7 @@
         $topBranch = max($branches->max('minor') ?? 0, 1);
     @endphp
 
+    @include('pdfs._brand')
     <h1>AEA Limited, Management report</h1>
     <p class="meta">{{ $range }} &middot; all branches &middot; prepared by {{ $manager }} &middot; {{ now()->format('d M Y, H:i') }}</p>
 

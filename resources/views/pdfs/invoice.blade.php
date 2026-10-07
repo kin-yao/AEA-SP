@@ -51,7 +51,7 @@
 
     <table style="width: 100%; border: none;">
         <tr>
-            <td style="border: none;"><div class="company-name">{{ $company['name'] }}</div></td>
+            <td style="border: none;">@include('pdfs._brand', ['h' => 40])<div class="company-name">{{ $company['name'] }}</div></td>
             <td style="border: none;">
                 <div class="doc-title">INVOICE</div>
                 <div class="ref">{{ $invoice->reference }}</div>

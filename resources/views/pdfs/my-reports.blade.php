@@ -19,6 +19,7 @@
     </style>
 </head>
 <body>
+    @include('pdfs._brand')
     <h1>My reports</h1>
     <p class="meta">{{ $technician }} &middot; {{ $range }} &middot; generated {{ now()->format('d M Y, H:i') }}</p>
 

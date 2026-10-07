@@ -1,7 +1,7 @@
 @php
     $u = auth()->user();
     $groups = \App\Services\Nav::groups($u);
-    $logo = file_exists(public_path('images/aea_logo.svg'));
+    $logo = \App\Support\Brand::has();
     $initials = collect(explode(' ', $u->name))->map(fn ($p) => $p[0] ?? '')->take(2)->implode('');
 @endphp
 
@@ -24,7 +24,7 @@
 <aside class="sb hidden md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 md:flex-col">
     <a href="/dashboard" wire:navigate style="display: flex; height: 4.5rem; align-items: center; justify-content: center; padding: 0 1rem; background: #fff; border-bottom: 1px solid #e4e4e7; text-decoration: none; color: #18181b">
         @if ($logo)
-            <img src="{{ asset('images/aea_logo.svg') }}" alt="AEA Limited" style="height: 2.5rem; width: auto; max-width: 12rem">
+            <img src="{{ \App\Support\Brand::url() }}" alt="AEA Limited" style="height: 2.5rem; width: auto; max-width: 12rem">
         @else
             <span style="display: flex; height: 2.25rem; width: 2.25rem; align-items: center; justify-content: center; border-radius: 0.5rem; background: var(--color-primary-500, #e31e24); color: #fff; font-size: 0.75rem; font-weight: 800">AEA</span>
         @endif

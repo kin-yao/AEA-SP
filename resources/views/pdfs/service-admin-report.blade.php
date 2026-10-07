@@ -34,6 +34,7 @@
         $total = fn ($mix) => max(array_sum(array_column($mix, 'value')), 1);
     @endphp
 
+    @include('pdfs._brand')
     <h1>AEA Limited, Service report</h1>
     <p class="meta">{{ $label }} &middot; prepared by {{ $admin }} &middot; {{ now()->format('d M Y, H:i') }}</p>
 

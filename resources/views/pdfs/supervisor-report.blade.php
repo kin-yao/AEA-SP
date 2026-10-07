@@ -33,6 +33,7 @@
         $routeTotal = max(array_sum(array_column($route, 'value')), 1);
     @endphp
 
+    @include('pdfs._brand')
     <h1>AEA Limited, Supervisor report</h1>
     <p class="meta">{{ $range }} &middot; prepared by {{ $supervisor }} &middot; {{ now()->format('d M Y, H:i') }}</p>
 

@@ -1,7 +1,7 @@
 @php
     $mu = auth()->user();
     $groups = \App\Services\Nav::groups($mu);
-    $logo = file_exists(public_path('images/aea_logo.svg'));
+    $logo = \App\Support\Brand::has();
     $mobileInitials = collect(explode(' ', $mu->name))->map(fn ($p) => $p[0] ?? '')->take(2)->implode('');
 @endphp
 
@@ -10,7 +10,7 @@
         x-data="{ open: false }" @keydown.escape.window="open = false" @click.outside="open = false">
     <a href="/dashboard" wire:navigate class="flex items-center gap-2" style="color: #18181b; text-decoration: none">
         @if ($logo)
-            <img src="{{ asset('images/aea_logo.svg') }}" alt="AEA Limited" style="height: 1.75rem; width: auto; max-width: 6.5rem">
+            <img src="{{ \App\Support\Brand::url() }}" alt="AEA Limited" style="height: 1.75rem; width: auto; max-width: 6.5rem">
         @else
             <span style="display: flex; height: 2rem; width: 2rem; align-items: center; justify-content: center; border-radius: 0.5rem; background: var(--color-primary-500, #e31e24); color: #fff; font-size: 0.625rem; font-weight: 800">AEA</span>
         @endif

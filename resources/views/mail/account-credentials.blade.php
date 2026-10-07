@@ -1,4 +1,8 @@
 @component('mail::message')
+@if (\App\Support\Brand::has())
+<img src="{{ $message->embed(\App\Support\Brand::path()) }}" alt="AEA Limited" height="48" style="height: 48px; width: auto">
+@endif
+
 # {{ $isNewAccount ? 'Welcome to the AEA Service Operations Hub' : 'Your password was reset' }}
 
 Hi {{ $account->name }},

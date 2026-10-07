@@ -48,8 +48,8 @@
         <div class="ls-hero">
             <div>
                 <span class="ls-badge">
-                    @if (file_exists(public_path('images/aea_logo.svg')))
-                        <img src="{{ asset('images/aea_logo.svg') }}" alt="AEA Limited">
+                    @if (\App\Support\Brand::has())
+                        <img src="{{ \App\Support\Brand::url() }}" alt="AEA Limited">
                     @else
                         <span>AEA</span>
                     @endif

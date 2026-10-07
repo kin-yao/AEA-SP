@@ -25,6 +25,7 @@
     <div class="box">
         <div class="bar"></div>
         <div class="in">
+            <div style="margin-bottom: 1rem"><x-brand-logo height="2.75rem" max="12rem" /></div>
             <div class="code">{{ $code }}</div>
             <h1>{{ $heading }}</h1>
             <p>{{ $text }}</p>

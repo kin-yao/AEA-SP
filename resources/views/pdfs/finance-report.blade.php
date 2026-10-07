@@ -33,6 +33,7 @@
         $ageTotal = max(array_sum(array_column($ageingMix, 'value')), 1);
     @endphp
 
+    @include('pdfs._brand')
     <h1>AEA Limited, Finance report</h1>
     <p class="meta">{{ $label }} &middot; prepared by {{ $finance }} &middot; {{ now()->format('d M Y, H:i') }}</p>
 

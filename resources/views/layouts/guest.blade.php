@@ -14,6 +14,9 @@
 <body class="min-h-screen antialiased">
     <div class="flex min-h-screen items-center justify-center px-4 py-8">
         <div class="w-full max-w-sm">
+            <div style="display: flex; justify-content: center; margin-bottom: 1.25rem">
+                <x-brand-logo height="3.25rem" max="14rem" />
+            </div>
             {{ $slot }}
         </div>
     </div>

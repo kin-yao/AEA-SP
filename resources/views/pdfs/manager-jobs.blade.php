@@ -14,6 +14,7 @@
     </style>
 </head>
 <body>
+    @include('pdfs._brand')
     <h1>Job history</h1>
     <p class="meta">AEA Limited &middot; {{ $label }} &middot; {{ $rows->count() }} jobs &middot; prepared by {{ $manager }} &middot; {{ now()->format('d M Y, H:i') }}</p>
 

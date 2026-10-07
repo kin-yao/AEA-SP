@@ -56,25 +56,32 @@ class Payment extends Model
     // protect against this, a UI mockup can't actually be overpaid.
     public static function recordAgainst(Invoice $invoice, string $reference, int $amountMinor, string $method, int $recordedById): self
     {
-        if ($amountMinor > $invoice->balanceMinor()) {
-            throw new \DomainException(
-                'That is more than the balance owed. This invoice has '.$invoice->currency_code.' '.number_format($invoice->balanceMinor() / 100, 2).' left to pay.'
-            );
-        }
+        // The invoice is locked and re-read inside the transaction, so two people paying at the
+        // same moment (or one person double-clicking) cannot both squeeze past the balance check.
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($invoice, $reference, $amountMinor, $method, $recordedById) {
+            $fresh = Invoice::whereKey($invoice->id)->lockForUpdate()->firstOrFail();
 
-        $payment = static::create([
-            'reference' => $reference,
-            'invoice_id' => $invoice->id,
-            'customer_id' => $invoice->customer_id,
-            'currency_code' => $invoice->currency_code,
-            'paid_at' => now(),
-            'amount_minor' => $amountMinor,
-            'method' => $method,
-            'recorded_by' => $recordedById,
-        ]);
+            if ($amountMinor > $fresh->balanceMinor()) {
+                throw new \DomainException(
+                    'That is more than the balance owed. This invoice has '.$fresh->currency_code.' '.number_format($fresh->balanceMinor() / 100, 2).' left to pay.'
+                );
+            }
 
-        $invoice->recordPayment($amountMinor);
+            $payment = static::create([
+                'reference' => $reference,
+                'invoice_id' => $fresh->id,
+                'customer_id' => $fresh->customer_id,
+                'currency_code' => $fresh->currency_code,
+                'paid_at' => now(),
+                'amount_minor' => $amountMinor,
+                'method' => $method,
+                'recorded_by' => $recordedById,
+            ]);
 
-        return $payment;
+            $fresh->recordPayment($amountMinor);
+            $invoice->refresh();
+
+            return $payment;
+        });
     }
 }

@@ -7,6 +7,8 @@ use App\Models\Branch;
 
 new #[Layout('layouts.app', ['title' => 'Customers'])] class extends Component
 {
+    use \App\Support\ShowsMore;
+
     public string $search = '';
     public string $branchFilter = 'All';
     public string $contractFilter = 'All';
@@ -51,9 +53,11 @@ new #[Layout('layouts.app', ['title' => 'Customers'])] class extends Component
             $query->where('has_active_contract', false);
         }
 
-        $customers = $query->get();
+        $matching = (clone $query)->count();
+        $customers = $query->limit($this->limit)->get();
 
         return [
+            'matching' => $matching,
             'customers' => $customers,
             'branches' => Branch::orderBy('name')->get(),
             'totalCustomers' => Customer::count(),
@@ -148,4 +152,5 @@ new #[Layout('layouts.app', ['title' => 'Customers'])] class extends Component
             <div class="card text-center text-sm text-neutral-500">No customers found.</div>
         @endforelse
     </div>
+    <x-show-more :shown="$customers->count()" :total="$matching" />
 </div>

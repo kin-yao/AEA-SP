@@ -10,6 +10,8 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 new #[Layout('layouts.app', ['title' => 'My reports'])] class extends Component
 {
+    use \App\Support\ShowsMore;
+
     public string $fromInput = '';
     public string $toInput = '';
     public string $from = '';
@@ -155,10 +157,10 @@ new #[Layout('layouts.app', ['title' => 'My reports'])] class extends Component
 
         return response()->streamDownload(function () use ($data) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['Job', 'Customer', 'Nature of visit', 'Due date', 'Job status', 'Billed ('.currency().')', 'Paid ('.currency().')', 'Balance ('.currency().')', 'Payment', 'Report']);
+            \App\Support\Csv::put($out, ['Job', 'Customer', 'Nature of visit', 'Due date', 'Job status', 'Billed ('.currency().')', 'Paid ('.currency().')', 'Balance ('.currency().')', 'Payment', 'Report']);
 
             foreach ($data['rows'] as $r) {
-                fputcsv($out, [
+                \App\Support\Csv::put($out, [
                     $r['job']->reference,
                     $r['job']->customer->name,
                     $r['job']->nature_of_visit,
@@ -340,7 +342,7 @@ new #[Layout('layouts.app', ['title' => 'My reports'])] class extends Component
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($rows as $r)
+                    @forelse ($rows->take($limit) as $r)
                         @php $job = $r['job']; @endphp
                         <tr wire:key="job-{{ $job->id }}">
                             <td><a href="/jobs/{{ $job->id }}" wire:navigate class="font-mono font-semibold text-neutral-900 hover:text-primary-600">{{ $job->reference }}</a></td>
@@ -390,4 +392,5 @@ new #[Layout('layouts.app', ['title' => 'My reports'])] class extends Component
             </table>
         </div>
     </div>
+    <x-show-more :shown="min($limit, count($rows))" :total="count($rows)" />
 </div>

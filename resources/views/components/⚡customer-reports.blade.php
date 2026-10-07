@@ -131,15 +131,15 @@ new #[Layout('layouts.app', ['title' => 'My Reports'])] class extends Component
 
         return response()->streamDownload(function () use ($d) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['AEA Limited, My reports', $d['label']]);
-            fputcsv($out, []);
+            \App\Support\Csv::put($out, ['AEA Limited, My reports', $d['label']]);
+            \App\Support\Csv::put($out, []);
             foreach (CustomerReports::csvSections($d) as [$title, $headers, $rows]) {
-                fputcsv($out, [$title]);
-                fputcsv($out, $headers);
+                \App\Support\Csv::put($out, [$title]);
+                \App\Support\Csv::put($out, $headers);
                 foreach ($rows as $row) {
-                    fputcsv($out, $row);
+                    \App\Support\Csv::put($out, $row);
                 }
-                fputcsv($out, []);
+                \App\Support\Csv::put($out, []);
             }
             fclose($out);
         }, $name, ['Content-Type' => 'text/csv']);

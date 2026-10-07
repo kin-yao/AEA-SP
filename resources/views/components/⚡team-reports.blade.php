@@ -105,9 +105,9 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
 
         return response()->streamDownload(function () use ($rows) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, $this->jobHeaders());
+            \App\Support\Csv::put($out, $this->jobHeaders());
             foreach ($rows as $row) {
-                fputcsv($out, $row);
+                \App\Support\Csv::put($out, $row);
             }
             fclose($out);
         }, 'aea-job-history-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv']);
@@ -191,15 +191,15 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
 
         return response()->streamDownload(function () use ($d, $range) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['AEA Limited supervisor report', $range]);
-            fputcsv($out, []);
+            \App\Support\Csv::put($out, ['AEA Limited supervisor report', $range]);
+            \App\Support\Csv::put($out, []);
             foreach (SupervisorReports::csvSections($d) as [$title, $headers, $rows]) {
-                fputcsv($out, [$title]);
-                fputcsv($out, $headers);
+                \App\Support\Csv::put($out, [$title]);
+                \App\Support\Csv::put($out, $headers);
                 foreach ($rows as $row) {
-                    fputcsv($out, $row);
+                    \App\Support\Csv::put($out, $row);
                 }
-                fputcsv($out, []);
+                \App\Support\Csv::put($out, []);
             }
             fclose($out);
         }, $name, ['Content-Type' => 'text/csv']);

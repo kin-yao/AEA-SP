@@ -113,18 +113,18 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
         return response()->streamDownload(function () use ($sections, $titles, $intro) {
             $out = fopen('php://output', 'w');
             foreach ($intro as $line) {
-                fputcsv($out, $line);
+                \App\Support\Csv::put($out, $line);
             }
             foreach ($sections as [$title, $headers, $rows]) {
                 if ($titles) {
-                    fputcsv($out, [$title]);
+                    \App\Support\Csv::put($out, [$title]);
                 }
-                fputcsv($out, $headers);
+                \App\Support\Csv::put($out, $headers);
                 foreach ($rows as $row) {
-                    fputcsv($out, $row);
+                    \App\Support\Csv::put($out, $row);
                 }
                 if ($titles) {
-                    fputcsv($out, []);
+                    \App\Support\Csv::put($out, []);
                 }
             }
             fclose($out);

@@ -6,6 +6,8 @@ use App\Models\User;
 
 new #[Layout('layouts.app', ['title' => 'User accounts'])] class extends Component
 {
+    use \App\Support\ShowsMore;
+
     public string $roleFilter = 'All';
 
     protected array $roles = ['Manager', 'Supervisor', 'Service Admin', 'Technician', 'Finance', 'ICT', 'Customer'];
@@ -30,8 +32,11 @@ new #[Layout('layouts.app', ['title' => 'User accounts'])] class extends Compone
             $query->whereHas('roles', fn ($q) => $q->where('name', $this->roleFilter));
         }
 
+        $total = (clone $query)->count();
+
         return [
-            'users' => $query->get(),
+            'total' => $total,
+            'users' => $query->limit($this->limit)->get(),
             'roles' => $this->roles,
         ];
     }
@@ -42,7 +47,7 @@ new #[Layout('layouts.app', ['title' => 'User accounts'])] class extends Compone
     <div class="mb-6 flex items-start justify-between">
         <div>
             <h1 class="text-xl font-semibold text-neutral-900">User accounts</h1>
-            <p class="text-sm text-neutral-500">{{ $users->count() }} {{ $roleFilter === 'All' ? 'total' : 'matching' }}</p>
+            <p class="text-sm text-neutral-500">{{ number_format($total) }} {{ $roleFilter === 'All' ? 'total' : 'matching' }}</p>
         </div>
         @can('create', \App\Models\User::class)
             <a href="/users/create" wire:navigate class="btn-primary">
@@ -102,4 +107,5 @@ new #[Layout('layouts.app', ['title' => 'User accounts'])] class extends Compone
             </div>
         @endforelse
     </div>
+    <x-show-more :shown="$users->count()" :total="$total" />
 </div>

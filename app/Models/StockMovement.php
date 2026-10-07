@@ -48,23 +48,30 @@ class StockMovement extends Model
     // never needed since nothing there could actually go wrong.
     public static function recordAgainst(InventoryItem $item, string $reference, string $type, int $quantityDelta, int $recordedById, array $extra = []): self
     {
-        if ($item->quantity + $quantityDelta < 0) {
-            throw new \DomainException(
-                "Not enough stock. {$item->name} has {$item->quantity} in stock, so that cannot be taken out."
-            );
-        }
+        // Locked and re-read inside the transaction so simultaneous issues cannot both pass the
+        // stock check or overwrite each other's quantity.
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($item, $reference, $type, $quantityDelta, $recordedById, $extra) {
+            $fresh = InventoryItem::whereKey($item->id)->lockForUpdate()->firstOrFail();
 
-        $movement = static::create(array_merge([
-            'reference' => $reference,
-            'inventory_item_id' => $item->id,
-            'type' => $type,
-            'quantity_delta' => $quantityDelta,
-            'recorded_by' => $recordedById,
-            'occurred_at' => now(),
-        ], $extra));
+            if ($fresh->quantity + $quantityDelta < 0) {
+                throw new \DomainException(
+                    "Not enough stock. {$fresh->name} has {$fresh->quantity} in stock, so that cannot be taken out."
+                );
+            }
 
-        $item->update(['quantity' => $item->quantity + $quantityDelta]);
+            $movement = static::create(array_merge([
+                'reference' => $reference,
+                'inventory_item_id' => $fresh->id,
+                'type' => $type,
+                'quantity_delta' => $quantityDelta,
+                'recorded_by' => $recordedById,
+                'occurred_at' => now(),
+            ], $extra));
 
-        return $movement;
+            $fresh->update(['quantity' => $fresh->quantity + $quantityDelta]);
+            $item->refresh();
+
+            return $movement;
+        });
     }
 }

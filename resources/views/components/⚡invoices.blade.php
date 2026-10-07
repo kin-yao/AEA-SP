@@ -7,6 +7,8 @@ use App\Models\WorkOrder;
 
 new #[Layout('layouts.app', ['title' => 'Invoices'])] class extends Component
 {
+    use \App\Support\ShowsMore;
+
     public string $statusFilter = 'All';
 
     public function mount(): void
@@ -17,17 +19,22 @@ new #[Layout('layouts.app', ['title' => 'Invoices'])] class extends Component
     public function setFilter(string $status): void
     {
         $this->statusFilter = $status;
+        $this->limit = 40;
     }
 
     public function with(): array
     {
         $user = auth()->user();
 
-        $readyToInvoice = WorkOrder::with('customer')
-            ->whereHas('documents', fn ($q) => $q->where('type', 'rep')->where('status', 'Released'))
-            ->whereDoesntHave('invoices')
-            ->latest()
-            ->get();
+        // Only Finance sees this list, so nobody else pays for the query.
+        $readyToInvoice = $user->hasRole('Finance')
+            ? WorkOrder::with('customer')
+                ->whereHas('documents', fn ($q) => $q->where('type', 'rep')->where('status', 'Released'))
+                ->whereDoesntHave('invoices')
+                ->latest()
+                ->limit(50)
+                ->get()
+            : collect();
 
         $query = Invoice::with('customer')->latest();
 
@@ -41,9 +48,12 @@ new #[Layout('layouts.app', ['title' => 'Invoices'])] class extends Component
             $query->where('status', $this->statusFilter);
         }
 
+        $total = (clone $query)->count();
+
         return [
-            'readyToInvoice' => $user->hasRole('Finance') ? $readyToInvoice : collect(),
-            'invoices' => $query->get(),
+            'readyToInvoice' => $readyToInvoice,
+            'total' => $total,
+            'invoices' => $query->limit($this->limit)->get(),
         ];
     }
 };
@@ -52,7 +62,7 @@ new #[Layout('layouts.app', ['title' => 'Invoices'])] class extends Component
 <div>
     <div class="mb-6">
         <h1 class="text-xl font-semibold text-neutral-900">Invoices</h1>
-        <p class="text-sm text-neutral-500">{{ $invoices->count() }} {{ $statusFilter === 'All' ? 'total' : 'matching' }}</p>
+        <p class="text-sm text-neutral-500">{{ number_format($total) }} {{ $statusFilter === 'All' ? 'total' : 'matching' }}</p>
     </div>
 
     @if ($readyToInvoice->isNotEmpty())
@@ -122,4 +132,5 @@ new #[Layout('layouts.app', ['title' => 'Invoices'])] class extends Component
             </div>
         @endforelse
     </div>
+    <x-show-more :shown="$invoices->count()" :total="$total" />
 </div>

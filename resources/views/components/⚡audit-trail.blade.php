@@ -82,10 +82,10 @@ new #[Layout('layouts.app', ['title' => 'Audit trail'])] class extends Component
 
         return response()->streamDownload(function () use ($rows) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['When', 'Who', 'Email', 'Action', 'Details', 'From (IP)', 'Changes']);
+            \App\Support\Csv::put($out, ['When', 'Who', 'Email', 'Action', 'Details', 'From (IP)', 'Changes']);
             foreach ($rows as $r) {
                 $changes = collect($r->changes ?? [])->map(fn ($v, $k) => $k.': '.($v[0] ?? '').' to '.($v[1] ?? ''))->implode('; ');
-                fputcsv($out, [$r->created_at->copy()->setTimezone(\App\Support\Settings::timezone())->format('Y-m-d H:i:s'), $r->user_name, $r->email, AuditLog::EVENTS[$r->event] ?? $r->event, $r->label, $r->ip, $changes]);
+                \App\Support\Csv::put($out, [$r->created_at->copy()->setTimezone(\App\Support\Settings::timezone())->format('Y-m-d H:i:s'), $r->user_name, $r->email, AuditLog::EVENTS[$r->event] ?? $r->event, $r->label, $r->ip, $changes]);
             }
             fclose($out);
         }, 'aea-audit-trail-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv']);

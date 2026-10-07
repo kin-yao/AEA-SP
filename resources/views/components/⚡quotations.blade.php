@@ -6,6 +6,8 @@ use App\Models\Quotation;
 
 new #[Layout('layouts.app', ['title' => 'Quotations'])] class extends Component
 {
+    use \App\Support\ShowsMore;
+
     public string $statusFilter = 'All';
 
     public function mount(): void
@@ -16,6 +18,7 @@ new #[Layout('layouts.app', ['title' => 'Quotations'])] class extends Component
     public function setFilter(string $status): void
     {
         $this->statusFilter = $status;
+        $this->limit = 40;
     }
 
     public function with(): array
@@ -32,8 +35,11 @@ new #[Layout('layouts.app', ['title' => 'Quotations'])] class extends Component
             $query->where('status', $this->statusFilter);
         }
 
+        $total = (clone $query)->count();
+
         return [
-            'quotations' => $query->get(),
+            'total' => $total,
+            'quotations' => $query->limit($this->limit)->get(),
         ];
     }
 };
@@ -43,7 +49,7 @@ new #[Layout('layouts.app', ['title' => 'Quotations'])] class extends Component
     <div class="mb-6 flex items-center justify-between">
         <div>
             <h1 class="text-xl font-semibold text-neutral-900">Quotations</h1>
-            <p class="text-sm text-neutral-500">{{ $quotations->count() }} {{ $statusFilter === 'All' ? 'total' : 'matching' }}</p>
+            <p class="text-sm text-neutral-500">{{ number_format($total) }} {{ $statusFilter === 'All' ? 'total' : 'matching' }}</p>
         </div>
         @can('create', \App\Models\Quotation::class)
             <a href="/quotations/create" wire:navigate class="btn-primary">
@@ -94,4 +100,5 @@ new #[Layout('layouts.app', ['title' => 'Quotations'])] class extends Component
             </div>
         @endforelse
     </div>
+    <x-show-more :shown="$quotations->count()" :total="$total" />
 </div>

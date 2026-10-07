@@ -10,10 +10,9 @@ class ExampleTest extends TestCase
     /**
      * A basic test example.
      */
-    public function test_the_application_returns_a_successful_response(): void
+    public function test_the_home_address_sends_visitors_to_sign_in(): void
     {
-        $response = $this->get('/');
-
-        $response->assertStatus(200);
+        // The home address sends visitors to sign in.
+        $this->get('/')->assertRedirect('/login');
     }
 }

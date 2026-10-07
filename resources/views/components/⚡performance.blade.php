@@ -60,10 +60,10 @@ new #[Layout('layouts.app', ['title' => 'Technician performance'])] class extend
 
         return response()->streamDownload(function () use ($rows, $label) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['Technician performance, '.$label]);
-            fputcsv($out, ['Technician', 'Branch', 'Jobs closed', 'Open', 'Overdue', 'On-time %', 'Utilization %', 'Revenue ('.currency().')']);
+            \App\Support\Csv::put($out, ['Technician performance, '.$label]);
+            \App\Support\Csv::put($out, ['Technician', 'Branch', 'Jobs closed', 'Open', 'Overdue', 'On-time %', 'Utilization %', 'Revenue ('.currency().')']);
             foreach ($rows as $r) {
-                fputcsv($out, [
+                \App\Support\Csv::put($out, [
                     $r['user']->name, $r['location'], $r['closed'], $r['open'], $r['overdue'],
                     $r['onTimeRate'] ?? '', $r['utilization'] ?? '', number_format($r['revenueMinor'] / 100, 2, '.', ''),
                 ]);

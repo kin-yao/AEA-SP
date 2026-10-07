@@ -6,6 +6,8 @@ use App\Models\Equipment;
 
 new #[Layout('layouts.app', ['title' => 'Equipment'])] class extends Component
 {
+    use \App\Support\ShowsMore;
+
     public string $search = '';
     public string $statusFilter = 'All';
 
@@ -35,13 +37,18 @@ new #[Layout('layouts.app', ['title' => 'Equipment'])] class extends Component
             });
         }
 
-        $equipment = $query->orderBy('model')->get();
-
         if ($this->statusFilter !== 'All') {
-            $equipment = $equipment->filter(fn ($e) => $e->visitStatus() === $this->statusFilter);
+            // Visit status is worked out from dates in PHP, so filter first, then page.
+            $all = $query->orderBy('model')->get()->filter(fn ($e) => $e->visitStatus() === $this->statusFilter)->values();
+            $matching = $all->count();
+            $equipment = $all->take($this->limit);
+        } else {
+            $matching = (clone $query)->count();
+            $equipment = $query->orderBy('model')->limit($this->limit)->get();
         }
 
         return [
+            'matching' => $matching,
             'equipment' => $equipment->values(),
             'totalEquipment' => Equipment::count(),
         ];
@@ -118,4 +125,5 @@ new #[Layout('layouts.app', ['title' => 'Equipment'])] class extends Component
             <div class="card text-center text-sm text-neutral-500">No equipment registered yet.</div>
         @endforelse
     </div>
+    <x-show-more :shown="$equipment->count()" :total="$matching" />
 </div>

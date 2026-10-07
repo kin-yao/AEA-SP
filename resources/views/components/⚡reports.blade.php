@@ -106,9 +106,9 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
 
         return response()->streamDownload(function () use ($rows) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, $this->jobHeaders());
+            \App\Support\Csv::put($out, $this->jobHeaders());
             foreach ($rows as $row) {
-                fputcsv($out, $row);
+                \App\Support\Csv::put($out, $row);
             }
             fclose($out);
         }, 'aea-job-history-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv']);
@@ -197,54 +197,54 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
         return response()->streamDownload(function () use ($d, $range) {
             $out = fopen('php://output', 'w');
 
-            fputcsv($out, ['AEA Limited management report', $range]);
-            fputcsv($out, []);
-            fputcsv($out, ['Summary']);
-            fputcsv($out, ['Revenue ('.currency().')', number_format($d['revenueMinor'] / 100, 2, '.', '')]);
-            fputcsv($out, ['Jobs closed', $d['jobsClosed']]);
-            fputcsv($out, ['Approvals given', $d['approvals']]);
-            fputcsv($out, ['Contracts expiring within '.setting('contract_warn_days').' days', $d['contracts']->count()]);
-            fputcsv($out, []);
+            \App\Support\Csv::put($out, ['AEA Limited management report', $range]);
+            \App\Support\Csv::put($out, []);
+            \App\Support\Csv::put($out, ['Summary']);
+            \App\Support\Csv::put($out, ['Revenue ('.currency().')', number_format($d['revenueMinor'] / 100, 2, '.', '')]);
+            \App\Support\Csv::put($out, ['Jobs closed', $d['jobsClosed']]);
+            \App\Support\Csv::put($out, ['Approvals given', $d['approvals']]);
+            \App\Support\Csv::put($out, ['Contracts expiring within '.setting('contract_warn_days').' days', $d['contracts']->count()]);
+            \App\Support\Csv::put($out, []);
 
-            fputcsv($out, ['Revenue by branch']);
-            fputcsv($out, ['Branch', 'Country', 'Revenue ('.currency().')']);
+            \App\Support\Csv::put($out, ['Revenue by branch']);
+            \App\Support\Csv::put($out, ['Branch', 'Country', 'Revenue ('.currency().')']);
             foreach ($d['branches'] as $b) {
-                fputcsv($out, [$b['name'], $b['country'], number_format($b['minor'] / 100, 2, '.', '')]);
+                \App\Support\Csv::put($out, [$b['name'], $b['country'], number_format($b['minor'] / 100, 2, '.', '')]);
             }
-            fputcsv($out, []);
+            \App\Support\Csv::put($out, []);
 
-            fputcsv($out, ['Revenue trend, monthly']);
-            fputcsv($out, ['Month', 'Revenue ('.currency().')']);
+            \App\Support\Csv::put($out, ['Revenue trend, monthly']);
+            \App\Support\Csv::put($out, ['Month', 'Revenue ('.currency().')']);
             foreach ($d['trend']['labels'] as $i => $label) {
-                fputcsv($out, [$label, number_format($d['trend']['values'][$i], 2, '.', '')]);
+                \App\Support\Csv::put($out, [$label, number_format($d['trend']['values'][$i], 2, '.', '')]);
             }
-            fputcsv($out, []);
+            \App\Support\Csv::put($out, []);
 
-            fputcsv($out, ['Jobs right now']);
-            fputcsv($out, ['Group', 'Jobs']);
+            \App\Support\Csv::put($out, ['Jobs right now']);
+            \App\Support\Csv::put($out, ['Group', 'Jobs']);
             foreach ($d['mix'] as $m) {
-                fputcsv($out, [$m['label'], $m['value']]);
+                \App\Support\Csv::put($out, [$m['label'], $m['value']]);
             }
-            fputcsv($out, []);
+            \App\Support\Csv::put($out, []);
 
-            fputcsv($out, ['Revenue by technician']);
-            fputcsv($out, ['Technician', 'Branch', 'Jobs closed', 'Open', 'Utilization %', 'Revenue ('.currency().')']);
+            \App\Support\Csv::put($out, ['Revenue by technician']);
+            \App\Support\Csv::put($out, ['Technician', 'Branch', 'Jobs closed', 'Open', 'Utilization %', 'Revenue ('.currency().')']);
             foreach ($d['techs'] as $t) {
-                fputcsv($out, [$t['user']->name, $t['location'], $t['closed'], $t['open'], $t['utilization'] ?? '', number_format($t['revenueMinor'] / 100, 2, '.', '')]);
+                \App\Support\Csv::put($out, [$t['user']->name, $t['location'], $t['closed'], $t['open'], $t['utilization'] ?? '', number_format($t['revenueMinor'] / 100, 2, '.', '')]);
             }
-            fputcsv($out, []);
+            \App\Support\Csv::put($out, []);
 
-            fputcsv($out, ['Contracts expiring within '.setting('contract_warn_days').' days']);
-            fputcsv($out, ['Contract', 'Customer', 'Ends', 'Visits left']);
+            \App\Support\Csv::put($out, ['Contracts expiring within '.setting('contract_warn_days').' days']);
+            \App\Support\Csv::put($out, ['Contract', 'Customer', 'Ends', 'Visits left']);
             foreach ($d['contracts'] as $c) {
-                fputcsv($out, [$c->reference, $c->customer->name, $c->ends_at->format('Y-m-d'), $c->visitsRemaining()]);
+                \App\Support\Csv::put($out, [$c->reference, $c->customer->name, $c->ends_at->format('Y-m-d'), $c->visitsRemaining()]);
             }
-            fputcsv($out, []);
+            \App\Support\Csv::put($out, []);
 
-            fputcsv($out, ['Job history']);
-            fputcsv($out, $this->jobHeaders());
+            \App\Support\Csv::put($out, ['Job history']);
+            \App\Support\Csv::put($out, $this->jobHeaders());
             foreach ($this->csvRows($d['history']) as $row) {
-                fputcsv($out, $row);
+                \App\Support\Csv::put($out, $row);
             }
 
             fclose($out);

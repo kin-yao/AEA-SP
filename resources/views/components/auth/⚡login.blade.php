@@ -18,11 +18,26 @@ new #[Layout('layouts.auth-split', ['title' => 'Sign in - AEA Service Operations
             'password' => ['required'],
         ]);
 
+        // Five wrong tries per email and address in a minute, then a short wait. Stops password guessing.
+        $key = 'login:'.strtolower($this->email).'|'.request()->ip();
+
+        if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($key, 5)) {
+            $wait = \Illuminate\Support\Facades\RateLimiter::availableIn($key);
+
+            throw ValidationException::withMessages([
+                'email' => "Too many sign-in attempts. Try again in {$wait} seconds.",
+            ]);
+        }
+
         if (! Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
+            \Illuminate\Support\Facades\RateLimiter::hit($key, 60);
+
             throw ValidationException::withMessages([
                 'email' => 'Those credentials do not match our records.',
             ]);
         }
+
+        \Illuminate\Support\Facades\RateLimiter::clear($key);
 
         if (Auth::user()->status !== 'Active') {
             Auth::logout();

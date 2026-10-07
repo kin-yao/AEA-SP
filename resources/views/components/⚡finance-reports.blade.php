@@ -63,15 +63,15 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
         return response()->streamDownload(function () use ($sections, $intro) {
             $out = fopen('php://output', 'w');
             foreach ($intro as $line) {
-                fputcsv($out, $line);
+                \App\Support\Csv::put($out, $line);
             }
             foreach ($sections as [$title, $headers, $rows]) {
-                fputcsv($out, [$title]);
-                fputcsv($out, $headers);
+                \App\Support\Csv::put($out, [$title]);
+                \App\Support\Csv::put($out, $headers);
                 foreach ($rows as $row) {
-                    fputcsv($out, $row);
+                    \App\Support\Csv::put($out, $row);
                 }
-                fputcsv($out, []);
+                \App\Support\Csv::put($out, []);
             }
             fclose($out);
         }, $name, ['Content-Type' => 'text/csv']);
@@ -296,7 +296,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
             <table class="table-clean" style="min-width: 420px">
                 <thead><tr><th>Customer</th><th>Invoices</th><th class="text-right">Revenue</th></tr></thead>
                 <tbody>
-                    @forelse ($customerRows as $r)
+                    @forelse ($customerRows->take(25) as $r)
                         <tr wire:key="cr-{{ $loop->index }}">
                             <td class="font-semibold text-neutral-900">{{ $r['name'] }}</td>
                             <td>{{ $r['count'] }}</td>
@@ -307,6 +307,9 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
                     @endforelse
                 </tbody>
             </table>
+            @if (count($customerRows) > 25)
+                <p class="mt-2 text-xs text-neutral-500">Showing the first 25 of {{ number_format(count($customerRows)) }}. The export has the full list.</p>
+            @endif
         </div>
     </div>
 
@@ -333,7 +336,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
             <table class="table-clean" style="min-width: 420px">
                 <thead><tr><th>Technician</th><th>Invoices</th><th class="text-right">Revenue</th></tr></thead>
                 <tbody>
-                    @forelse ($techRows as $r)
+                    @forelse ($techRows->take(25) as $r)
                         <tr wire:key="tr-{{ $loop->index }}">
                             <td class="font-semibold text-neutral-900">{{ $r['name'] }}</td>
                             <td>{{ $r['count'] }}</td>
@@ -344,6 +347,9 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
                     @endforelse
                 </tbody>
             </table>
+            @if (count($techRows) > 25)
+                <p class="mt-2 text-xs text-neutral-500">Showing the first 25 of {{ number_format(count($techRows)) }}. The export has the full list.</p>
+            @endif
         </div>
     </div>
 
@@ -357,7 +363,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
             <table class="table-clean" style="min-width: 640px">
                 <thead><tr><th>Invoice</th><th>Customer</th><th>Due</th><th>Amount</th><th>Paid</th><th>Status</th></tr></thead>
                 <tbody>
-                    @forelse ($owingRows as $i)
+                    @forelse ($owingRows->take(50) as $i)
                         @php $shown = \App\Services\FinanceReports::shownStatus($i); @endphp
                         <tr wire:key="ow-{{ $i->id }}">
                             <td class="whitespace-nowrap font-mono font-bold"><a href="/invoices/{{ $i->id }}" wire:navigate class="text-neutral-900 hover:underline">{{ $i->reference }}</a></td>
@@ -372,6 +378,9 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
                     @endforelse
                 </tbody>
             </table>
+            @if (count($owingRows) > 50)
+                <p class="mt-2 text-xs text-neutral-500">Showing the first 50 of {{ number_format(count($owingRows)) }}. The export has the full list.</p>
+            @endif
         </div>
     </div>
 
@@ -412,7 +421,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
             <table class="table-clean" style="min-width: 520px">
                 <thead><tr><th>Period</th><th>Taxable revenue</th><th>VAT</th><th>Currency</th></tr></thead>
                 <tbody>
-                    @forelse ($vatRows as $r)
+                    @forelse ($vatRows->take(50) as $r)
                         <tr wire:key="vat-{{ $loop->index }}">
                             <td class="font-semibold text-neutral-900">{{ $r['period'] }}</td>
                             <td>{{ $r['currency'] }} {{ number_format($r['taxable'] / 100) }}</td>
@@ -424,6 +433,9 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
                     @endforelse
                 </tbody>
             </table>
+            @if (count($vatRows) > 50)
+                <p class="mt-2 text-xs text-neutral-500">Showing the first 50 of {{ number_format(count($vatRows)) }}. The export has the full list.</p>
+            @endif
         </div>
     </div>
 </div>

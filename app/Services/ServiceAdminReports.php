@@ -44,11 +44,23 @@ class ServiceAdminReports
 
     /* ------------------------------------------------------------ filters */
 
+    /** Past this many jobs, "all dates" is too heavy to build on screen, so it shows the last 12 months. */
+    public const AUTO_NARROW_AFTER = 5000;
+
     public static function filters(array $raw): array
     {
+        $from = ! empty($raw['from']) ? Carbon::parse($raw['from'])->startOfDay() : null;
+        $to = ! empty($raw['to']) ? Carbon::parse($raw['to'])->endOfDay() : null;
+        $auto = false;
+        if (! $from && ! $to && \App\Models\WorkOrder::count() > self::AUTO_NARROW_AFTER) {
+            $from = now()->subMonths(12)->startOfDay();
+            $auto = true;
+        }
+
         return [
-            'from' => ! empty($raw['from']) ? Carbon::parse($raw['from'])->startOfDay() : null,
-            'to' => ! empty($raw['to']) ? Carbon::parse($raw['to'])->endOfDay() : null,
+            'auto' => $auto,
+            'from' => $from,
+            'to' => $to,
             'customer' => ! empty($raw['customer']) ? (int) $raw['customer'] : null,
             'country' => ! empty($raw['country']) ? (string) $raw['country'] : null,
             'technician' => ! empty($raw['technician']) ? (int) $raw['technician'] : null,
@@ -80,7 +92,9 @@ class ServiceAdminReports
     public static function label(array $f): string
     {
         $parts = [];
-        if ($f['from'] || $f['to']) {
+        if (! empty($f['auto'])) {
+            $parts[] = 'Last 12 months (lots of records, pick dates to see more)';
+        } elseif ($f['from'] || $f['to']) {
             $parts[] = ($f['from'] ? $f['from']->format('d M Y') : 'start').' to '.($f['to'] ? $f['to']->format('d M Y') : 'today');
         } else {
             $parts[] = 'All dates';

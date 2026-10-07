@@ -71,12 +71,15 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
 
     public function getSubtotalMinorProperty(): int
     {
-        return collect($this->items)->sum(function ($item) {
+        $sum = collect($this->items)->sum(function ($item) {
             $quantity = (float) ($item['quantity'] ?: 0);
             $rateMinor = (int) round((float) ($item['rate'] ?: 0) * 100);
 
-            return (int) round($quantity * $rateMinor);
+            return round($quantity * $rateMinor);
         });
+
+        // Capped so a silly entry shows an error instead of overflowing.
+        return (int) min($sum, 9.0e15);
     }
 
     public function getVatMinorProperty(): int
@@ -99,6 +102,12 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
             'vatRate' => ['required', 'numeric', 'min:0', 'max:100'],
             'dueAt' => ['required', 'date', 'after_or_equal:today'],
         ]);
+
+        if ($this->totalMinor > \App\Support\Rules::MAX_TOTAL_MINOR) {
+            $this->addError('items', 'The invoice total is too large. Keep it under '.number_format(\App\Support\Rules::MAX_TOTAL_MINOR / 100, 2).' or split it into more than one invoice.');
+
+            return;
+        }
 
         $invoice = Invoice::create([
             'reference' => \App\Models\ReferenceSeries::next('invoice'),

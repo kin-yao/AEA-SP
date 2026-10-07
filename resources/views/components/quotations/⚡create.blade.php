@@ -107,6 +107,12 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
             return;
         }
 
+        if ($this->total * 100 > \App\Support\Rules::MAX_TOTAL_MINOR) {
+            $this->addError('items', 'The quotation total is too large. Keep it under '.number_format(\App\Support\Rules::MAX_TOTAL_MINOR / 100, 2).' or split it into more than one quotation.');
+
+            return;
+        }
+
         $quotation = Quotation::create([
             'reference' => \App\Models\ReferenceSeries::next('quotation'),
             'customer_id' => $this->customerId,

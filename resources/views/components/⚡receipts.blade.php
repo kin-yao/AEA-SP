@@ -7,6 +7,8 @@ use Carbon\Carbon;
 
 new #[Layout('layouts.app', ['title' => 'Receipts'])] class extends Component
 {
+    use \App\Support\ShowsMore;
+
     // What the person is typing, and what has actually been applied.
     public string $search = '';
     public string $method = '';
@@ -71,18 +73,18 @@ new #[Layout('layouts.app', ['title' => 'Receipts'])] class extends Component
             });
         }
 
-        return $q->get();
+        return $q;
     }
 
     public function exportCsv()
     {
-        $rows = $this->filtered();
+        $query = $this->filtered();
 
-        return response()->streamDownload(function () use ($rows) {
+        return response()->streamDownload(function () use ($query) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['Receipt', 'Customer', 'Invoice', 'Date', 'Method', 'Recorded by', 'Amount']);
-            foreach ($rows as $p) {
-                fputcsv($out, [$p->reference, $p->customer?->name, $p->invoice?->reference, $p->paid_at->format('Y-m-d'), $p->method, $p->recordedBy?->name, number_format($p->amount_minor / 100, 2, '.', '')]);
+            \App\Support\Csv::put($out, ['Receipt', 'Customer', 'Invoice', 'Date', 'Method', 'Recorded by', 'Amount']);
+            foreach ($query->lazy(500) as $p) {
+                \App\Support\Csv::put($out, [$p->reference, $p->customer?->name, $p->invoice?->reference, $p->paid_at->format('Y-m-d'), $p->method, $p->recordedBy?->name, number_format($p->amount_minor / 100, 2, '.', '')]);
             }
             fclose($out);
         }, 'aea-receipts-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv']);
@@ -90,12 +92,14 @@ new #[Layout('layouts.app', ['title' => 'Receipts'])] class extends Component
 
     public function with(): array
     {
-        $rows = $this->filtered();
+        $query = $this->filtered();
+        $matching = (clone $query)->count();
 
         return [
-            'rows' => $rows,
+            'rows' => $query->limit($this->limit)->get(),
+            'matching' => $matching,
             'total' => Payment::count(),
-            'sumMinor' => (int) $rows->sum('amount_minor'),
+            'sumMinor' => (int) (clone $query)->reorder()->sum('amount_minor'),
             'methods' => Payment::query()->distinct()->orderBy('method')->pluck('method'),
             'detail' => $this->open ? Payment::with(['customer', 'invoice', 'recordedBy'])->find($this->open) : null,
         ];
@@ -109,7 +113,7 @@ new #[Layout('layouts.app', ['title' => 'Receipts'])] class extends Component
     <div class="mb-3 flex items-center gap-3">
         <h1 class="text-xl font-semibold text-neutral-900">Receipts</h1>
         <div class="flex-1 border-t border-neutral-200"></div>
-        <span class="text-xs text-neutral-400">{{ $rows->count() }} of {{ $total }}</span>
+        <span class="text-xs text-neutral-400">{{ number_format($matching) }} of {{ number_format($total) }}</span>
         <button type="button" wire:click="exportCsv" class="btn-outline" style="padding: 0.4rem 0.8rem">Export CSV</button>
     </div>
 
@@ -262,4 +266,5 @@ new #[Layout('layouts.app', ['title' => 'Receipts'])] class extends Component
             </div>
         </div>
     @endif
+    <x-show-more :shown="$rows->count()" :total="$matching" />
 </div>

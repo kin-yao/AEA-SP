@@ -7,6 +7,8 @@ use App\Models\WorkOrder;
 
 new #[Layout('layouts.app', ['title' => 'Jobs'])] class extends Component
 {
+    use \App\Support\ShowsMore;
+
     public string $statusFilter = 'All';
     public string $search = '';
     public string $technicianFilter = '';
@@ -19,6 +21,7 @@ new #[Layout('layouts.app', ['title' => 'Jobs'])] class extends Component
     public function setFilter(string $status): void
     {
         $this->statusFilter = $status;
+        $this->limit = 40;
     }
 
     public function with(): array
@@ -68,8 +71,11 @@ new #[Layout('layouts.app', ['title' => 'Jobs'])] class extends Component
             $query->where('status', $this->statusFilter);
         }
 
+        $jobTotal = (clone $query)->count();
+
         return [
-            'jobs' => $query->get(),
+            'jobs' => $query->limit($this->limit)->get(),
+            'jobTotal' => $jobTotal,
             'counts' => $counts,
             'isStaff' => $isStaff,
             'technicians' => $isStaff ? User::role('Technician')->orderBy('name')->get(['id', 'name']) : collect(),
@@ -83,7 +89,7 @@ new #[Layout('layouts.app', ['title' => 'Jobs'])] class extends Component
         <h1 class="text-xl font-semibold text-neutral-900">
             {{ auth()->user()->hasRole('Technician') ? 'My jobs' : ($isStaff ? 'All jobs' : 'Jobs') }}
         </h1>
-        <p class="text-sm text-neutral-500">{{ $jobs->count() }} {{ $statusFilter === 'All' && $search === '' && $technicianFilter === '' ? 'total' : 'matching' }}</p>
+        <p class="text-sm text-neutral-500">{{ number_format($jobTotal) }} {{ $statusFilter === 'All' && $search === '' && $technicianFilter === '' ? 'total' : 'matching' }}</p>
     </div>
 
     @if ($isStaff)
@@ -195,4 +201,5 @@ new #[Layout('layouts.app', ['title' => 'Jobs'])] class extends Component
             @endforelse
         </div>
     @endif
+    <x-show-more :shown="$jobs->count()" :total="$jobTotal" />
 </div>

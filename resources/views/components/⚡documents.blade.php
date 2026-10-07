@@ -6,6 +6,8 @@ use App\Models\Document;
 
 new #[Layout('layouts.app', ['title' => 'Documents'])] class extends Component
 {
+    use \App\Support\ShowsMore;
+
     public string $typeFilter = 'All';
 
     public array $typeLabels = [
@@ -52,8 +54,11 @@ new #[Layout('layouts.app', ['title' => 'Documents'])] class extends Component
             $query->where('type', $this->typeFilter);
         }
 
+        $total = (clone $query)->count();
+
         return [
-            'documents' => $query->get(),
+            'total' => $total,
+            'documents' => $query->limit($this->limit)->get(),
             'availableTypes' => $scope,
         ];
     }
@@ -63,7 +68,7 @@ new #[Layout('layouts.app', ['title' => 'Documents'])] class extends Component
 <div>
     <div class="mb-6">
         <h1 class="text-xl font-semibold text-neutral-900">Documents</h1>
-        <p class="text-sm text-neutral-500">{{ $documents->count() }} {{ $typeFilter === 'All' ? 'total' : 'matching' }}</p>
+        <p class="text-sm text-neutral-500">{{ number_format($total) }} {{ $typeFilter === 'All' ? 'total' : 'matching' }}</p>
     </div>
 
     <div class="mb-5 flex flex-wrap gap-1 border-b border-neutral-200">
@@ -114,4 +119,5 @@ new #[Layout('layouts.app', ['title' => 'Documents'])] class extends Component
             </div>
         @endforelse
     </div>
+    <x-show-more :shown="$documents->count()" :total="$total" />
 </div>

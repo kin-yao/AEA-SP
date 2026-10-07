@@ -11,6 +11,8 @@ use Illuminate\Validation\Rule;
 
 new #[Layout('layouts.app', ['title' => 'Inventory'])] class extends Component
 {
+    use \App\Support\ShowsMore;
+
     use WithFileUploads;
 
     public string $tab = 'items';
@@ -65,14 +67,19 @@ new #[Layout('layouts.app', ['title' => 'Inventory'])] class extends Component
             $query->where('category', $this->categoryFilter);
         }
 
-        $everything = InventoryItem::get(['id', 'quantity', 'reorder_level', 'cost_minor']);
+        // Totals are worked out in the database, not by loading every item.
+        $totalItems = InventoryItem::count();
+        $lowCount = InventoryItem::whereColumn('quantity', '<=', 'reorder_level')->count();
+        $stockValue = (int) InventoryItem::sum(\DB::raw('quantity * coalesce(cost_minor, 0)')) / 100;
+        $matching = (clone $query)->count();
         $canRecord = $user->hasAnyRole(['Service Admin', 'Technician']);
 
         return [
-            'items' => $query->orderBy('code')->get(),
-            'totalItems' => $everything->count(),
-            'lowCount' => $everything->filter(fn ($i) => $i->isBelowReorderLevel())->count(),
-            'stockValue' => $everything->sum(fn ($i) => $i->quantity * ($i->cost_minor ?? 0)) / 100,
+            'items' => $query->orderBy('code')->limit($this->limit)->get(),
+            'matching' => $matching,
+            'totalItems' => $totalItems,
+            'lowCount' => $lowCount,
+            'stockValue' => $stockValue,
             'categories' => $categories,
             'canManage' => $user->can('create', InventoryItem::class),
             'canRecord' => $canRecord,
@@ -158,7 +165,7 @@ new #[Layout('layouts.app', ['title' => 'Inventory'])] class extends Component
         return response()->streamDownload(function () use ($rows) {
             $out = fopen('php://output', 'w');
             foreach ($rows as $row) {
-                fputcsv($out, $row, ',', '"', '\\');
+                \App\Support\Csv::put($out, $row, ',', '"', '\\');
             }
             fclose($out);
         }, 'inventory-template.csv', ['Content-Type' => 'text/csv']);
@@ -513,6 +520,7 @@ new #[Layout('layouts.app', ['title' => 'Inventory'])] class extends Component
                 </tbody>
             </table>
         </div>
+        <x-show-more :shown="$items->count()" :total="$matching" />
     @else
         @if ($canRecord)
             <form wire:submit="recordMovement" class="card mb-5 space-y-3">

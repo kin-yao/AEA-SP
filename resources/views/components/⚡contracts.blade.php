@@ -6,6 +6,8 @@ use App\Models\Contract;
 
 new #[Layout('layouts.app', ['title' => 'Contracts'])] class extends Component
 {
+    use \App\Support\ShowsMore;
+
     public string $statusFilter = 'All';
     public string $search = '';
 
@@ -40,7 +42,8 @@ new #[Layout('layouts.app', ['title' => 'Contracts'])] class extends Component
         $contracts = $query->get();
 
         return [
-            'contracts' => $contracts,
+            'contracts' => $contracts->take($this->limit),
+            'contractTotal' => $contracts->count(),
             'expiringCount' => $contracts->filter(
                 fn (Contract $c) => $c->status === 'Active' && in_array($c->expiryStage(), ['urgent', 'critical'])
             )->count(),
@@ -64,7 +67,7 @@ new #[Layout('layouts.app', ['title' => 'Contracts'])] class extends Component
         <div class="mb-5 grid grid-cols-3 gap-4">
             <div class="card">
                 <p class="text-xs font-medium text-neutral-500">Contracts on file</p>
-                <p class="mt-1 text-2xl font-semibold text-neutral-900">{{ $contracts->count() }}</p>
+                <p class="mt-1 text-2xl font-semibold text-neutral-900">{{ number_format($contractTotal) }}</p>
             </div>
             <div class="card">
                 <p class="text-xs font-mediow text-neutral-500">Nearing expiry</p>
@@ -117,4 +120,5 @@ new #[Layout('layouts.app', ['title' => 'Contracts'])] class extends Component
             <div class="card text-center text-sm text-neutral-500">No contracts found.</div>
         @endforelse
     </div>
+    <x-show-more :shown="$contracts->count()" :total="$contractTotal" />
 </div>

@@ -7,6 +7,9 @@ namespace App\Support;
  */
 class Rules
 {
+    /** Largest invoice or quotation total, in minor units (999,999,999.99 in whole currency). */
+    public const MAX_TOTAL_MINOR = 99999999999;
+
     public const PHONE = '/^\+?[0-9][0-9\s\-().]{6,18}[0-9]$/';
 
     public const KRA_PIN = '/^[AP][0-9]{9}[A-Z]$/i';

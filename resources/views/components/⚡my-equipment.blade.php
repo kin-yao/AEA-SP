@@ -7,6 +7,8 @@ use App\Models\WorkOrder;
 
 new #[Layout('layouts.app', ['title' => 'My equipment'])] class extends Component
 {
+    use \App\Support\ShowsMore;
+
     public string $search = '';
     public string $statusFilter = 'All';
 
@@ -67,7 +69,8 @@ new #[Layout('layouts.app', ['title' => 'My equipment'])] class extends Componen
         }
 
         return [
-            'machines' => $machines->values(),
+            'machineTotal' => $machines->count(),
+            'machines' => $machines->values()->take($this->limit),
             'kpi' => $kpi,
         ];
     }
@@ -163,4 +166,5 @@ new #[Layout('layouts.app', ['title' => 'My equipment'])] class extends Componen
             </div>
         @endforelse
     </div>
+    <x-show-more :shown="$machines->count()" :total="$machineTotal" />
 </div>

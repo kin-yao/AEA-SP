@@ -41,7 +41,7 @@
             <td><div class="box"><div class="lab">{{ $kpis['revenueLabel'] }}</div><div class="val">{{ $kesC($kpis['revenueMinor']) }}</div></div></td>
             <td><div class="box"><div class="lab">Outstanding</div><div class="val">{{ $kesC($kpis['outstandingMinor']) }}</div></div></td>
             <td><div class="box"><div class="lab">Overdue</div><div class="val">{{ $kesC($kpis['overdueMinor']) }}</div></div></td>
-            <td><div class="box"><div class="lab">VAT collected, 16%</div><div class="val">{{ $kesC($kpis['vatMinor']) }}</div></div></td>
+            <td><div class="box"><div class="lab">VAT collected</div><div class="val">{{ $kesC($kpis['vatMinor']) }}</div></div></td>
         </tr>
     </table>
 

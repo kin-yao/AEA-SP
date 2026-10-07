@@ -63,7 +63,7 @@
             </td>
             <td style="width: 50%; padding: 0 4px; vertical-align: top">
                 <div class="box" style="height: 250px">
-                    <h2>Revenue trend (monthly, KES)</h2>
+                    <h2>Revenue trend (monthly, {{ currency() }})</h2>
                     <img src="{{ $trendImg }}" style="width: 100%">
                 </div>
             </td>

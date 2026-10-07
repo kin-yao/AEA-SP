@@ -62,7 +62,7 @@ new #[Layout('layouts.app', ['title' => 'Log a request'])] class extends Compone
             'newCustomerContactPhone' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $reference = 'CUS-'.str_pad((string) (Customer::max('id') + 1), 4, '0', STR_PAD_LEFT);
+        $reference = \App\Models\ReferenceSeries::next('customer');
 
         $customer = Customer::create([
             'reference' => $reference,
@@ -123,7 +123,7 @@ new #[Layout('layouts.app', ['title' => 'Log a request'])] class extends Compone
             'priority' => ['required', 'in:Low,Medium,High'],
         ]);
 
-        $reference = 'SR-'.str_pad((string) (ServiceRequest::max('id') + 1), 4, '0', STR_PAD_LEFT);
+        $reference = \App\Models\ReferenceSeries::next('request');
 
         $request = ServiceRequest::create([
             ...$validated,

@@ -139,7 +139,7 @@ new #[Layout('layouts.app', ['title' => 'Customers'])] class extends Component
                 @if ($customer->balance_minor > 0)
                     <div class="shrink-0 text-right">
                         <p class="text-xs text-neutral-500">Balance</p>
-                        <p class="text-sm font-semibold text-urgent-700">KES {{ $customer->balanceFormatted() }}</p>
+                        <p class="text-sm font-semibold text-urgent-700">{{ $customer->currencyCode() }} {{ $customer->balanceFormatted() }}</p>
                     </div>
                 @endif
                 <x-icon name="arrow-right" class="h-4 w-4 shrink-0 text-neutral-300" />

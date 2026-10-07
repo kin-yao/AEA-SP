@@ -41,7 +41,7 @@ new #[Layout('layouts.app', ['title' => 'New customer'])] class extends Componen
             'main_contact_phone' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $reference = 'CUS-'.str_pad((string) (Customer::max('id') + 1), 4, '0', STR_PAD_LEFT);
+        $reference = \App\Models\ReferenceSeries::next('customer');
 
         $customer = Customer::create([
             'reference' => $reference,

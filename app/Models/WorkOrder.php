@@ -35,11 +35,19 @@ class WorkOrder extends Model
     // too, so a freshly created WorkOrder is correct in memory immediately,
     // not just after a ->fresh() round-trip. Learned that lesson the hard
     // way on Quotation's vat_rate, not repeating it here.
+    public function __construct(array $attributes = [])
+    {
+        $this->attributes = array_merge($this->attributes, [
+            'currency_code' => currency(),
+        ]);
+
+        parent::__construct($attributes);
+    }
+
     protected $attributes = [
         'priority' => 'Medium',
         'status' => 'Assigned',
         'value_type' => 'tbd',
-        'currency_code' => 'KES',
     ];
 
     public function customer(): BelongsTo

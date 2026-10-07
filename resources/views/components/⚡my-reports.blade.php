@@ -155,7 +155,7 @@ new #[Layout('layouts.app', ['title' => 'My reports'])] class extends Component
 
         return response()->streamDownload(function () use ($data) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['Job', 'Customer', 'Nature of visit', 'Due date', 'Job status', 'Billed (KES)', 'Paid (KES)', 'Balance (KES)', 'Payment', 'Report']);
+            fputcsv($out, ['Job', 'Customer', 'Nature of visit', 'Due date', 'Job status', 'Billed ('.currency().')', 'Paid ('.currency().')', 'Balance ('.currency().')', 'Payment', 'Report']);
 
             foreach ($data['rows'] as $r) {
                 fputcsv($out, [
@@ -253,17 +253,17 @@ new #[Layout('layouts.app', ['title' => 'My reports'])] class extends Component
         <div class="card">
             <p class="text-xs text-neutral-500">Revenue billed</p>
             <p class="mt-1 font-mono text-xl font-bold text-neutral-900">{{ $money($kpi['billed']) }}</p>
-            <p class="text-xs text-neutral-400">KES</p>
+            <p class="text-xs text-neutral-400">{{ currency() }}</p>
         </div>
         <div class="card">
             <p class="text-xs text-neutral-500">Collected</p>
             <p class="mt-1 font-mono text-xl font-bold text-success-700">{{ $money($kpi['paid']) }}</p>
-            <p class="text-xs text-neutral-400">KES</p>
+            <p class="text-xs text-neutral-400">{{ currency() }}</p>
         </div>
         <div class="card">
             <p class="text-xs text-neutral-500">Outstanding balance</p>
             <p @class(['mt-1 font-mono text-xl font-bold', 'text-critical-700' => $kpi['balance'] > 0, 'text-neutral-900' => $kpi['balance'] <= 0])>{{ $money($kpi['balance']) }}</p>
-            <p class="text-xs text-neutral-400">KES</p>
+            <p class="text-xs text-neutral-400">{{ currency() }}</p>
         </div>
     </div>
 
@@ -319,7 +319,7 @@ new #[Layout('layouts.app', ['title' => 'My reports'])] class extends Component
                     </tbody>
                 </table>
             </div>
-            <p class="mt-2 text-xs text-neutral-400">Amounts in KES, VAT included. A balance means the customer has not paid in full yet.</p>
+            <p class="mt-2 text-xs text-neutral-400">Amounts in {{ currency() }}, VAT included. A balance means the customer has not paid in full yet.</p>
         @endif
     </div>
 
@@ -373,7 +373,7 @@ new #[Layout('layouts.app', ['title' => 'My reports'])] class extends Component
                                 <span class="{{ $pillClass[$r['payTone']] }}">{{ $r['payLabel'] }}</span>
                                 @if ($r['billed'] > 0)
                                     <p class="mt-1 text-xs text-neutral-500">
-                                        KES {{ $money($r['billed']) }}
+                                        {{ currency() }} {{ $money($r['billed']) }}
                                         @if ($r['balance'] > 0)
                                             &middot; <span class="font-semibold text-critical-700">balance {{ $money($r['balance']) }}</span>
                                         @endif

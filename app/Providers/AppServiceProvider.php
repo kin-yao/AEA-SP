@@ -39,6 +39,7 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        require_once app_path('Support/helpers.php');
         //
     }
 

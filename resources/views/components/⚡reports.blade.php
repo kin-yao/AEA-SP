@@ -98,7 +98,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
         ])->all();
     }
 
-    protected const JOB_HEADERS = ['Job', 'Customer', 'Branch', 'Country', 'Technician', 'Nature of visit', 'Due date', 'Value (KES)', 'Status'];
+    protected function jobHeaders(): array { return ['Job', 'Customer', 'Branch', 'Country', 'Technician', 'Nature of visit', 'Due date', 'Value ('.currency().')', 'Status']; }
 
     public function exportCsv()
     {
@@ -106,7 +106,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
 
         return response()->streamDownload(function () use ($rows) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, self::JOB_HEADERS);
+            fputcsv($out, $this->jobHeaders());
             foreach ($rows as $row) {
                 fputcsv($out, $row);
             }
@@ -200,21 +200,21 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
             fputcsv($out, ['AEA Limited management report', $range]);
             fputcsv($out, []);
             fputcsv($out, ['Summary']);
-            fputcsv($out, ['Revenue (KES)', number_format($d['revenueMinor'] / 100, 2, '.', '')]);
+            fputcsv($out, ['Revenue ('.currency().')', number_format($d['revenueMinor'] / 100, 2, '.', '')]);
             fputcsv($out, ['Jobs closed', $d['jobsClosed']]);
             fputcsv($out, ['Approvals given', $d['approvals']]);
-            fputcsv($out, ['Contracts expiring within 60 days', $d['contracts']->count()]);
+            fputcsv($out, ['Contracts expiring within '.setting('contract_warn_days').' days', $d['contracts']->count()]);
             fputcsv($out, []);
 
             fputcsv($out, ['Revenue by branch']);
-            fputcsv($out, ['Branch', 'Country', 'Revenue (KES)']);
+            fputcsv($out, ['Branch', 'Country', 'Revenue ('.currency().')']);
             foreach ($d['branches'] as $b) {
                 fputcsv($out, [$b['name'], $b['country'], number_format($b['minor'] / 100, 2, '.', '')]);
             }
             fputcsv($out, []);
 
             fputcsv($out, ['Revenue trend, monthly']);
-            fputcsv($out, ['Month', 'Revenue (KES)']);
+            fputcsv($out, ['Month', 'Revenue ('.currency().')']);
             foreach ($d['trend']['labels'] as $i => $label) {
                 fputcsv($out, [$label, number_format($d['trend']['values'][$i], 2, '.', '')]);
             }
@@ -228,13 +228,13 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
             fputcsv($out, []);
 
             fputcsv($out, ['Revenue by technician']);
-            fputcsv($out, ['Technician', 'Branch', 'Jobs closed', 'Open', 'Utilization %', 'Revenue (KES)']);
+            fputcsv($out, ['Technician', 'Branch', 'Jobs closed', 'Open', 'Utilization %', 'Revenue ('.currency().')']);
             foreach ($d['techs'] as $t) {
                 fputcsv($out, [$t['user']->name, $t['location'], $t['closed'], $t['open'], $t['utilization'] ?? '', number_format($t['revenueMinor'] / 100, 2, '.', '')]);
             }
             fputcsv($out, []);
 
-            fputcsv($out, ['Contracts expiring within 60 days']);
+            fputcsv($out, ['Contracts expiring within '.setting('contract_warn_days').' days']);
             fputcsv($out, ['Contract', 'Customer', 'Ends', 'Visits left']);
             foreach ($d['contracts'] as $c) {
                 fputcsv($out, [$c->reference, $c->customer->name, $c->ends_at->format('Y-m-d'), $c->visitsRemaining()]);
@@ -242,7 +242,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
             fputcsv($out, []);
 
             fputcsv($out, ['Job history']);
-            fputcsv($out, self::JOB_HEADERS);
+            fputcsv($out, $this->jobHeaders());
             foreach ($this->csvRows($d['history']) as $row) {
                 fputcsv($out, $row);
             }
@@ -258,7 +258,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
 
         $branches = ManagerReports::revenueByBranch($monthStart, $monthEnd);
         $trend = ManagerReports::revenueTrend(6);
-        $contracts = ManagerReports::contractsExpiring(60);
+        $contracts = ManagerReports::contractsExpiring();
         $history = ManagerReports::jobHistory($this->filters());
 
         return [
@@ -383,7 +383,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
 
         <div class="card">
             <h2 class="mb-4 text-sm font-semibold text-neutral-900">Revenue trend, last 6 months</h2>
-            <x-line-chart :labels="$trend['labels']" :series="[['name' => 'Revenue (KES)', 'color' => 'var(--color-primary-600)', 'values' => $trend['values']]]" :height="230" :width="380" />
+            <x-line-chart :labels="$trend['labels']" :series="[['name' => 'Revenue ('.currency().')', 'color' => 'var(--color-primary-600)', 'values' => $trend['values']]]" :height="230" :width="380" />
         </div>
 
         <div class="card">
@@ -428,7 +428,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
 
     {{-- Contracts expiring --}}
     <div class="card mb-5" style="padding: 0">
-        <h2 class="px-5 pt-5 text-sm font-semibold text-neutral-900">Contracts expiring within 60 days</h2>
+        <h2 class="px-5 pt-5 text-sm font-semibold text-neutral-900">Contracts expiring within {{ setting('contract_warn_days') }} days</h2>
         <div class="mt-3 overflow-x-auto">
             <table class="table-clean" style="min-width: 560px">
                 <thead>
@@ -450,7 +450,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="text-center text-neutral-500">No contracts end in the next 60 days.</td></tr>
+                        <tr><td colspan="5" class="text-center text-neutral-500">No contracts end in the next {{ setting('contract_warn_days') }} days.</td></tr>
                     @endforelse
                 </tbody>
             </table>

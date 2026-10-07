@@ -205,8 +205,10 @@ class ManagerReports
     }
 
     /** Active contracts that end within the next N days, or have already ended without being closed off. */
-    public static function contractsExpiring(int $days = 60): Collection
+    public static function contractsExpiring(?int $days = null): Collection
     {
+        $days ??= (int) setting('contract_warn_days');
+
         return Contract::with('customer')
             ->where('status', 'Active')
             ->where('ends_at', '<=', today()->addDays($days))
@@ -275,9 +277,9 @@ class ManagerReports
         $kes = $minor / 100;
 
         if ($compact && abs($kes) >= 1_000_000) {
-            return 'KES '.rtrim(rtrim(number_format($kes / 1_000_000, 1), '0'), '.').'M';
+            return currency().' '.rtrim(rtrim(number_format($kes / 1_000_000, 1), '0'), '.').'M';
         }
 
-        return 'KES '.number_format($kes, 0);
+        return currency().' '.number_format($kes, 0);
     }
 }

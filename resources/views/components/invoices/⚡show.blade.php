@@ -11,11 +11,12 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
 {
     public Invoice $invoice;
     public string $paymentAmount = '';
-    public string $paymentMethod = 'Bank transfer';
+    public string $paymentMethod = '';
 
     public function mount(Invoice $invoice): void
     {
         $this->authorize('view', $invoice);
+        $this->paymentMethod = setting('payment_methods')[0] ?? '';
         $this->invoice = $invoice->load([
             'customer',
             'payments',
@@ -36,7 +37,7 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
             $this->invoice->customer,
             'Invoice issued',
             [
-                "Invoice {$this->invoice->reference} for KES ".number_format($this->invoice->amount_minor / 100, 2).' has been issued.',
+                "Invoice {$this->invoice->reference} for ".$this->invoice->currency_code." ".number_format($this->invoice->amount_minor / 100, 2).' has been issued.',
                 'Due date: '.$this->invoice->due_at->format('d M Y'),
             ],
         );
@@ -56,7 +57,7 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
         try {
             Payment::recordAgainst(
                 $this->invoice,
-                'RCP-'.str_pad((string) (Payment::max('id') + 1), 4, '0', STR_PAD_LEFT),
+                \App\Models\ReferenceSeries::next('receipt'),
                 $amountMinor,
                 $this->paymentMethod,
                 auth()->id()
@@ -73,7 +74,7 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
             $this->invoice->customer,
             'Payment received',
             [
-                "We've received your payment of KES ".number_format($amountMinor / 100, 2)." against invoice {$this->invoice->reference}.",
+                "We've received your payment of ".$this->invoice->currency_code." ".number_format($amountMinor / 100, 2)." against invoice {$this->invoice->reference}.",
                 "Status: {$this->invoice->status}",
             ],
         );
@@ -87,7 +88,8 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
 
         $pdf = Pdf::loadView('pdfs.invoice', [
             'invoice' => $this->invoice,
-            'company' => config('company'),
+            'company' => \App\Support\Settings::company(),
+            'banks' => \App\Models\BankAccount::forDocument($this->invoice->currency_code, $this->invoice->customer?->branch?->country_id),
         ]);
 
         return response()->streamDownload(
@@ -211,7 +213,7 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
                     </div>
                     <div class="flex justify-between border-t border-neutral-100 py-2 font-semibold">
                         <span class="text-neutral-900">Total</span>
-                        <span class="text-neutral-900">KES {{ number_format($invoice->amount_minor / 100, 2) }}</span>
+                        <span class="text-neutral-900">{{ $invoice->currency_code }} {{ number_format($invoice->amount_minor / 100, 2) }}</span>
                     </div>
                 </div>
             </div>
@@ -224,11 +226,11 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
         <dl class="grid grid-cols-2 gap-4 text-sm">
             <div>
                 <dt class="text-neutral-500">Paid</dt>
-                <dd class="text-neutral-900">KES {{ number_format($invoice->paid_minor / 100, 2) }}</dd>
+                <dd class="text-neutral-900">{{ $invoice->currency_code }} {{ number_format($invoice->paid_minor / 100, 2) }}</dd>
             </div>
             <div>
                 <dt class="text-neutral-500">Balance</dt>
-                <dd class="text-neutral-900">KES {{ number_format($invoice->balanceMinor() / 100, 2) }}</dd>
+                <dd class="text-neutral-900">{{ $invoice->currency_code }} {{ number_format($invoice->balanceMinor() / 100, 2) }}</dd>
             </div>
             <div>
                 <dt class="text-neutral-500">Due</dt>
@@ -242,7 +244,7 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
             </div>
             <div class="col-span-2">
                 <dt class="text-neutral-500">Payment terms</dt>
-                <dd class="text-neutral-900">{{ config('company.default_payment_terms') }}</dd>
+                <dd class="text-neutral-900">{{ setting('payment_terms') }}</dd>
             </div>
         </dl>
     </div>
@@ -260,7 +262,7 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
                 @foreach ($invoice->payments as $payment)
                     <div class="flex items-center justify-between py-2 first:pt-0 last:pb-0">
                         <span class="text-neutral-900">{{ $payment->reference }} &middot; {{ $payment->method }}</span>
-                        <span class="font-semibold text-neutral-900">KES {{ number_format($payment->amount_minor / 100, 2) }}</span>
+                        <span class="font-semibold text-neutral-900">{{ $invoice->currency_code }} {{ number_format($payment->amount_minor / 100, 2) }}</span>
                     </div>
                 @endforeach
             </div>
@@ -271,16 +273,16 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
         <div class="card">
             <h2 class="mb-3 text-sm font-semibold text-neutral-900">Record a payment</h2>
             <div class="mb-3">
-                <label class="label">Amount, KES</label>
+                <label class="label">Amount, {{ $invoice->currency_code }}</label>
                 <input wire:model="paymentAmount" type="text" inputmode="decimal" placeholder="0.00" class="input">
                 @error('paymentAmount') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
             </div>
             <div class="mb-4">
                 <label class="label">Method</label>
                 <select wire:model="paymentMethod" class="input">
-                    <option>Bank transfer</option>
-                    <option>M-Pesa</option>
-                    <option>Cheque</option>
+                    @foreach (setting('payment_methods') as $method)
+                        <option>{{ $method }}</option>
+                    @endforeach
                 </select>
             </div>
             <button wire:click="recordPayment" wire:loading.attr="disabled" wire:target="recordPayment" class="btn-primary w-full">

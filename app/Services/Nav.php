@@ -88,6 +88,7 @@ class Nav
                 self::item('/branches', 'branches*', 'globe', 'Branches and Country'),
                 self::item('/roles', 'roles*', 'diagram-3', 'Roles and Permissions'),
                 self::item('/equipment-categories', 'equipment-categories*', 'tags', 'Equipment categories'),
+                self::item('/settings', 'settings*', 'sliders', 'System settings'),
                 self::item('/audit-trail', 'audit-trail*', 'clock-history', 'Audit trail'),
             ]),
         ]));

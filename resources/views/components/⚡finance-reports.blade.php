@@ -281,7 +281,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
             <p class="mt-0.5 text-xs text-neutral-400">{{ $kpis['overdueCount'] }} past the due date</p>
         </div>
         <div class="card">
-            <p class="text-xs font-medium text-neutral-500">VAT collected, 16%</p>
+            <p class="text-xs font-medium text-neutral-500">VAT collected</p>
             <p class="mt-2 font-mono text-xl font-bold whitespace-nowrap text-neutral-900">{{ $kes($kpis['vatMinor'], true) }}</p>
             <p class="mt-0.5 text-xs text-neutral-400">on the same invoices as revenue</p>
         </div>
@@ -317,7 +317,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
     <div class="mb-6 flex flex-wrap gap-4">
         <div class="card" style="flex: 2 1 420px; min-width: 0">
             <h3 class="mb-1 text-sm font-semibold text-neutral-900">Revenue by branch</h3>
-            <p class="mb-4 text-xs text-neutral-400">KES, by the customer's branch</p>
+            <p class="mb-4 text-xs text-neutral-400">{{ currency() }}, by the customer's branch</p>
             <x-column-chart :data="$branchRows" :height="190" />
         </div>
         <div class="card" style="flex: 1 1 300px; min-width: 0">

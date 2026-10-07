@@ -109,10 +109,16 @@
             <td>
                 <div class="meta-label">Bank details</div>
                 <div class="meta-value">
-                    {{ $company['bank']['account_name'] }}<br>
-                    {{ $company['bank']['name'] }}, {{ $company['bank']['branch'] }}<br>
-                    Account: {{ $company['bank']['account_number'] }}<br>
-                    SWIFT: {{ $company['bank']['swift'] }}
+                    @forelse ($banks as $bank)
+                        <div style="margin-bottom: 6px">
+                            {{ $bank->account_name }}<br>
+                            {{ $bank->bank_name }}@if ($bank->branch), {{ $bank->branch }}@endif<br>
+                            Account: {{ $bank->account_number }} ({{ $bank->currency_code }})@if ($bank->swift)<br>
+                            SWIFT: {{ $bank->swift }}@endif
+                        </div>
+                    @empty
+                        Bank details are not set up yet.
+                    @endforelse
                 </div>
             </td>
         </tr>

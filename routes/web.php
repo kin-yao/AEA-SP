@@ -142,6 +142,7 @@ Route::livewire('/security', 'security')->middleware(['auth', 'password.current'
 Route::livewire('/branches', 'branches')->middleware(['auth', 'password.current'])->name('branches');
 Route::livewire('/roles', 'roles')->middleware(['auth', 'password.current'])->name('roles');
 Route::livewire('/equipment-categories', 'equipment-categories')->middleware(['auth', 'password.current'])->name('equipment-categories');
+Route::livewire('/settings', 'settings')->middleware(['auth', 'password.current'])->name('settings');
 Route::livewire('/audit-trail', 'audit-trail')->middleware(['auth', 'password.current'])->name('audit-trail');
 Route::livewire('/service-reports', 'service-reports')->middleware(['auth', 'password.current'])->name('service-reports');
 

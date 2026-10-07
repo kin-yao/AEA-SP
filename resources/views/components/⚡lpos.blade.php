@@ -154,7 +154,7 @@ new #[Layout('layouts.app', ['title' => 'LPOs'])] class extends Component
 };
 ?>
 @php
-    $kes = fn (int $minor) => 'KES '.number_format($minor / 100, 0);
+    $kes = fn (int $minor) => currency().' '.number_format($minor / 100, 0);
 @endphp
 <div class="mx-auto" style="max-width: 72rem">
     <div class="mb-3 flex items-center gap-3">

@@ -20,7 +20,7 @@ new #[Layout('layouts.app', ['title' => 'Request'])] class extends Component
     {
         $this->authorize('view', $request);
         $this->request = $request;
-        $this->dueDate = now()->addDays(3)->toDateString();
+        $this->dueDate = now()->addDays((int) setting('job_due_days'))->toDateString();
     }
 
     public function getTechniciansProperty()
@@ -92,7 +92,7 @@ new #[Layout('layouts.app', ['title' => 'Request'])] class extends Component
             'dueDate' => ['required', 'date'],
         ]);
 
-        $reference = 'WO-'.str_pad((string) (WorkOrder::max('id') + 1), 4, '0', STR_PAD_LEFT);
+        $reference = \App\Models\ReferenceSeries::next('work_order');
 
         // A contract-covered request counts as a visit against the
         // customer's current contract. Customers only ever have one
@@ -116,6 +116,7 @@ new #[Layout('layouts.app', ['title' => 'Request'])] class extends Component
             'assigned_technician_id' => $this->request->assigned_technician_id,
             'due_date' => $this->dueDate,
             'source_service_request_id' => $this->request->id,
+            'currency_code' => \App\Models\Customer::find($this->request->customer_id)?->currencyCode() ?? currency(),
         ]);
 
         $this->request->update(['status' => 'Converted']);

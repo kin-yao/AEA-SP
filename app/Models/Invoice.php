@@ -33,10 +33,18 @@ class Invoice extends Model
         'documents_attached' => 'boolean',
     ];
 
+    public function __construct(array $attributes = [])
+    {
+        $this->attributes = array_merge($this->attributes, [
+            'vat_rate' => setting('vat_rate') / 100,
+            'currency_code' => currency(),
+        ]);
+
+        parent::__construct($attributes);
+    }
+
     protected $attributes = [
         'paid_minor' => 0,
-        'vat_rate' => 0.160,
-        'currency_code' => 'KES',
         'status' => 'Draft',
         'documents_required_before_send' => false,
         'documents_attached' => false,

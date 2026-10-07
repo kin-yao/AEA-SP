@@ -305,7 +305,7 @@ new #[Layout('layouts.app', ['title' => 'Equipment'])] class extends Component
         <h2 class="mb-3 text-sm font-semibold text-neutral-900">Calibration certificates</h2>
         @forelse ($certificates as $cert)
             @php
-                $cs = $cert->expires_at?->lt(today()) ? ['Expired', 'pill-danger'] : ($cert->expires_at?->lte(today()->addDays(30)) ? ['Expiring soon', 'pill-amber'] : ['Valid', 'pill-success']);
+                $cs = $cert->expires_at?->lt(today()) ? ['Expired', 'pill-danger'] : ($cert->expires_at?->lte(today()->addDays((int) setting('certificate_warn_days'))) ? ['Expiring soon', 'pill-amber'] : ['Valid', 'pill-success']);
             @endphp
             <div class="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-100 py-2.5 last:border-0" wire:key="cert-{{ $cert->id }}">
                 <div>

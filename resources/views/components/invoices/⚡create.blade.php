@@ -9,8 +9,13 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
 {
     public WorkOrder $job;
     public array $items = [];
-    public string $vatRate = '16';
+    public string $vatRate = '';
     public string $dueAt = '';
+
+    public function getCurrencyCodeProperty(): string
+    {
+        return $this->job->sourceQuotation?->currency_code ?? $this->job->customer?->currencyCode() ?? currency();
+    }
 
     public function mount(WorkOrder $job): void
     {
@@ -23,7 +28,8 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
         }
 
         $this->job = $job;
-        $this->dueAt = now()->addDays(30)->toDateString();
+        $this->dueAt = now()->addDays((int) setting('invoice_due_days'))->toDateString();
+        $this->vatRate = rtrim(rtrim(number_format((float) ($job->customer?->vatPercent() ?? setting('vat_rate')), 3, '.', ''), '0'), '.');
 
         if ($job->sourceQuotation) {
             $job->sourceQuotation->load('items');
@@ -95,13 +101,14 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
         ]);
 
         $invoice = Invoice::create([
-            'reference' => 'INV-'.str_pad((string) (Invoice::max('id') + 1), 4, '0', STR_PAD_LEFT),
+            'reference' => \App\Models\ReferenceSeries::next('invoice'),
             'customer_id' => $this->job->customer_id,
             'work_order_id' => $this->job->id,
             'issued_at' => now(),
             'due_at' => $this->dueAt,
             'amount_minor' => $this->totalMinor,
             'vat_rate' => ((float) $this->vatRate) / 100,
+            'currency_code' => $this->currencyCode,
             'raised_by' => auth()->id(),
         ]);
 
@@ -175,7 +182,7 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
                 </div>
                 <div class="flex justify-between border-t border-neutral-100 py-2 font-semibold">
                     <span class="text-neutral-900">Total</span>
-                    <span class="text-neutral-900">KES {{ number_format($this->totalMinor / 100, 2) }}</span>
+                    <span class="text-neutral-900">{{ $this->currencyCode }} {{ number_format($this->totalMinor / 100, 2) }}</span>
                 </div>
             </div>
         </div>

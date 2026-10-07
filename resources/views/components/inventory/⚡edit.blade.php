@@ -44,7 +44,7 @@ new #[Layout('layouts.app', ['title' => 'Edit inventory item'])] class extends C
     {
         return [
             'branches' => Branch::orderBy('name')->get(),
-            'categories' => ['Spare part', 'Equipment', 'Test equipment', 'Consumable'],
+            'categories' => setting('stock_categories'),
         ];
     }
 
@@ -178,12 +178,12 @@ new #[Layout('layouts.app', ['title' => 'Edit inventory item'])] class extends C
 
         <div class="grid grid-cols-2 gap-4">
             <div>
-                <label class="label">Cost, KES (optional)</label>
+                <label class="label">Cost, {{ currency() }} (optional)</label>
                 <input type="text" inputmode="decimal" wire:model="cost" placeholder="e.g. 1250.00" class="input">
                 @error('cost') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
             </div>
             <div>
-                <label class="label">Selling price, KES (optional)</label>
+                <label class="label">Selling price, {{ currency() }} (optional)</label>
                 <input type="text" inputmode="decimal" wire:model="price" placeholder="e.g. 1800.00" class="input">
                 @error('price') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
             </div>

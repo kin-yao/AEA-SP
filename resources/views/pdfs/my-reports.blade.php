@@ -27,9 +27,9 @@
     <table class="kpi">
         <tr>
             <td><div class="v">{{ $kpi['matching'] }}</div><div class="l">Jobs in range</div></td>
-            <td><div class="v">{{ $money($kpi['billed']) }}</div><div class="l">Billed (KES)</div></td>
-            <td><div class="v good">{{ $money($kpi['paid']) }}</div><div class="l">Collected (KES)</div></td>
-            <td><div class="v bad">{{ $money($kpi['balance']) }}</div><div class="l">Outstanding (KES)</div></td>
+            <td><div class="v">{{ $money($kpi['billed']) }}</div><div class="l">Billed ({{ currency() }})</div></td>
+            <td><div class="v good">{{ $money($kpi['paid']) }}</div><div class="l">Collected ({{ currency() }})</div></td>
+            <td><div class="v bad">{{ $money($kpi['balance']) }}</div><div class="l">Outstanding ({{ currency() }})</div></td>
         </tr>
     </table>
 

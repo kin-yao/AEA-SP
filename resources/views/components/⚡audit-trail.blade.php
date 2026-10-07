@@ -67,10 +67,10 @@ new #[Layout('layouts.app', ['title' => 'Audit trail'])] class extends Component
             $q->where(fn ($w) => $w->where('label', 'like', $like)->orWhere('user_name', 'like', $like)->orWhere('email', 'like', $like));
         }
         if ($this->from !== '') {
-            $q->where('created_at', '>=', \Carbon\Carbon::parse($this->from, 'Africa/Nairobi')->startOfDay()->setTimezone(config('app.timezone')));
+            $q->where('created_at', '>=', \Carbon\Carbon::parse($this->from, \App\Support\Settings::timezone())->startOfDay()->setTimezone(config('app.timezone')));
         }
         if ($this->to !== '') {
-            $q->where('created_at', '<=', \Carbon\Carbon::parse($this->to, 'Africa/Nairobi')->endOfDay()->setTimezone(config('app.timezone')));
+            $q->where('created_at', '<=', \Carbon\Carbon::parse($this->to, \App\Support\Settings::timezone())->endOfDay()->setTimezone(config('app.timezone')));
         }
 
         return $q;
@@ -85,7 +85,7 @@ new #[Layout('layouts.app', ['title' => 'Audit trail'])] class extends Component
             fputcsv($out, ['When', 'Who', 'Email', 'Action', 'Details', 'From (IP)', 'Changes']);
             foreach ($rows as $r) {
                 $changes = collect($r->changes ?? [])->map(fn ($v, $k) => $k.': '.($v[0] ?? '').' to '.($v[1] ?? ''))->implode('; ');
-                fputcsv($out, [$r->created_at->copy()->setTimezone('Africa/Nairobi')->format('Y-m-d H:i:s'), $r->user_name, $r->email, AuditLog::EVENTS[$r->event] ?? $r->event, $r->label, $r->ip, $changes]);
+                fputcsv($out, [$r->created_at->copy()->setTimezone(\App\Support\Settings::timezone())->format('Y-m-d H:i:s'), $r->user_name, $r->email, AuditLog::EVENTS[$r->event] ?? $r->event, $r->label, $r->ip, $changes]);
             }
             fclose($out);
         }, 'aea-audit-trail-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv']);
@@ -157,7 +157,7 @@ new #[Layout('layouts.app', ['title' => 'Audit trail'])] class extends Component
                             };
                         @endphp
                         <tr wire:key="al-{{ $l->id }}">
-                            <td class="whitespace-nowrap text-xs">{{ $l->created_at->copy()->setTimezone('Africa/Nairobi')->format('d M Y, H:i') }}</td>
+                            <td class="whitespace-nowrap text-xs">{{ $l->created_at->copy()->setTimezone(\App\Support\Settings::timezone())->format('d M Y, H:i') }}</td>
                             <td>
                                 <span class="font-semibold text-neutral-900">{{ $l->user_name ?? 'Not signed in' }}</span>
                                 @if ($l->email && ! $l->user_name)<br><span class="font-mono text-xs text-neutral-500">{{ $l->email }}</span>@endif

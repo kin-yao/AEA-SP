@@ -12,13 +12,34 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
     public string $siteId = '';
     public string $scope = '';
     public string $labour = '';
-    public string $validityDays = '30';
+    public string $validityDays = '';
     public array $items = [];
 
     public function mount(): void
     {
         $this->authorize('create', Quotation::class);
+        $this->validityDays = (string) setting('quotation_validity_days');
         $this->items = [['description' => '', 'quantity' => 1, 'rate' => '']];
+    }
+
+    protected function customerRecord(): ?Customer
+    {
+        return $this->customerId ? Customer::find($this->customerId) : null;
+    }
+
+    public function getCurrencyCodeProperty(): string
+    {
+        return $this->customerRecord()?->currencyCode() ?? currency();
+    }
+
+    public function getVatFractionProperty(): float
+    {
+        return round(($this->customerRecord()?->vatPercent() ?? (float) setting('vat_rate')) / 100, 3);
+    }
+
+    public function getApprovalLimitProperty(): float
+    {
+        return $this->customerRecord()?->approvalLimit() ?? (float) setting('approval_threshold');
     }
 
     public function getSitesProperty()
@@ -56,7 +77,7 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
 
     public function getVatProperty(): float
     {
-        return round($this->subtotal * 0.16, 2);
+        return round($this->subtotal * $this->vatFraction, 2);
     }
 
     public function getTotalProperty(): float
@@ -76,12 +97,14 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
         ]);
 
         $quotation = Quotation::create([
-            'reference' => 'QT-'.str_pad((string) (Quotation::max('id') + 1), 4, '0', STR_PAD_LEFT),
+            'reference' => \App\Models\ReferenceSeries::next('quotation'),
             'customer_id' => $this->customerId,
             'customer_site_id' => $this->siteId ?: null,
             'scope' => $this->scope,
             'labour_minor' => (int) round(((float) ($this->labour ?: 0)) * 100),
             'validity_days' => $this->validityDays,
+            'currency_code' => $this->currencyCode,
+            'vat_rate' => $this->vatFraction,
             'created_by' => auth()->id(),
         ]);
 
@@ -107,7 +130,7 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
             $quotation->approval_threshold,
             'Quotation awaiting your approval',
             [
-                "Quotation {$quotation->reference} for {$quotation->customer->name} (KES ".number_format($quotation->totalMinor() / 100, 2).') needs your approval.',
+                "Quotation {$quotation->reference} for {$quotation->customer->name} (".$quotation->currency_code." ".number_format($quotation->totalMinor() / 100, 2).') needs your approval.',
             ],
             url("/quotations/{$quotation->id}"),
             'Review quotation',
@@ -168,7 +191,7 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
                 <div class="mb-2 flex items-center gap-2">
                     <input wire:model="items.{{ $index }}.description" type="text" placeholder="Description" class="input flex-[2]">
                     <input wire:model.live="items.{{ $index }}.quantity" type="number" min="1" placeholder="Qty" class="input w-16">
-                    <input wire:model.live="items.{{ $index }}.rate" type="text" inputmode="decimal" placeholder="Rate, KES" class="input w-28">
+                    <input wire:model.live="items.{{ $index }}.rate" type="text" inputmode="decimal" placeholder="Rate, {{ $this->currencyCode }}" class="input w-28">
                     @if (count($items) > 1)
                         <button type="button" wire:click="removeItem({{ $index }})" class="shrink-0 text-neutral-400 hover:text-critical-700">
                             &times;
@@ -179,7 +202,7 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
 
             <div class="mt-4 grid grid-cols-2 gap-4 border-t border-neutral-100 pt-4">
                 <div>
-                    <label class="label">Labour, KES</label>
+                    <label class="label">Labour, {{ $this->currencyCode }}</label>
                     <input wire:model.live="labour" type="text" inputmode="decimal" placeholder="0.00" class="input">
                 </div>
                 <div>
@@ -192,18 +215,18 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
         <div class="card">
             <div class="flex justify-between py-1 text-sm">
                 <span class="text-neutral-500">Subtotal</span>
-                <span class="text-neutral-900">KES {{ number_format($this->subtotal, 2) }}</span>
+                <span class="text-neutral-900">{{ $this->currencyCode }} {{ number_format($this->subtotal, 2) }}</span>
             </div>
             <div class="flex justify-between py-1 text-sm">
-                <span class="text-neutral-500">VAT, 16%</span>
-                <span class="text-neutral-900">KES {{ number_format($this->vat, 2) }}</span>
+                <span class="text-neutral-500">VAT, {{ round($this->vatFraction * 100, 2) }}%</span>
+                <span class="text-neutral-900">{{ $this->currencyCode }} {{ number_format($this->vat, 2) }}</span>
             </div>
             <div class="mt-1 flex justify-between border-t border-neutral-100 py-2 text-sm font-semibold">
                 <span class="text-neutral-900">Total</span>
-                <span class="text-neutral-900">KES {{ number_format($this->total, 2) }}</span>
+                <span class="text-neutral-900">{{ $this->currencyCode }} {{ number_format($this->total, 2) }}</span>
             </div>
             <p class="mt-2 text-xs text-neutral-500">
-                {{ $this->total >= 3000000 ? 'At or above KES 3,000,000, this will route to the Manager for approval.' : 'Under KES 3,000,000, this will route to the Supervisor for approval.' }}
+                {{ $this->total >= $this->approvalLimit ? 'At or above '.$this->currencyCode.' '.number_format($this->approvalLimit).', this will route to the Manager for approval.' : 'Under '.$this->currencyCode.' '.number_format($this->approvalLimit).', this will route to the Supervisor for approval.' }}
             </p>
         </div>
 

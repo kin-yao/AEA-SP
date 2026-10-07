@@ -105,7 +105,7 @@ new #[Layout('layouts.app', ['title' => 'Invoices'])] class extends Component
                     <p class="mt-1 text-xs text-neutral-500">Due {{ $invoice->due_at->format('d M Y') }}</p>
                 </div>
                 <div class="shrink-0 text-right">
-                    <p class="text-sm font-semibold text-neutral-900">KES {{ number_format($invoice->amount_minor / 100, 2) }}</p>
+                    <p class="text-sm font-semibold text-neutral-900">{{ $invoice->currency_code }} {{ number_format($invoice->amount_minor / 100, 2) }}</p>
                     <span @class([
                         'mt-1 inline-block',
                         'pill-neutral' => $invoice->status === 'Draft',

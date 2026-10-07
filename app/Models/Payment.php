@@ -22,8 +22,16 @@ class Payment extends Model
         'paid_at' => 'date',
     ];
 
+    public function __construct(array $attributes = [])
+    {
+        $this->attributes = array_merge($this->attributes, [
+            'currency_code' => currency(),
+        ]);
+
+        parent::__construct($attributes);
+    }
+
     protected $attributes = [
-        'currency_code' => 'KES',
     ];
 
     public function invoice(): BelongsTo
@@ -58,6 +66,7 @@ class Payment extends Model
             'reference' => $reference,
             'invoice_id' => $invoice->id,
             'customer_id' => $invoice->customer_id,
+            'currency_code' => $invoice->currency_code,
             'paid_at' => now(),
             'amount_minor' => $amountMinor,
             'method' => $method,

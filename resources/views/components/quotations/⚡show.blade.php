@@ -26,7 +26,7 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
     {
         $this->authorize('view', $quotation);
         $this->quotation = $quotation->load(['customer', 'site', 'items', 'lpoDetail', 'workOrder', 'createdBy']);
-        $this->jobDueDate = now()->addDays(3)->toDateString();
+        $this->jobDueDate = now()->addDays((int) setting('job_due_days'))->toDateString();
     }
 
     public function getTechniciansProperty()
@@ -83,14 +83,17 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
         $this->authorize('logLpo', $this->quotation);
 
         $this->validate([
-            'lpoReference' => ['required', 'string'],
+            'lpoReference' => ['nullable', 'string', 'max:100'],
             'lpoReceivedVia' => ['required', 'string'],
             'lpoFile' => ['nullable', 'file', 'max:10240', 'mimes:pdf,jpg,jpeg,png'],
         ]);
 
         $filePath = $this->lpoFile?->store('lpo-documents', 'public');
 
-        $this->quotation->logLpo($this->lpoReference, $this->lpoReceivedVia, auth()->id(), $filePath);
+        $lpoNumber = trim($this->lpoReference) !== '' ? trim($this->lpoReference) : \App\Models\ReferenceSeries::next('lpo');
+
+        $this->quotation->logLpo($lpoNumber, $this->lpoReceivedVia, auth()->id(), $filePath);
+        $this->lpoReference = '';
         $this->quotation->refresh();
         $this->quotation->load('lpoDetail');
     }
@@ -104,7 +107,7 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
             'jobDueDate' => ['required', 'date'],
         ]);
 
-        $reference = 'WO-'.str_pad((string) (WorkOrder::max('id') + 1), 4, '0', STR_PAD_LEFT);
+        $reference = \App\Models\ReferenceSeries::next('work_order');
 
         $this->quotation->convertToJob((int) $this->jobTechnicianId, $this->jobDueDate, $reference);
         $this->quotation->refresh();
@@ -136,7 +139,8 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
 
         $pdf = Pdf::loadView('pdfs.quotation', [
             'quotation' => $this->quotation,
-            'company' => config('company'),
+            'company' => \App\Support\Settings::company(),
+            'banks' => \App\Models\BankAccount::forDocument($this->quotation->currency_code, $this->quotation->customer?->branch?->country_id),
         ]);
 
         return response()->streamDownload(
@@ -210,12 +214,12 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
                     <span class="text-neutral-900">{{ number_format($quotation->subtotalMinor() / 100, 2) }}</span>
                 </div>
                 <div class="flex justify-between py-1">
-                    <span class="text-neutral-500">VAT, 16%</span>
+                    <span class="text-neutral-500">VAT, {{ round($quotation->vat_rate * 100, 2) }}%</span>
                     <span class="text-neutral-900">{{ number_format($quotation->vatMinor() / 100, 2) }}</span>
                 </div>
                 <div class="flex justify-between border-t border-neutral-100 py-2 font-semibold">
                     <span class="text-neutral-900">Total</span>
-                    <span class="text-neutral-900">KES {{ number_format($quotation->totalMinor() / 100, 2) }}</span>
+                    <span class="text-neutral-900">{{ $quotation->currency_code }} {{ number_format($quotation->totalMinor() / 100, 2) }}</span>
                 </div>
             </div>
         </div>
@@ -235,7 +239,7 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
             </div>
             <div>
                 <dt class="text-neutral-500">Payment terms</dt>
-                <dd class="text-neutral-900">{{ $quotation->payment_terms ?? config('company.default_payment_terms') }}</dd>
+                <dd class="text-neutral-900">{{ $quotation->payment_terms ?? setting('payment_terms') }}</dd>
             </div>
         </dl>
     </div>
@@ -271,6 +275,7 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
                 <div class="mb-3">
                     <label class="label">LPO reference</label>
                     <input wire:model="lpoReference" type="text" placeholder="e.g. KSM-LPO-2291" class="input">
+                    <p class="mt-1 text-xs text-neutral-400">Leave blank if the customer gave no number. The system will number it from the LPO series.</p>
                     @error('lpoReference') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
                 </div>
                 <div class="mb-3">

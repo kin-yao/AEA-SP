@@ -39,10 +39,10 @@ new #[Layout('layouts.guest', ['title' => 'Create your account - AEA Service Ope
             'contactName' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'max:255'],
-            'password' => ['required', 'confirmed', Password::min(8)],
+            'password' => ['required', 'confirmed', Password::min((int) setting('password_min'))],
         ]);
 
-        $reference = 'CUS-'.str_pad((string) (Customer::max('id') + 1), 4, '0', STR_PAD_LEFT);
+        $reference = \App\Models\ReferenceSeries::next('customer');
 
         $customer = Customer::create([
             'reference' => $reference,

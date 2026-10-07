@@ -277,13 +277,13 @@ new #[Layout('layouts.app', ['title' => 'My Reports'])] class extends Component
         </div>
         <div class="card" style="flex: 2 1 420px; min-width: 0">
             <h3 class="mb-1 text-sm font-semibold text-neutral-900">Invoiced per month</h3>
-            <p class="mb-4 text-xs text-neutral-400">KES, by the date the invoice was issued</p>
+            <p class="mb-4 text-xs text-neutral-400">{{ currency() }}, by the date the invoice was issued</p>
             <x-column-chart :data="$invoicedMonths" :height="190" />
         </div>
     </div>
     <div class="card mb-4">
         <h3 class="mb-1 text-sm font-semibold text-neutral-900">Money still to pay, by age</h3>
-        <p class="mb-4 text-xs text-neutral-400">Balance in KES, grouped by days past the due date</p>
+        <p class="mb-4 text-xs text-neutral-400">Balance in {{ currency() }}, grouped by days past the due date</p>
         <x-column-chart :data="$ageing" :height="190" />
     </div>
     <div class="card mb-6" style="padding: 0">

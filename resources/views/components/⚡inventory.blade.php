@@ -46,7 +46,7 @@ new #[Layout('layouts.app', ['title' => 'Inventory'])] class extends Component
 
     public function with(): array
     {
-        $categories = ['Spare part', 'Equipment', 'Test equipment', 'Consumable'];
+        $categories = setting('stock_categories');
         $user = auth()->user();
 
         $query = InventoryItem::with('branch');
@@ -89,13 +89,7 @@ new #[Layout('layouts.app', ['title' => 'Inventory'])] class extends Component
 
     private function nextReference(): string
     {
-        $n = (StockMovement::max('id') ?? 0) + 1;
-
-        while (StockMovement::where('reference', 'MOV-'.str_pad((string) $n, 5, '0', STR_PAD_LEFT))->exists()) {
-            $n++;
-        }
-
-        return 'MOV-'.str_pad((string) $n, 5, '0', STR_PAD_LEFT);
+        return \App\Models\ReferenceSeries::next('stock_movement');
     }
 
     public function recordMovement(): void
@@ -205,7 +199,7 @@ new #[Layout('layouts.app', ['title' => 'Inventory'])] class extends Component
             }
         }
 
-        $categories = ['Spare part', 'Equipment', 'Test equipment', 'Consumable'];
+        $categories = setting('stock_categories');
         $branches = Branch::all()->keyBy(fn ($b) => strtolower($b->name));
         $defaultBranchId = auth()->user()->branch_id ?? $branches->first()?->id;
         $userId = auth()->id();
@@ -286,7 +280,7 @@ new #[Layout('layouts.app', ['title' => 'Inventory'])] class extends Component
                     continue;
                 }
                 if ($cost === false || $price === false) {
-                    $errors[] = "Row {$line}: cost and price must be amounts in KES, like 1250.00.";
+                    $errors[] = "Row {$line}: cost and price must be amounts in ".currency().", like 1250.00.";
                     continue;
                 }
 
@@ -382,7 +376,7 @@ new #[Layout('layouts.app', ['title' => 'Inventory'])] class extends Component
             </div>
             <div>
                 <p class="text-xs text-neutral-500">Stock value (at cost)</p>
-                <p class="text-2xl font-semibold text-neutral-900">KES {{ number_format($stockValue, 0) }}</p>
+                <p class="text-2xl font-semibold text-neutral-900">{{ currency() }} {{ number_format($stockValue, 0) }}</p>
             </div>
         </div>
     </div>
@@ -393,7 +387,7 @@ new #[Layout('layouts.app', ['title' => 'Inventory'])] class extends Component
                 <p class="text-sm font-semibold text-neutral-900">Import items from CSV</p>
                 <p class="mt-1 text-xs text-neutral-500">
                     Items are matched on <span class="font-mono">code</span>: new codes are created, existing ones are updated.
-                    Blank cells keep the current value. Quantity changes are logged as stock movements. Cost and price are in KES.
+                    Blank cells keep the current value. Quantity changes are logged as stock movements. Cost and price are in {{ currency() }}.
                     Download the template for the exact columns.
                 </p>
             </div>
@@ -503,7 +497,7 @@ new #[Layout('layouts.app', ['title' => 'Inventory'])] class extends Component
                             <td class="text-right text-neutral-500">{{ $item->reorder_level }}</td>
                             <td class="text-neutral-600">{{ $item->branch?->name ?? '-' }}</td>
                             <td class="whitespace-nowrap text-right text-neutral-800">
-                                {{ $item->cost_minor !== null ? 'KES '.number_format($item->cost_minor / 100, 2) : '-' }}
+                                {{ $item->cost_minor !== null ? currency().' '.number_format($item->cost_minor / 100, 2) : '-' }}
                             </td>
                             @if ($canManage)
                                 <td class="text-right">

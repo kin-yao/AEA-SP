@@ -76,7 +76,7 @@ new #[Layout('layouts.app', ['title' => 'Quotations'])] class extends Component
                     <p class="mt-1 truncate text-xs text-neutral-500">{{ $quotation->scope }}</p>
                 </div>
                 <div class="shrink-0 text-right">
-                    <p class="text-sm font-semibold text-neutral-900">KES {{ number_format($quotation->totalMinor() / 100, 2) }}</p>
+                    <p class="text-sm font-semibold text-neutral-900">{{ $quotation->currency_code }} {{ number_format($quotation->totalMinor() / 100, 2) }}</p>
                     <span @class([
                         'mt-1 inline-block',
                         'pill-neutral' => str_starts_with($quotation->status, 'Awaiting'),

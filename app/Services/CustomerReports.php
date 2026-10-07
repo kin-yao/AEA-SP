@@ -204,16 +204,16 @@ class CustomerReports
                 ['Requests raised', $k['requests']],
                 ['Jobs completed', $k['jobsDone'].' of '.$k['jobs']],
                 ['Service reports received', $k['reports']],
-                ['Invoiced (KES)', $m($k['invoicedMinor'])],
-                ['Outstanding today (KES)', $m($k['outstandingMinor'])],
+                ['Invoiced ('.currency().')', $m($k['invoicedMinor'])],
+                ['Outstanding today ('.currency().')', $m($k['outstandingMinor'])],
             ]],
             'requests' => $mixCsv('Requests by status', $d['requestMix']),
             'requestMonths' => $chartCsv('Requests per month', $d['requestMonths']),
             'nature' => $chartCsv('Jobs by type of visit', $d['natureRows']),
             'invoices' => $mixCsv('Invoices by status', $d['invoiceMix']),
-            'invoiced' => $chartCsv('Invoiced per month (KES)', $d['invoicedMonths'], true),
-            'ageing' => ['Money still to pay, by age', ['Age', 'Invoices', 'Balance (KES)'], array_map(fn ($a) => [$a['label'], $a['count'], $m($a['value'])], $d['ageing'])],
-            'owing' => ['Unpaid invoices', ['Invoice', 'Due', 'Amount (KES)', 'Paid (KES)', 'Balance (KES)', 'Status'], $d['owingRows']->map(fn ($i) => [
+            'invoiced' => $chartCsv('Invoiced per month ('.currency().')', $d['invoicedMonths'], true),
+            'ageing' => ['Money still to pay, by age', ['Age', 'Invoices', 'Balance ('.currency().')'], array_map(fn ($a) => [$a['label'], $a['count'], $m($a['value'])], $d['ageing'])],
+            'owing' => ['Unpaid invoices', ['Invoice', 'Due', 'Amount ('.currency().')', 'Paid ('.currency().')', 'Balance ('.currency().')', 'Status'], $d['owingRows']->map(fn ($i) => [
                 $i->reference, $i->due_at->format('Y-m-d'), $m($i->amount_minor), $m($i->paid_minor), $m($i->balanceMinor()), FinanceReports::shownStatus($i),
             ])->all()],
             'machines' => ['Machines', ['Serial', 'Machine', 'Site', 'Next service', 'Status'], $d['machines']->map(fn ($e) => [

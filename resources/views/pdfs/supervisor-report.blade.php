@@ -49,7 +49,7 @@
         <div class="box">
             <h2>Response target compliance, last 8 weeks</h2>
             <img src="{{ $complianceImg }}" style="width: 100%">
-            <div class="foot">Dashed line is the {{ \App\Services\SupervisorReports::TARGET_PERCENT }}% target. Share of requests that had a job dispatched within {{ \App\Services\SupervisorReports::RESPONSE_TARGET_HOURS }} hours.</div>
+            <div class="foot">Dashed line is the {{ setting('response_target_pct') }}% target. Share of requests that had a job dispatched within {{ setting('response_target_hours') }} hours.</div>
         </div>
     </div>
 

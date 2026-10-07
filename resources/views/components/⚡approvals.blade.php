@@ -94,7 +94,7 @@ new #[Layout('layouts.app', ['title' => 'Approvals'])] class extends Component
             'waiting' => $waiting,
             'decided' => $decided,
             'waitingValue' => $waiting->sum(fn (Quotation $q) => $q->totalMinor()),
-            'threshold' => Quotation::APPROVAL_THRESHOLD_MINOR,
+            'threshold' => \App\Support\Settings::approvalThresholdMinor(),
         ];
     }
 };
@@ -105,11 +105,11 @@ new #[Layout('layouts.app', ['title' => 'Approvals'])] class extends Component
         <h1 class="text-xl font-semibold text-neutral-900">Approvals</h1>
         <p class="text-sm text-neutral-500">
             @if ($role === 'Manager')
-                Quotations of KES {{ number_format($threshold / 100, 0) }} or more need your decision.
-                Anything smaller is approved by a Supervisor.
+                Quotations of {{ currency() }} {{ number_format($threshold / 100, 0) }} or more need your decision.
+                Anything smaller is approved by a Supervisor. A country can have its own limit.
             @else
-                Quotations under KES {{ number_format($threshold / 100, 0) }} need your decision.
-                Anything larger goes to the Manager automatically.
+                Quotations under {{ currency() }} {{ number_format($threshold / 100, 0) }} need your decision.
+                Anything larger goes to the Manager automatically. A country can have its own limit.
             @endif
         </p>
     </div>
@@ -144,12 +144,12 @@ new #[Layout('layouts.app', ['title' => 'Approvals'])] class extends Component
                             <td><a href="/quotations/{{ $q->id }}" wire:navigate class="font-mono text-xs font-bold text-neutral-900 hover:text-primary-600">{{ $q->reference }}</a></td>
                             <td class="font-medium text-neutral-900">{{ $q->customer->name }}</td>
                             <td class="text-neutral-600" style="max-width: 18rem">{{ \Illuminate\Support\Str::limit($q->scope, 70) }}</td>
-                            <td class="whitespace-nowrap text-right font-mono text-xs font-semibold">KES {{ number_format($q->totalMinor() / 100, 0) }}</td>
+                            <td class="whitespace-nowrap text-right font-mono text-xs font-semibold">{{ $q->currency_code }} {{ number_format($q->totalMinor() / 100, 0) }}</td>
                             <td class="whitespace-nowrap text-neutral-500">{{ $q->created_at->format('d M Y') }}</td>
                             <td>
                                 <div class="flex justify-end gap-2">
                                     <button type="button" wire:click="sendBack({{ $q->id }})" wire:confirm="Send {{ $q->reference }} back for changes?" class="btn-outline" style="padding: 0.4rem 0.8rem">Send back</button>
-                                    <button type="button" wire:click="approve({{ $q->id }})" wire:confirm="Approve {{ $q->reference }} for KES {{ number_format($q->totalMinor() / 100, 0) }}?" class="btn-primary" style="padding: 0.4rem 0.8rem">Approve</button>
+                                    <button type="button" wire:click="approve({{ $q->id }})" wire:confirm="Approve {{ $q->reference }} for {{ $q->currency_code }} {{ number_format($q->totalMinor() / 100, 0) }}?" class="btn-primary" style="padding: 0.4rem 0.8rem">Approve</button>
                                 </div>
                             </td>
                         </tr>
@@ -173,7 +173,7 @@ new #[Layout('layouts.app', ['title' => 'Approvals'])] class extends Component
                         <tr wire:key="d-{{ $q->id }}">
                             <td><a href="/quotations/{{ $q->id }}" wire:navigate class="font-mono text-xs font-bold text-neutral-900 hover:text-primary-600">{{ $q->reference }}</a></td>
                             <td>{{ $q->customer->name }}</td>
-                            <td class="whitespace-nowrap text-right font-mono text-xs">KES {{ number_format($q->totalMinor() / 100, 0) }}</td>
+                            <td class="whitespace-nowrap text-right font-mono text-xs">{{ $q->currency_code }} {{ number_format($q->totalMinor() / 100, 0) }}</td>
                             <td class="whitespace-nowrap text-neutral-500">{{ $q->updated_at->format('d M Y') }}</td>
                             <td>
                                 <span class="{{ $q->status === 'Sent back' ? 'pill-amber' : 'pill-success' }}">{{ $q->status === 'Sent back' ? 'Sent back' : 'Approved' }}</span>
@@ -203,7 +203,7 @@ new #[Layout('layouts.app', ['title' => 'Approvals'])] class extends Component
                             <tr wire:key="e-{{ $q->id }}">
                                 <td><a href="/quotations/{{ $q->id }}" wire:navigate class="font-mono text-xs font-bold text-neutral-900 hover:text-primary-600">{{ $q->reference }}</a></td>
                                 <td>{{ $q->customer->name }}</td>
-                                <td class="whitespace-nowrap text-right font-mono text-xs">KES {{ number_format($q->totalMinor() / 100, 0) }}</td>
+                                <td class="whitespace-nowrap text-right font-mono text-xs">{{ $q->currency_code }} {{ number_format($q->totalMinor() / 100, 0) }}</td>
                                 <td class="whitespace-nowrap text-neutral-500">{{ $q->created_at->format('d M Y') }}</td>
                                 <td><span class="{{ str_starts_with($q->status, 'Awaiting') ? 'pill-amber' : ($q->status === 'Sent back' ? 'pill-danger' : 'pill-success') }}">{{ $q->status }}</span></td>
                             </tr>

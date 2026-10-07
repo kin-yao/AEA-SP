@@ -61,11 +61,12 @@ new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Compon
     public string $customerSignoffName = '';
     public string $customerSignature = '';
 
-    public array $natureOptions = ['Planned maintenance', 'Service', 'Repairs', 'Normal customer visit'];
+    public array $natureOptions = [];
 
     public function mount(WorkOrder $job): void
     {
         $this->authorize('updateStatus', $job);
+        $this->natureOptions = setting('nature_of_visit');
 
         if ($job->assigned_technician_id !== auth()->id()) {
             abort(403, 'This job is not assigned to you.');
@@ -401,7 +402,7 @@ new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Compon
     public function with(): array
     {
         return [
-            'sources' => ['Vehicle stock', 'Nairobi store', 'Customer supplied', 'Ordered'],
+            'sources' => setting('part_sources'),
         ];
     }
 };

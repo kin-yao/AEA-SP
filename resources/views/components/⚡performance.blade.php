@@ -61,7 +61,7 @@ new #[Layout('layouts.app', ['title' => 'Technician performance'])] class extend
         return response()->streamDownload(function () use ($rows, $label) {
             $out = fopen('php://output', 'w');
             fputcsv($out, ['Technician performance, '.$label]);
-            fputcsv($out, ['Technician', 'Branch', 'Jobs closed', 'Open', 'Overdue', 'On-time %', 'Utilization %', 'Revenue (KES)']);
+            fputcsv($out, ['Technician', 'Branch', 'Jobs closed', 'Open', 'Overdue', 'On-time %', 'Utilization %', 'Revenue ('.currency().')']);
             foreach ($rows as $r) {
                 fputcsv($out, [
                     $r['user']->name, $r['location'], $r['closed'], $r['open'], $r['overdue'],

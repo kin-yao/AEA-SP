@@ -183,11 +183,11 @@ new #[Layout('layouts.app', ['title' => 'Finance watch'])] class extends Compone
                         <div class="flex items-center gap-6">
                             <div style="min-width: 7.5rem">
                                 <p class="text-xs text-neutral-500">Amount</p>
-                                <p class="font-mono text-sm font-bold text-neutral-900">KES {{ number_format($i->amount_minor / 100, 0) }}</p>
+                                <p class="font-mono text-sm font-bold text-neutral-900">{{ $i->currency_code }} {{ number_format($i->amount_minor / 100, 0) }}</p>
                             </div>
                             <div style="min-width: 7.5rem">
                                 <p class="text-xs text-neutral-500">Paid</p>
-                                <p class="font-mono text-sm font-bold text-neutral-900">KES {{ number_format($i->paid_minor / 100, 0) }}</p>
+                                <p class="font-mono text-sm font-bold text-neutral-900">{{ $i->currency_code }} {{ number_format($i->paid_minor / 100, 0) }}</p>
                             </div>
                         </div>
                         <div class="text-right" style="flex: 0 0 6.5rem">
@@ -226,7 +226,7 @@ new #[Layout('layouts.app', ['title' => 'Finance watch'])] class extends Compone
                         <div class="flex items-center gap-6">
                             <div style="min-width: 7.5rem">
                                 <p class="text-xs text-neutral-500">Amount</p>
-                                <p class="font-mono text-sm font-bold text-neutral-900">KES {{ number_format($q->totalMinor() / 100, 0) }}</p>
+                                <p class="font-mono text-sm font-bold text-neutral-900">{{ $q->currency_code }} {{ number_format($q->totalMinor() / 100, 0) }}</p>
                             </div>
                             <div style="min-width: 7.5rem">
                                 <p class="text-xs text-neutral-500">Approval</p>

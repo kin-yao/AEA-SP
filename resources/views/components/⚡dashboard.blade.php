@@ -326,8 +326,8 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
 ?>
 @php
     $s = $this->stats;
-    $short = fn (int $m) => 'KES '.\App\Services\ServiceAdminReports::short($m);
-    $full = fn (int $m) => 'KES '.number_format($m / 100, 0);
+    $short = fn (int $m) => currency().' '.\App\Services\ServiceAdminReports::short($m);
+    $full = fn (int $m) => currency().' '.number_format($m / 100, 0);
     $pillFor = fn (string $st) => match (true) {
         in_array($st, ['Converted', 'Released', 'Approved', 'Closed', 'Paid', 'Accepted']) => 'pill-success',
         in_array($st, ['Declined', 'Rejected']) => 'pill-danger',
@@ -475,14 +475,14 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
         <div class="flex flex-wrap gap-4">
             <div class="card" style="flex: 1 1 340px; min-width: 0">
                 <h3 class="mb-1 text-sm font-semibold text-neutral-900">Revenue, last 6 months</h3>
-                <p class="mb-4 text-xs text-neutral-400">KES, by invoice date</p>
+                <p class="mb-4 text-xs text-neutral-400">{{ currency() }}, by invoice date</p>
                 <x-column-chart :height="170" :minCol="40" :data="collect($s['monthlyRevenueTrend'])->map(fn ($v, $i) => [
                     'label' => now()->subMonthsNoOverflow(5 - $i)->format('M'), 'value' => $v, 'valueLabel' => \App\Services\ServiceAdminReports::short((int) $v), 'color' => $brand,
                 ])->all()" />
             </div>
             <div class="card" style="flex: 1 1 340px; min-width: 0">
                 <h3 class="mb-1 text-sm font-semibold text-neutral-900">Top technicians</h3>
-                <p class="mb-4 text-xs text-neutral-400">KES invoiced on their jobs</p>
+                <p class="mb-4 text-xs text-neutral-400">{{ currency() }} invoiced on their jobs</p>
                 <x-column-chart :height="170" :data="$s['technicianPerformance']->map(fn ($t) => [
                     'label' => explode(' ', $t->name)[0], 'value' => $t->revenueMinor, 'valueLabel' => \App\Services\ServiceAdminReports::short((int) $t->revenueMinor), 'color' => $brand,
                 ])->all()" />

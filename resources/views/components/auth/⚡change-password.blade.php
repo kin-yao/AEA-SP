@@ -21,7 +21,7 @@ new #[Layout('layouts.guest', ['title' => 'Set a new password - AEA Service Oper
     public function save(): void
     {
         $this->validate([
-            'password' => ['required', 'confirmed', Password::min(8)],
+            'password' => ['required', 'confirmed', Password::min((int) setting('password_min'))],
         ]);
 
         auth()->user()->update([

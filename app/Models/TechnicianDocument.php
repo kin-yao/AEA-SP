@@ -42,8 +42,8 @@ class TechnicianDocument extends Model
 
         return match (true) {
             $pct >= 100 => 'critical',
-            $pct >= 75 => 'urgent',
-            $pct >= 50 => 'warn',
+            $pct >= (int) setting('stage_urgent_pct') => 'urgent',
+            $pct >= (int) setting('stage_warn_pct') => 'warn',
             default => 'fresh',
         };
     }

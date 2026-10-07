@@ -21,7 +21,7 @@
         <thead>
             <tr>
                 <th>Job</th><th>Customer</th><th>Branch</th><th>Country</th><th>Technician</th>
-                <th>Nature of visit</th><th>Date</th><th class="num">Value (KES)</th><th>Status</th>
+                <th>Nature of visit</th><th>Date</th><th class="num">Value ({{ currency() }})</th><th>Status</th>
             </tr>
         </thead>
         <tbody>

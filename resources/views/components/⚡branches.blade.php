@@ -4,6 +4,7 @@ use Livewire\Component;
 use Livewire\Attributes\Layout;
 use App\Models\Branch;
 use App\Models\Country;
+use App\Models\Currency;
 use Illuminate\Validation\Rule;
 
 new #[Layout('layouts.app', ['title' => 'Branches and Country'])] class extends Component
@@ -13,6 +14,8 @@ new #[Layout('layouts.app', ['title' => 'Branches and Country'])] class extends 
     public ?int $countryId = null;
     public string $countryName = '';
     public string $currency = '';
+    public string $vat = '';
+    public string $approval = '';
 
     // Branch form
     public bool $showBranch = false;
@@ -31,7 +34,7 @@ new #[Layout('layouts.app', ['title' => 'Branches and Country'])] class extends 
     // ---- Countries
     public function newCountry(): void
     {
-        $this->reset(['countryId', 'countryName', 'currency', 'notice', 'problem']);
+        $this->reset(['countryId', 'countryName', 'currency', 'vat', 'approval', 'notice', 'problem']);
         $this->resetValidation();
         $this->showCountry = true;
     }
@@ -44,6 +47,8 @@ new #[Layout('layouts.app', ['title' => 'Branches and Country'])] class extends 
         $this->countryId = $c->id;
         $this->countryName = $c->name;
         $this->currency = $c->currency_code;
+        $this->vat = $c->vat_rate !== null ? rtrim(rtrim((string) $c->vat_rate, '0'), '.') : '';
+        $this->approval = $c->approval_threshold !== null ? rtrim(rtrim((string) $c->approval_threshold, '0'), '.') : '';
         $this->showCountry = true;
     }
 
@@ -54,16 +59,22 @@ new #[Layout('layouts.app', ['title' => 'Branches and Country'])] class extends 
 
         $this->validate([
             'countryName' => ['required', 'string', 'max:100', Rule::unique('countries', 'name')->ignore($this->countryId)],
-            'currency' => ['required', 'alpha', 'size:3'],
+            'currency' => ['required', Rule::in(Currency::codes())],
+            'vat' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'approval' => ['nullable', 'numeric', 'min:0', 'max:100000000000'],
         ], [
             'countryName.required' => 'Enter the country name.',
             'countryName.unique' => 'That country already exists.',
             'currency.required' => 'Enter the 3 letter currency code, for example KES.',
-            'currency.size' => 'The currency code is 3 letters, for example KES.',
-            'currency.alpha' => 'The currency code is 3 letters, for example KES.',
+            'currency.in' => 'Pick a currency from the list. Add new ones under ICT, System settings, Money and tax.',
         ]);
 
-        $data = ['name' => $this->countryName, 'currency_code' => $this->currency];
+        $data = [
+            'name' => $this->countryName,
+            'currency_code' => $this->currency,
+            'vat_rate' => $this->vat !== '' ? $this->vat : null,
+            'approval_threshold' => $this->approval !== '' ? $this->approval : null,
+        ];
         $this->countryId ? Country::findOrFail($this->countryId)->update($data) : Country::create($data);
 
         $this->notice = $this->countryId ? 'Country updated.' : 'Country added.';
@@ -150,6 +161,7 @@ new #[Layout('layouts.app', ['title' => 'Branches and Country'])] class extends 
     public function with(): array
     {
         return [
+            'currencies' => Currency::orderBy('code')->get(),
             'countries' => Country::withCount('branches')->orderBy('name')->get(),
             'branches' => Branch::with('country')->withCount(['users', 'customers', 'inventoryItems'])->get()->sortBy(fn ($b) => $b->country->name.' '.$b->name),
         ];
@@ -182,8 +194,26 @@ new #[Layout('layouts.app', ['title' => 'Branches and Country'])] class extends 
                 </div>
                 <div class="mt-3">
                     <label class="label" for="cc">Currency code</label>
-                    <input id="cc" type="text" wire:model="currency" maxlength="3" class="input" style="font-size: 16px; text-transform: uppercase" placeholder="KES">
+                    <select id="cc" wire:model="currency" class="input" style="font-size: 16px">
+                        <option value="">Choose a currency</option>
+                        @foreach ($currencies as $cur)
+                            <option value="{{ $cur->code }}">{{ $cur->code }} - {{ $cur->name }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-neutral-400">Not on the list? Add it under ICT, System settings, Money and tax.</p>
+                    <p class="mt-1 text-xs text-neutral-400">Every quotation, invoice and receipt for this country's customers is billed in this currency.</p>
                     @error('currency') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                </div>
+                <div class="mt-3">
+                    <label class="label" for="cv">VAT rate (%)</label>
+                    <input id="cv" type="number" step="any" wire:model="vat" class="input" style="font-size: 16px" placeholder="Leave blank for the default">
+                    @error('vat') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
+                </div>
+                <div class="mt-3">
+                    <label class="label" for="ca">Manager approval from</label>
+                    <input id="ca" type="number" step="any" wire:model="approval" class="input" style="font-size: 16px" placeholder="Leave blank for the default">
+                    <p class="mt-1 text-xs text-neutral-400">Quotation total, in this country's currency, from which a Manager must approve.</p>
+                    @error('approval') <p class="mt-1 text-xs text-critical-700">{{ $message }}</p> @enderror
                 </div>
                 <div class="mt-5 flex gap-2">
                     <button type="submit" class="btn-primary">Save</button>
@@ -227,12 +257,14 @@ new #[Layout('layouts.app', ['title' => 'Branches and Country'])] class extends 
         </div>
         <div class="mt-3 overflow-x-auto">
             <table class="table-clean" style="min-width: 480px">
-                <thead><tr><th>Country</th><th>Currency</th><th>Branches</th><th></th></tr></thead>
+                <thead><tr><th>Country</th><th>Currency</th><th>VAT</th><th>Manager approval from</th><th>Branches</th><th></th></tr></thead>
                 <tbody>
                     @forelse ($countries as $c)
                         <tr wire:key="co-{{ $c->id }}">
                             <td class="font-semibold text-neutral-900">{{ $c->name }}</td>
                             <td class="font-mono">{{ $c->currency_code }}</td>
+                            <td>{{ $c->vat_rate !== null ? rtrim(rtrim((string) $c->vat_rate, '0'), '.').'%' : 'Default' }}</td>
+                            <td class="font-mono text-xs">{{ $c->approval_threshold !== null ? $c->currency_code.' '.number_format($c->approval_threshold, 0) : 'Default' }}</td>
                             <td>{{ $c->branches_count }}</td>
                             <td class="whitespace-nowrap text-right">
                                 <button type="button" wire:click="editCountry({{ $c->id }})" class="btn-outline" style="padding: 0.3rem 0.75rem">Edit</button>
@@ -240,7 +272,7 @@ new #[Layout('layouts.app', ['title' => 'Branches and Country'])] class extends 
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="4" class="text-center text-neutral-500">No countries yet.</td></tr>
+                        <tr><td colspan="6" class="text-center text-neutral-500">No countries yet.</td></tr>
                     @endforelse
                 </tbody>
             </table>

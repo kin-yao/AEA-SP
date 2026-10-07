@@ -218,7 +218,7 @@ new #[Layout('layouts.app', ['title' => 'Customer'])] class extends Component
             <div class="card">
                 <p class="text-xs font-medium text-neutral-500">Balance</p>
                 <p class="mt-1 text-2xl font-semibold {{ $customer->balance_minor > 0 ? 'text-urgent-700' : 'text-neutral-900' }}">
-                    KES {{ $customer->balanceFormatted() }}
+                    {{ $customer->currencyCode() }} {{ $customer->balanceFormatted() }}
                 </p>
             </div>
         </div>

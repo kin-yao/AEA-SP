@@ -126,12 +126,12 @@
 
     <table class="totals">
         @if ($invoice->items->isNotEmpty())
-            <tr><td>Subtotal</td><td class="num">KES {{ number_format($invoice->itemsSubtotalMinor() / 100, 2) }}</td></tr>
-            <tr><td>VAT, {{ number_format($invoice->vat_rate * 100, 0) }}%</td><td class="num">KES {{ number_format($invoice->vatMinor() / 100, 2) }}</td></tr>
+            <tr><td>Subtotal</td><td class="num">{{ $invoice->currency_code }} {{ number_format($invoice->itemsSubtotalMinor() / 100, 2) }}</td></tr>
+            <tr><td>VAT, {{ number_format($invoice->vat_rate * 100, 0) }}%</td><td class="num">{{ $invoice->currency_code }} {{ number_format($invoice->vatMinor() / 100, 2) }}</td></tr>
         @endif
-        <tr><td>Total</td><td class="num">KES {{ number_format($invoice->amount_minor / 100, 2) }}</td></tr>
-        <tr><td>Paid</td><td class="num">KES {{ number_format($invoice->paid_minor / 100, 2) }}</td></tr>
-        <tr class="balance"><td>Balance due</td><td class="num">KES {{ number_format($invoice->balanceMinor() / 100, 2) }}</td></tr>
+        <tr><td>Total</td><td class="num">{{ $invoice->currency_code }} {{ number_format($invoice->amount_minor / 100, 2) }}</td></tr>
+        <tr><td>Paid</td><td class="num">{{ $invoice->currency_code }} {{ number_format($invoice->paid_minor / 100, 2) }}</td></tr>
+        <tr class="balance"><td>Balance due</td><td class="num">{{ $invoice->currency_code }} {{ number_format($invoice->balanceMinor() / 100, 2) }}</td></tr>
     </table>
 
     @if ($invoice->payments->isNotEmpty())
@@ -145,7 +145,7 @@
                         <td>{{ $payment->reference }}</td>
                         <td>{{ $payment->method }}</td>
                         <td>{{ $payment->paid_at->format('d M Y') }}</td>
-                        <td style="text-align: right">KES {{ number_format($payment->amount_minor / 100, 2) }}</td>
+                        <td style="text-align: right">{{ $invoice->currency_code }} {{ number_format($payment->amount_minor / 100, 2) }}</td>
                     </tr>
                 @endforeach
             </tbody>
@@ -161,10 +161,16 @@
             <td>
                 <div class="meta-label">Bank details</div>
                 <div class="meta-value">
-                    {{ $company['bank']['account_name'] }}<br>
-                    {{ $company['bank']['name'] }}, {{ $company['bank']['branch'] }}<br>
-                    Account: {{ $company['bank']['account_number'] }}<br>
-                    SWIFT: {{ $company['bank']['swift'] }}
+                    @forelse ($banks as $bank)
+                        <div style="margin-bottom: 6px">
+                            {{ $bank->account_name }}<br>
+                            {{ $bank->bank_name }}@if ($bank->branch), {{ $bank->branch }}@endif<br>
+                            Account: {{ $bank->account_number }} ({{ $bank->currency_code }})@if ($bank->swift)<br>
+                            SWIFT: {{ $bank->swift }}@endif
+                        </div>
+                    @empty
+                        Bank details are not set up yet.
+                    @endforelse
                 </div>
             </td>
         </tr>

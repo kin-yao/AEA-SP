@@ -178,7 +178,7 @@ class ServiceAdminReports
 
         return $q->get()
             ->filter(fn ($d) => $d->technician && self::countryOk($f, $d->technician->branch))
-            ->filter(fn ($d) => $d->expiresAt()->lte(today()->addDays(self::DOC_WARN_DAYS)))
+            ->filter(fn ($d) => $d->expiresAt()->lte(today()->addDays((int) setting('document_warn_days'))))
             ->sortBy(fn ($d) => $d->expiresAt()->timestamp)
             ->values();
     }
@@ -439,7 +439,7 @@ class ServiceAdminReports
         ])->values()->all();
 
         $catRows = [];
-        foreach (self::CATEGORY_ORDER as $cat) {
+        foreach (setting('stock_categories') as $cat) {
             $units = (int) $stock->where('category', $cat)->sum('quantity');
             $catRows[] = ['label' => $cat, 'value' => $units, 'valueLabel' => (string) $units, 'color' => self::PALETTE[count($catRows)]];
         }
@@ -464,7 +464,7 @@ class ServiceAdminReports
 
             return [
                 'c' => $c, 'left' => $left, 'daysToEnd' => $daysToEnd,
-                'state' => $daysToEnd < 0 ? 'Expired' : ($daysToEnd <= self::DOC_WARN_DAYS ? 'Expiring soon' : 'Active'),
+                'state' => $daysToEnd < 0 ? 'Expired' : ($daysToEnd <= (int) setting('contract_warn_days') ? 'Expiring soon' : 'Active'),
             ];
         })->values();
 
@@ -506,7 +506,7 @@ class ServiceAdminReports
 
     /* ------------------------------------------------------------ csv */
 
-    public const JOB_HEADERS = ['Job', 'Customer', 'Branch', 'Country', 'Technician', 'Nature of visit', 'Due date', 'Value (KES)', 'Status'];
+    public static function jobHeaders(): array { return ['Job', 'Customer', 'Branch', 'Country', 'Technician', 'Nature of visit', 'Due date', 'Value ('.currency().')', 'Status']; }
 
     public static function jobCsv(Collection $rows): array
     {
@@ -525,7 +525,7 @@ class ServiceAdminReports
 
     protected static function chartCsv(array $rows, string $head, bool $money = false): array
     {
-        return [$head, ['Item', $money ? 'Value (KES)' : 'Value'], array_map(
+        return [$head, ['Item', $money ? 'Value ('.currency().')' : 'Value'], array_map(
             fn ($r) => [$r['label'], $money ? number_format($r['value'] / 100, 2, '.', '') : $r['value']],
             $rows
         )];
@@ -548,7 +548,7 @@ class ServiceAdminReports
                 ['Requests', $k['requests']],
                 ['Requests still open', $k['requestsOpen']],
                 ['Request to job rate %', $k['winRate'] ?? ''],
-                ['Quotation pipeline (KES)', $kes($k['pipelineMinor'])],
+                ['Quotation pipeline ('.currency().')', $kes($k['pipelineMinor'])],
                 ['LPOs awaited', $k['lpoAwaited']],
                 ['Jobs overdue', $k['overdueJobs']],
                 ['Items to reorder', $k['reorder']],
@@ -560,17 +560,17 @@ class ServiceAdminReports
             'quotations' => self::mixCsv($d['quoteMix'], 'Quotations by status'),
             'value' => self::chartCsv($d['valueRows'], 'Quotation value by status', true),
             'lpo' => self::mixCsv($d['lpoMix'], 'LPO status'),
-            'needs' => ['Quotations needing action', ['Reference', 'Customer', 'Amount (KES)', 'Waiting for', 'Days'], $d['needs']->map(fn ($n) => [
+            'needs' => ['Quotations needing action', ['Reference', 'Customer', 'Amount ('.currency().')', 'Waiting for', 'Days'], $d['needs']->map(fn ($n) => [
                 $n['q']->reference, $n['q']->customer?->name, $kes($n['q']->totalMinor()), $n['what'], $n['days'],
             ])->all()],
-            'invoices' => ['Invoices', ['Measure', 'Count', 'Value (KES)'], [
+            'invoices' => ['Invoices', ['Measure', 'Count', 'Value ('.currency().')'], [
                 ['Paid', $fin['paidCount'], $kes($fin['paidMinor'])],
                 ['Draft or part paid', $fin['draftPartCount'], $kes($fin['draftPartMinor'])],
                 ['Overdue (balance)', $fin['overdueCount'], $kes($fin['overdueMinor'])],
                 ['Outstanding (balance)', $fin['owingCount'], $kes($fin['owingMinor'])],
             ]],
-            'ageing' => ['Outstanding balance by age', ['Age', 'Invoices', 'Balance (KES)'], array_map(fn ($a) => [$a['label'], $a['count'], $kes($a['value'])], $d['ageing'])],
-            'revenue' => ['Revenue by technician', ['Technician', 'Branch', 'Jobs closed', 'Open jobs', 'Overdue jobs', 'Revenue (KES)'], $d['techRows']->map(fn ($t) => [
+            'ageing' => ['Outstanding balance by age', ['Age', 'Invoices', 'Balance ('.currency().')'], array_map(fn ($a) => [$a['label'], $a['count'], $kes($a['value'])], $d['ageing'])],
+            'revenue' => ['Revenue by technician', ['Technician', 'Branch', 'Jobs closed', 'Open jobs', 'Overdue jobs', 'Revenue ('.currency().')'], $d['techRows']->map(fn ($t) => [
                 $t['user']->name, $t['location'], $t['closed'], $t['open'], $t['overdue'], $kes($t['revenueMinor']),
             ])->all()],
             'reports' => self::mixCsv($d['reportMix'], 'Technician reports by status'),
@@ -583,7 +583,7 @@ class ServiceAdminReports
             'contracts' => ['Contracts, renewal risk', ['Contract', 'Customer', 'Visits left', 'Ends', 'Status'], $d['contractRows']->map(fn ($r) => [
                 $r['c']->reference, $r['c']->customer?->name, $r['left'], $r['c']->ends_at->format('Y-m-d'), $r['state'],
             ])->all()],
-            'history' => ['Job history', self::JOB_HEADERS, self::jobCsv($d['history'])],
+            'history' => ['Job history', self::jobHeaders(), self::jobCsv($d['history'])],
         ];
 
         return $only === null ? $all : array_intersect_key($all, array_flip(explode(',', $only)));

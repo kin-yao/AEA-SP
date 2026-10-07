@@ -28,7 +28,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
     public string $exportFrom = '';
     public string $exportTo = '';
 
-    protected const JOB_HEADERS = ['Job', 'Customer', 'Branch', 'Country', 'Technician', 'Nature of visit', 'Due date', 'Value (KES)', 'Status'];
+    protected function jobHeaders(): array { return ['Job', 'Customer', 'Branch', 'Country', 'Technician', 'Nature of visit', 'Due date', 'Value ('.currency().')', 'Status']; }
 
     public function mount(): void
     {
@@ -105,7 +105,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
 
         return response()->streamDownload(function () use ($rows) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, self::JOB_HEADERS);
+            fputcsv($out, $this->jobHeaders());
             foreach ($rows as $row) {
                 fputcsv($out, $row);
             }
@@ -218,8 +218,8 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
             'approved' => SupervisorReports::quotationsApproved($m0, $m1),
             'checked' => SupervisorReports::reportsChecked($m0, $m1),
             'compliance' => SupervisorReports::responseCompliance($m0, $m1),
-            'target' => SupervisorReports::TARGET_PERCENT,
-            'hours' => SupervisorReports::RESPONSE_TARGET_HOURS,
+            'target' => (int) setting('response_target_pct'),
+            'hours' => (int) setting('response_target_hours'),
             'chart' => SupervisorReports::complianceSvg($weekly['labels'], $weekly['values'], 900, 200),
             'utilization' => SupervisorReports::utilization(),
             'route' => SupervisorReports::approvalRoute($recentFrom, now()),

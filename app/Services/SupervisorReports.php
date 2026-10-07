@@ -55,7 +55,7 @@ class SupervisorReports
         $total = 0;
 
         foreach ($requests as $request) {
-            $due = $request->created_at->copy()->addHours(self::RESPONSE_TARGET_HOURS);
+            $due = $request->created_at->copy()->addHours((int) setting('response_target_hours'));
             $first = $request->workOrder?->created_at;
 
             if ($first !== null) {
@@ -158,14 +158,14 @@ class SupervisorReports
                 ['Reports checked', $d['checked']],
                 ['Response compliance %', $pct($d['compliance'])],
             ]],
-            ['Response target compliance, last 8 weeks (target '.self::TARGET_PERCENT.'%)', ['Week starting', 'Compliance %'],
+            ['Response target compliance, last 8 weeks (target '.(int) setting('response_target_pct').'%)', ['Week starting', 'Compliance %'],
                 collect($d['weekly']['labels'])->map(fn ($l, $i) => [$l, $pct($d['weekly']['values'][$i])])->all()],
             ['Technician utilization, last 30 days', ['Technician', 'Utilization %'],
                 $d['utilization']->map(fn ($u) => [$u['name'], $pct($u['utilization'])])->all()],
             ['Approval route', ['Route', 'Quotations'], array_map(fn ($s) => [$s['label'], $s['value']], $d['route'])],
-            ['Quotations', ['Reference', 'Customer', 'Amount (KES)', 'Approval route', 'Status'],
+            ['Quotations', ['Reference', 'Customer', 'Amount ('.currency().')', 'Approval route', 'Status'],
                 $d['quotations']->map(fn ($q) => [$q->reference, $q->customer->name, number_format($q->totalMinor() / 100, 2, '.', ''), $q->approval_threshold, $q->status])->all()],
-            ['Job history', ['Job', 'Customer', 'Branch', 'Country', 'Technician', 'Nature of visit', 'Due date', 'Value (KES)', 'Status'],
+            ['Job history', ['Job', 'Customer', 'Branch', 'Country', 'Technician', 'Nature of visit', 'Due date', 'Value ('.currency().')', 'Status'],
                 $d['history']->map(fn ($r) => [
                     $r['job']->reference, $r['job']->customer->name, $r['branch'], $r['country'], $r['technician'],
                     $r['job']->nature_of_visit, $r['job']->due_date->format('Y-m-d'),
@@ -192,7 +192,7 @@ class SupervisorReports
             $svg .= '<line x1="'.$padL.'" x2="'.($w - $padR).'" y1="'.$gy.'" y2="'.$gy.'" stroke="#e4e4e7" stroke-width="1"/>';
             $svg .= '<text x="'.($padL - 6).'" y="'.($gy + 3).'" text-anchor="end" font-size="10" font-family="Helvetica" fill="#71717a">'.$g.'%</text>';
         }
-        $ty = round($y(self::TARGET_PERCENT), 1);
+        $ty = round($y((int) setting('response_target_pct')), 1);
         $svg .= '<line x1="'.$padL.'" x2="'.($w - $padR).'" y1="'.$ty.'" y2="'.$ty.'" stroke="#a16207" stroke-width="1.2" stroke-dasharray="4 3"/>';
         foreach ($labels as $i => $label) {
             $svg .= '<text x="'.round($x($i), 1).'" y="'.($h - 8).'" text-anchor="middle" font-size="9" font-family="Helvetica" fill="#71717a">'.e($label).'</text>';

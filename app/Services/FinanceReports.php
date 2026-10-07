@@ -198,19 +198,19 @@ class FinanceReports
 
         $all = [
             'summary' => ['Summary', ['Measure', 'Value'], [
-                [$k['revenueLabel'].' (KES)', $m($k['revenueMinor'])],
-                ['Outstanding (KES)', $m($k['outstandingMinor'])],
-                ['Overdue (KES)', $m($k['overdueMinor'])],
-                ['VAT collected (KES)', $m($k['vatMinor'])],
+                [$k['revenueLabel'].' ('.currency().')', $m($k['revenueMinor'])],
+                ['Outstanding ('.currency().')', $m($k['outstandingMinor'])],
+                ['Overdue ('.currency().')', $m($k['overdueMinor'])],
+                ['VAT collected ('.currency().')', $m($k['vatMinor'])],
             ]],
-            'customers' => ['Revenue by customer', ['Customer', 'Invoices', 'Revenue (KES)'], $d['customerRows']->map(fn ($r) => [$r['name'], $r['count'], $m($r['minor'])])->all()],
-            'branches' => ['Revenue by branch', ['Branch', 'Revenue (KES)'], array_map(fn ($r) => [$r['label'], $m($r['value'])], $d['branchRows'])],
-            'technicians' => ['Revenue by technician', ['Technician', 'Invoices', 'Revenue (KES)'], $d['techRows']->map(fn ($r) => [$r['name'], $r['count'], $m($r['minor'])])->all()],
+            'customers' => ['Revenue by customer', ['Customer', 'Invoices', 'Revenue ('.currency().')'], $d['customerRows']->map(fn ($r) => [$r['name'], $r['count'], $m($r['minor'])])->all()],
+            'branches' => ['Revenue by branch', ['Branch', 'Revenue ('.currency().')'], array_map(fn ($r) => [$r['label'], $m($r['value'])], $d['branchRows'])],
+            'technicians' => ['Revenue by technician', ['Technician', 'Invoices', 'Revenue ('.currency().')'], $d['techRows']->map(fn ($r) => [$r['name'], $r['count'], $m($r['minor'])])->all()],
             'status' => ['Invoices by status', ['Status', 'Invoices'], array_map(fn ($r) => [$r['label'], $r['value']], $d['statusMix'])],
-            'owing' => ['Outstanding and overdue invoices', ['Invoice', 'Customer', 'Due', 'Amount (KES)', 'Paid (KES)', 'Balance (KES)', 'Status'], $d['owingRows']->map(fn ($i) => [
+            'owing' => ['Outstanding and overdue invoices', ['Invoice', 'Customer', 'Due', 'Amount ('.currency().')', 'Paid ('.currency().')', 'Balance ('.currency().')', 'Status'], $d['owingRows']->map(fn ($i) => [
                 $i->reference, $i->customer?->name, $i->due_at->format('Y-m-d'), $m($i->amount_minor), $m($i->paid_minor), $m($i->balanceMinor()), self::shownStatus($i),
             ])->all()],
-            'ageing' => ['Aging of money still to collect', ['Age', 'Invoices', 'Balance (KES)'], array_map(fn ($a) => [$a['label'], $a['count'], $m($a['value'])], $d['ageing'])],
+            'ageing' => ['Aging of money still to collect', ['Age', 'Invoices', 'Balance ('.currency().')'], array_map(fn ($a) => [$a['label'], $a['count'], $m($a['value'])], $d['ageing'])],
             'vat' => ['VAT summary', ['Period', 'Taxable revenue', 'VAT', 'Currency'], $d['vatRows']->map(fn ($r) => [$r['period'], $m($r['taxable']), $m($r['vat']), $r['currency']])->all()],
         ];
 

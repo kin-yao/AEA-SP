@@ -21,7 +21,7 @@ class IctReports
     /** Midnight in Nairobi, expressed in the database's own time zone, $daysAgo days back. */
     public static function dayStart(int $daysAgo = 0): Carbon
     {
-        return now(self::TZ)->subDays($daysAgo)->startOfDay()->setTimezone(config('app.timezone'));
+        return now(\App\Support\Settings::timezone())->subDays($daysAgo)->startOfDay()->setTimezone(config('app.timezone'));
     }
 
     public const ROLE_COLORS = [
@@ -59,9 +59,9 @@ class IctReports
         $rows = AuditLog::visibleTo($viewer)->where('event', $event)->where('created_at', '>=', $from)->get(['created_at']);
 
         $out = [];
-        $first = now(self::TZ)->subDays($days - 1)->startOfDay();
-        for ($d = $first->copy(); $d->lte(now(self::TZ)); $d->addDay()) {
-            $n = $rows->filter(fn ($r) => $r->created_at->copy()->setTimezone(self::TZ)->isSameDay($d))->count();
+        $first = now(\App\Support\Settings::timezone())->subDays($days - 1)->startOfDay();
+        for ($d = $first->copy(); $d->lte(now(\App\Support\Settings::timezone())); $d->addDay()) {
+            $n = $rows->filter(fn ($r) => $r->created_at->copy()->setTimezone(\App\Support\Settings::timezone())->isSameDay($d))->count();
             $out[] = ['label' => $d->format('D j'), 'value' => $n, 'valueLabel' => (string) $n, 'color' => $color];
         }
 

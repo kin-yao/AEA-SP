@@ -50,7 +50,7 @@
             <polyline points="{{ $pts }}" fill="none" stroke="{{ $s['color'] }}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
             @foreach ($s['values'] as $i => $v)
                 <circle cx="{{ round($x($i), 1) }}" cy="{{ round($y($v), 1) }}" r="3.5" fill="white" stroke="{{ $s['color'] }}" stroke-width="2">
-                    <title>{{ $s['name'] }}, {{ $labels[$i] ?? '' }}: KES {{ number_format($v) }}</title>
+                    <title>{{ $s['name'] }}, {{ $labels[$i] ?? '' }}: {{ currency() }} {{ number_format($v) }}</title>
                 </circle>
             @endforeach
         @endforeach

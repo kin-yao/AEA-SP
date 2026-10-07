@@ -16,18 +16,31 @@ new #[Layout('layouts.app', ['title' => 'New contract'])] class extends Componen
     public string $ends_at = '';
     public string $visits_included = '8';
     public string $value = '';
-    public string $currency_code = 'KES';
+    public string $currency_code = '';
     public $scan = null;
 
     public ?Contract $created = null;
 
+    /** Every country's currency, plus the default. */
+    public function currencyChoices(): array
+    {
+        return \App\Models\Currency::codes();
+    }
+
+    public function updatedCustomerId($value): void
+    {
+        $this->currency_code = Customer::find($value)?->currencyCode() ?? currency();
+    }
+
     public function mount(): void
     {
         $this->authorize('create', Contract::class);
+        $this->currency_code = currency();
 
         $customer = request('customer');
         if ($customer) {
             $this->customer_id = (string) $customer;
+            $this->currency_code = Customer::find($customer)?->currencyCode() ?? currency();
         }
     }
 
@@ -49,11 +62,11 @@ new #[Layout('layouts.app', ['title' => 'New contract'])] class extends Componen
             'ends_at' => ['required', 'date', 'after:starts_at'],
             'visits_included' => ['required', 'integer', 'min:0'],
             'value' => ['nullable', 'numeric', 'min:0'],
-            'currency_code' => ['required', 'in:KES,USD'],
+            'currency_code' => ['required', \Illuminate\Validation\Rule::in($this->currencyChoices())],
             'scan' => ['required', 'file', 'max:10240', 'mimes:pdf,jpg,jpeg,png'],
         ]);
 
-        $reference = 'CT-'.str_pad((string) (Contract::max('id') + 1), 4, '0', STR_PAD_LEFT);
+        $reference = \App\Models\ReferenceSeries::next('contract');
 
         $path = $this->scan->store('contracts', 'public');
 
@@ -100,7 +113,7 @@ new #[Layout('layouts.app', ['title' => 'New contract'])] class extends Componen
             <div class="card">
                 <div class="mb-3">
                     <label class="label">Customer</label>
-                    <select wire:model="customer_id" class="input">
+                    <select wire:model.live="customer_id" class="input">
                         <option value="">Select a customer</option>
                         @foreach ($customers as $customer)
                             <option value="{{ $customer->id }}">{{ $customer->name }}</option>
@@ -141,8 +154,9 @@ new #[Layout('layouts.app', ['title' => 'New contract'])] class extends Componen
                         <div>
                             <label class="label">Currency</label>
                             <select wire:model="currency_code" class="input">
-                                <option>KES</option>
-                                <option>USD</option>
+                                @foreach ($this->currencyChoices() as $code)
+                                    <option>{{ $code }}</option>
+                                @endforeach
                             </select>
                         </div>
                         <div>

@@ -127,7 +127,7 @@
                     </table>
                 </div>
             </td>
-            <td><div class="box" style="height: 165px"><h2>Value by status (KES)</h2><img src="{{ $img['value'] }}" style="width: 100%"></div></td>
+            <td><div class="box" style="height: 165px"><h2>Value by status ({{ currency() }})</h2><img src="{{ $img['value'] }}" style="width: 100%"></div></td>
         </tr>
     </table>
     <div class="keep">
@@ -162,8 +162,8 @@
     </table>
     <table class="two keep" style="margin-top: 12px">
         <tr>
-            <td><div class="box"><h2>Money still to collect, by age (KES)</h2><img src="{{ $img['ageing'] }}" style="width: 100%"></div></td>
-            <td><div class="box"><h2>Revenue by technician (KES)</h2><img src="{{ $img['revenue'] }}" style="width: 100%"></div></td>
+            <td><div class="box"><h2>Money still to collect, by age ({{ currency() }})</h2><img src="{{ $img['ageing'] }}" style="width: 100%"></div></td>
+            <td><div class="box"><h2>Revenue by technician ({{ currency() }})</h2><img src="{{ $img['revenue'] }}" style="width: 100%"></div></td>
         </tr>
     </table>
     <div class="keep">

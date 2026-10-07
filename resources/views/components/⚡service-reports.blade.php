@@ -469,7 +469,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
             </div>
             <div class="card" style="flex: 2 1 420px; min-width: 0">
                 <h3 class="mb-1 text-sm font-semibold text-neutral-900">Value by status</h3>
-                <p class="mb-4 text-xs text-neutral-400">KES, k is thousand and M is million</p>
+                <p class="mb-4 text-xs text-neutral-400">{{ currency() }}, k is thousand and M is million</p>
                 <x-column-chart :data="$valueRows" :height="190" />
             </div>
         </div>
@@ -527,12 +527,12 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
         <div class="mb-4 flex flex-wrap gap-4">
             <div class="card" style="flex: 1 1 380px; min-width: 0">
                 <h3 class="mb-1 text-sm font-semibold text-neutral-900">Money still to collect, by age</h3>
-                <p class="mb-4 text-xs text-neutral-400">Balance in KES, grouped by days past the due date</p>
+                <p class="mb-4 text-xs text-neutral-400">Balance in {{ currency() }}, grouped by days past the due date</p>
                 <x-column-chart :data="$ageing" :height="190" />
             </div>
             <div class="card" style="flex: 1 1 380px; min-width: 0">
                 <h3 class="mb-1 text-sm font-semibold text-neutral-900">Revenue by technician</h3>
-                <p class="mb-4 text-xs text-neutral-400">KES, invoices issued in the chosen dates</p>
+                <p class="mb-4 text-xs text-neutral-400">{{ currency() }}, invoices issued in the chosen dates</p>
                 <x-column-chart :data="$revenueRows" :height="190" />
             </div>
         </div>
@@ -576,7 +576,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
             <div class="card">
                 <p class="text-xs font-medium text-neutral-500">Technician documents flagged</p>
                 <p @class(['mt-2 font-mono text-2xl font-bold', 'text-critical-700' => $techDocs->count() > 0, 'text-neutral-900' => $techDocs->count() === 0])>{{ $techDocs->count() }}</p>
-                <p class="mt-0.5 text-xs text-neutral-400">expired or due within {{ \App\Services\ServiceAdminReports::DOC_WARN_DAYS }} days</p>
+                <p class="mt-0.5 text-xs text-neutral-400">expired or due within {{ setting('document_warn_days') }} days</p>
             </div>
         </div>
         <div class="mb-4 flex flex-wrap gap-4">
@@ -674,7 +674,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
                 <p class="mt-2 font-mono text-2xl font-bold text-neutral-900">{{ $contractRows->count() }}</p>
             </div>
             <div class="card">
-                <p class="text-xs font-medium text-neutral-500">Ending within {{ \App\Services\ServiceAdminReports::DOC_WARN_DAYS }} days</p>
+                <p class="text-xs font-medium text-neutral-500">Ending within {{ setting('contract_warn_days') }} days</p>
                 <p @class(['mt-2 font-mono text-2xl font-bold', 'text-amber-700' => $expiring > 0, 'text-neutral-900' => $expiring === 0])>{{ $expiring }}</p>
                 <p class="mt-0.5 text-xs text-neutral-400">includes any already past their end date</p>
             </div>

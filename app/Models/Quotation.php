@@ -37,11 +37,19 @@ class Quotation extends Model
         'vat_rate' => 'decimal:3',
     ];
 
+    public function __construct(array $attributes = [])
+    {
+        $this->attributes = array_merge($this->attributes, [
+            'validity_days' => setting('quotation_validity_days'),
+            'vat_rate' => setting('vat_rate') / 100,
+            'currency_code' => currency(),
+        ]);
+
+        parent::__construct($attributes);
+    }
+
     protected $attributes = [
-        'validity_days' => 30,
         'labour_minor' => 0,
-        'vat_rate' => 0.160,
-        'currency_code' => 'KES',
         'lpo_status' => 'Not yet received',
         'approval_threshold' => 'Supervisor',
         'status' => 'Awaiting Supervisor',
@@ -104,7 +112,8 @@ class Quotation extends Model
 
     public function routeApproval(): void
     {
-        $manager = $this->totalMinor() >= self::APPROVAL_THRESHOLD_MINOR;
+        $limitMinor = $this->customer ? (int) round($this->customer->approvalLimit() * 100) : \App\Support\Settings::approvalThresholdMinor();
+        $manager = $this->totalMinor() >= $limitMinor;
 
         $this->approval_threshold = $manager ? 'Manager' : 'Supervisor';
         $this->status = $manager ? 'Awaiting Manager' : 'Awaiting Supervisor';

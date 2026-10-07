@@ -16,10 +16,18 @@ class Contract extends Model
 
     protected $casts = ['starts_at' => 'date', 'ends_at' => 'date'];
 
+    public function __construct(array $attributes = [])
+    {
+        $this->attributes = array_merge($this->attributes, [
+            'currency_code' => currency(),
+        ]);
+
+        parent::__construct($attributes);
+    }
+
     protected $attributes = [
         'visits_included' => 0,
         'visits_used' => 0,
-        'currency_code' => 'KES',
         'status' => 'Active',
     ];
 
@@ -81,8 +89,8 @@ class Contract extends Model
 
         return match (true) {
             $pct >= 100 => 'critical',
-            $pct >= 75 => 'urgent',
-            $pct >= 50 => 'warn',
+            $pct >= (int) setting('stage_urgent_pct') => 'urgent',
+            $pct >= (int) setting('stage_warn_pct') => 'warn',
             default => 'fresh',
         };
     }

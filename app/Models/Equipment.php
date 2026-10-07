@@ -54,6 +54,6 @@ class Equipment extends Model
             return 'Overdue';
         }
 
-        return $due->lte(today()->addDays(30)) ? 'Due soon' : 'Active';
+        return $due->lte(today()->addDays((int) setting('visit_due_days'))) ? 'Due soon' : 'Active';
     }
 }

@@ -68,7 +68,7 @@ new #[Layout('layouts.app', ['title' => 'New contract'])] class extends Componen
 
         $reference = \App\Models\ReferenceSeries::next('contract');
 
-        $path = $this->scan->store('contracts', 'public');
+        $path = \App\Support\Files::put($this->scan, 'contracts');
 
         $contract = Contract::create([
             'reference' => $reference,

@@ -65,4 +65,38 @@ class PartsDeductionTest extends TestCase
         $this->assertSame(1, $item->fresh()->quantity);
         $this->assertSame('Awaiting review', $job->fresh()->status);
     }
+
+    public function test_a_technician_cannot_overwrite_someone_elses_report_by_changing_the_document_id(): void
+    {
+        $job = WorkOrder::whereNotNull('assigned_technician_id')->whereNotNull('customer_id')->firstOrFail();
+        $job->update(['status' => 'On site', 'contract_id' => null]);
+        $this->actingAs(User::findOrFail($job->assigned_technician_id));
+
+        $other = \App\Models\Document::create([
+            'reference' => 'RP-X'.uniqid(), 'type' => 'rep', 'customer_id' => $job->customer_id, 'status' => 'Released',
+            'work_order_id' => WorkOrder::where('id', '!=', $job->id)->value('id'), 'filed_by' => User::role('Supervisor')->value('id'),
+        ]);
+
+        try {
+            $this->submitWith($job, [])->set('documentId', $other->id)->call('saveDraft');
+        } catch (\Throwable $e) {
+            // refusing outright is fine too
+        }
+
+        $this->assertSame('Released', $other->fresh()->status);
+    }
+
+    public function test_stock_search_is_small_and_pickable(): void
+    {
+        $job = WorkOrder::whereNotNull('assigned_technician_id')->whereNotNull('customer_id')->firstOrFail();
+        $job->update(['status' => 'On site', 'contract_id' => null]);
+        $this->actingAs(User::findOrFail($job->assigned_technician_id));
+        $item = InventoryItem::firstOrFail();
+
+        $c = Livewire::test('jobs.report', ['job' => $job]);
+        $this->assertLessThanOrEqual(8, $c->instance()->stockMatches(substr($item->name, 0, 2))->count());
+        $this->assertCount(0, $c->instance()->stockMatches('a'));
+        $c->call('pickStock', 0, $item->id)->assertSet('parts.0.inventoryItemId', (string) $item->id)->assertSet('parts.0.item', $item->name);
+        $c->call('clearStock', 0)->assertSet('parts.0.inventoryItemId', '');
+    }
 }

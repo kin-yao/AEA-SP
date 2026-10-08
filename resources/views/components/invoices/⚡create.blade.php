@@ -11,6 +11,7 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
     public array $items = [];
     public string $vatRate = '';
     public string $dueAt = '';
+    #[\Livewire\Attributes\Locked]
     public ?int $lpoDocumentId = null;   // set when the prices come from the customer's LPO
     public string $lpoReference = '';
 

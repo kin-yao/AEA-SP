@@ -53,7 +53,7 @@ new #[Layout('layouts.app', ['title' => 'User account'])] class extends Componen
             'documentFile' => ['nullable', 'file', 'max:10240', 'mimes:pdf,jpg,jpeg,png'],
         ]);
 
-        $path = $this->documentFile?->store('technician-documents', 'public');
+        $path = ($this->documentFile ? \App\Support\Files::put($this->documentFile, 'technician-documents') : null);
 
         TechnicianDocument::create([
             'technician_id' => $this->account->id,
@@ -79,7 +79,7 @@ new #[Layout('layouts.app', ['title' => 'User account'])] class extends Componen
 
         if ($document) {
             if ($document->file_path) {
-                Storage::disk('public')->delete($document->file_path);
+                \App\Support\Files::delete($document->file_path);
             }
             $document->delete();
             $this->account->load('technicianDocuments');
@@ -239,7 +239,7 @@ new #[Layout('layouts.app', ['title' => 'User account'])] class extends Componen
                             :expiresAt="$doc->expiresAt()->format('d M Y')" />
                         <div class="flex shrink-0 items-center gap-3">
                             @if ($doc->file_path)
-                                <a href="{{ Storage::url($doc->file_path) }}" target="_blank" class="text-xs font-semibold text-primary-600 hover:text-primary-700">View</a>
+                                <a href="{{ \App\Support\Files::url($doc->file_path) }}" target="_blank" class="text-xs font-semibold text-primary-600 hover:text-primary-700">View</a>
                             @endif
                             @can('manage', $account)
                                 <button type="button" wire:click="deleteDocument({{ $doc->id }})" wire:confirm="Remove this document?" class="text-xs font-semibold text-critical-700 hover:text-critical-800">

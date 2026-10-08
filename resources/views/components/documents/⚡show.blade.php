@@ -335,7 +335,7 @@ new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
         @if ($rd->delivery_note_path)
             <div class="card mb-4">
                 <h2 class="mb-2 text-sm font-semibold text-neutral-900">Delivery note</h2>
-                <a href="{{ Storage::url($rd->delivery_note_path) }}" target="_blank" class="text-xs font-medium text-info-700 hover:text-info-800">View delivery note</a>
+                <a href="{{ \App\Support\Files::url($rd->delivery_note_path) }}" target="_blank" class="text-xs font-medium text-info-700 hover:text-info-800">View delivery note</a>
             </div>
         @endif
 
@@ -364,7 +364,7 @@ new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
                 <h2 class="mb-2 text-sm font-semibold text-critical-900">Incident: {{ $rd->incident_type }}</h2>
                 <p class="text-sm text-critical-800">{{ $rd->incident_description }}</p>
                 @if ($rd->incident_photo_path)
-                    <a href="{{ Storage::url($rd->incident_photo_path) }}" target="_blank" class="mt-3 inline-block text-xs font-medium text-info-700 hover:text-info-800">View photo</a>
+                    <a href="{{ \App\Support\Files::url($rd->incident_photo_path) }}" target="_blank" class="mt-3 inline-block text-xs font-medium text-info-700 hover:text-info-800">View photo</a>
                 @endif
             </div>
         @endif
@@ -418,7 +418,7 @@ new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
                 </div>
             </dl>
             @if ($document->certificateDetail->file_path)
-                <a href="{{ Storage::url($document->certificateDetail->file_path) }}" target="_blank" class="mt-4 inline-block text-xs font-medium text-info-700 hover:text-info-800">
+                <a href="{{ \App\Support\Files::url($document->certificateDetail->file_path) }}" target="_blank" class="mt-4 inline-block text-xs font-medium text-info-700 hover:text-info-800">
                     View certificate file
                 </a>
             @endif
@@ -453,7 +453,7 @@ new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
                 </div>
             </dl>
             @if ($lpo->file_path)
-                <a href="{{ Storage::url($lpo->file_path) }}" target="_blank" class="mt-4 inline-block text-xs font-medium text-info-700 hover:text-info-800">
+                <a href="{{ \App\Support\Files::url($lpo->file_path) }}" target="_blank" class="mt-4 inline-block text-xs font-medium text-info-700 hover:text-info-800">
                     View LPO file
                 </a>
             @endif
@@ -598,7 +598,7 @@ new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
                 <p class="text-sm font-medium text-neutral-900">Attached file</p>
                 <p class="text-xs text-neutral-500">{{ $document->title ?: ($document->file_name ?: 'Scanned copy') }}</p>
             </div>
-            <a href="{{ Storage::url($document->file_path) }}" target="_blank" rel="noopener" class="btn-primary">Open file</a>
+            <a href="{{ \App\Support\Files::url($document->file_path) }}" target="_blank" rel="noopener" class="btn-primary">Open file</a>
         </div>
     @endif
 

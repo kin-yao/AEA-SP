@@ -88,7 +88,7 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
             'lpoFile' => ['nullable', 'file', 'max:10240', 'mimes:pdf,jpg,jpeg,png'],
         ]);
 
-        $filePath = $this->lpoFile?->store('lpo-documents', 'public');
+        $filePath = ($this->lpoFile ? \App\Support\Files::put($this->lpoFile, 'lpo-documents') : null);
 
         $lpoNumber = trim($this->lpoReference) !== '' ? trim($this->lpoReference) : \App\Models\ReferenceSeries::next('lpo');
 
@@ -278,7 +278,7 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
                 <a href="/documents/{{ $lpoD->document_id }}" wire:navigate class="mt-2 inline-block text-xs font-medium text-info-700 hover:text-info-800">See or edit the agreed prices</a>
             @endif
             @if ($quotation->lpoDetail->file_path)
-                <a href="{{ Storage::url($quotation->lpoDetail->file_path) }}" target="_blank" class="mt-2 inline-block text-xs font-medium text-info-700 hover:text-info-800">
+                <a href="{{ \App\Support\Files::url($quotation->lpoDetail->file_path) }}" target="_blank" class="mt-2 inline-block text-xs font-medium text-info-700 hover:text-info-800">
                     View uploaded document
                 </a>
             @else

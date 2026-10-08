@@ -140,7 +140,7 @@ new #[Layout('layouts.app', ['title' => 'Contract'])] class extends Component
     <div class="card mt-4">
         <p class="mb-2 text-sm font-medium text-neutral-700">Signed contract</p>
         @if ($contract->scan_file_path)
-            <a href="{{ Storage::url($contract->scan_file_path) }}" target="_blank" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary-700 hover:underline">
+            <a href="{{ \App\Support\Files::url($contract->scan_file_path) }}" target="_blank" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary-700 hover:underline">
                 <x-icon name="file-earmark-pdf" class="h-4 w-4" />
                 View document
             </a>

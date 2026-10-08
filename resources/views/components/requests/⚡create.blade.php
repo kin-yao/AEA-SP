@@ -219,7 +219,7 @@ new #[Layout('layouts.app', ['title' => 'Log a request'])] class extends Compone
 
         $validated = $this->validate([
             'customer_id' => ['required', 'exists:customers,id'],
-            'customer_site_id' => ['nullable', 'exists:customer_sites,id'],
+            'customer_site_id' => ['nullable', \Illuminate\Validation\Rule::exists('customer_sites', 'id')->where('customer_id', $this->customer_id)],
             'equipment_id' => $isNewMachine ? [] : ['nullable', \Illuminate\Validation\Rule::exists('equipment', 'id')->where('customer_id', $this->customer_id)],
             'newEquipModel' => $isNewMachine ? ['required', 'string', 'min:2', 'max:100'] : [],
             'newEquipSerial' => $isNewMachine ? ['required', 'string', 'min:2', 'max:100', 'regex:/^[A-Za-z0-9][A-Za-z0-9 .\/_-]*$/', \Illuminate\Validation\Rule::unique('equipment', 'serial_number')] : [],

@@ -21,7 +21,7 @@
     </div>
     <div class="flex items-center gap-3">
         @if ($doc->file_path)
-            <a href="{{ Storage::url($doc->file_path) }}" target="_blank" rel="noopener" class="text-xs font-medium text-primary-700 hover:underline">Open file</a>
+            <a href="{{ \App\Support\Files::url($doc->file_path) }}" target="_blank" rel="noopener" class="text-xs font-medium text-primary-700 hover:underline">Open file</a>
         @else
             <span class="text-xs text-neutral-400">No file yet</span>
         @endif

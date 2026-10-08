@@ -145,7 +145,7 @@ new class extends Component
             $number = $this->autoReference($kind === Document::TYPE_SCAN ? 'SR' : 'DOC');
         }
 
-        $path = $this->file->store('job-documents', 'public');
+        $path = \App\Support\Files::put($this->file, 'job-documents');
         $name = mb_substr($this->file->getClientOriginalName(), 0, 255);
 
         $document = $reuse ? $existing : Document::create([
@@ -197,7 +197,7 @@ new class extends Component
             403
         );
 
-        Storage::disk('public')->delete($doc->file_path);
+        \App\Support\Files::delete($doc->file_path);
         Audit::record('deleted', 'Removed '.$this->labels()[$doc->type][1].' '.$doc->reference.' from job '.$this->job->reference, $doc);
         $doc->delete();
     }
@@ -306,7 +306,7 @@ new class extends Component
                 @if ($kind === \App\Models\Document::TYPE_DELIVERY_NOTE && $reportNote)
                     <div class="flex items-center justify-between gap-2 py-1.5">
                         <p class="text-sm text-neutral-900">Delivery note from the service report</p>
-                        <a href="{{ Storage::url($reportNote) }}" target="_blank" rel="noopener" class="text-xs font-medium text-primary-700 hover:underline">Open file</a>
+                        <a href="{{ \App\Support\Files::url($reportNote) }}" target="_blank" rel="noopener" class="text-xs font-medium text-primary-700 hover:underline">Open file</a>
                     </div>
                 @endif
 

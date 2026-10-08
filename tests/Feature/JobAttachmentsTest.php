@@ -26,7 +26,7 @@ class JobAttachmentsTest extends TestCase
 
     public function test_the_job_technician_can_attach_all_three_and_the_customer_sees_them(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $job = $this->job();
         $tech = User::findOrFail($job->assigned_technician_id);
         $this->actingAs($tech);
@@ -57,7 +57,7 @@ class JobAttachmentsTest extends TestCase
 
     public function test_bad_input_is_refused_with_a_clear_message(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $job = $this->job();
         $this->actingAs(User::findOrFail($job->assigned_technician_id));
         $c = Livewire::test('jobs.attachments', ['job' => $job]);
@@ -93,7 +93,7 @@ class JobAttachmentsTest extends TestCase
 
     public function test_duplicate_numbers_are_refused(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $job = $this->job();
         $this->actingAs(User::findOrFail($job->assigned_technician_id));
         $existing = Document::where('type', Document::TYPE_REPORT)->firstOrFail();
@@ -103,7 +103,7 @@ class JobAttachmentsTest extends TestCase
 
     public function test_uploader_can_remove_their_file(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $job = $this->job();
         $tech = User::findOrFail($job->assigned_technician_id);
         $this->actingAs($tech);
@@ -218,5 +218,39 @@ class JobAttachmentsTest extends TestCase
 
         $this->assertSame('Quoted', $req->fresh()->status);
         $this->assertNotNull($req->fresh()->quotation);
+    }
+
+    public function test_uploaded_files_are_private_and_open_only_to_people_who_may_see_the_job(): void
+    {
+        Storage::fake('local');
+        $job = $this->job();
+        $this->actingAs(User::findOrFail($job->assigned_technician_id));
+        $n = 'P'.uniqid();
+
+        Livewire::test('jobs.attachments', ['job' => $job])->call('openForm', Document::TYPE_DELIVERY_NOTE)
+            ->set('number', $n)->set('file', $this->pdf())->call('save')->assertHasNoErrors();
+        $doc = Document::where('reference', $n)->firstOrFail();
+        Storage::disk('local')->assertExists($doc->file_path);
+        Storage::disk('public')->assertMissing($doc->file_path);
+
+        $url = \App\Support\Files::url($doc->file_path);
+
+        auth()->logout();
+        $this->get($url)->assertRedirect(); // not signed in
+
+        $this->actingAs(User::findOrFail($job->assigned_technician_id))->get($url)->assertOk();
+
+        $owner = User::where('customer_id', $job->customer_id)->first();
+        if ($owner) {
+            $this->actingAs($owner)->get($url)->assertOk();
+        }
+
+        $stranger = User::whereNotNull('customer_id')->where('customer_id', '!=', $job->customer_id)->first();
+        if ($stranger) {
+            $this->actingAs($stranger)->get($url)->assertNotFound();
+        }
+
+        $this->actingAs(User::role('Service Admin')->firstOrFail())->get('/files/..%2F.env')->assertNotFound();
+        $this->actingAs(User::role('Service Admin')->firstOrFail())->get('/files/not/a/known/file.pdf')->assertNotFound();
     }
 }

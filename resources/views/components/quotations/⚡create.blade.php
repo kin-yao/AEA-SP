@@ -14,6 +14,7 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
     public string $labour = '';
     public string $validityDays = '';
     public array $items = [];
+    #[\Livewire\Attributes\Locked]
     public ?int $requestId = null;
     public string $currency = '';
 
@@ -118,6 +119,7 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
 
         $this->validate([
             'customerId' => ['required', 'exists:customers,id'],
+            'siteId' => ['nullable', \Illuminate\Validation\Rule::exists('customer_sites', 'id')->where('customer_id', $this->customerId)],
             'currency' => ['required', \Illuminate\Validation\Rule::in(\App\Models\Currency::codes())],
             'scope' => ['required', 'string', 'min:5', 'max:5000'],
             'labour' => \App\Support\Rules::money(false),
@@ -141,6 +143,11 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
             $this->addError('items', 'The quotation total is too large. Keep it under '.number_format(\App\Support\Rules::MAX_TOTAL_MINOR / 100, 2).' or split it into more than one quotation.');
 
             return;
+        }
+
+        // The link to a service request only holds while the quotation is for that request's customer.
+        if ($this->requestId && ! \App\Models\ServiceRequest::whereKey($this->requestId)->where('customer_id', $this->customerId)->doesntHave('quotation')->exists()) {
+            $this->requestId = null;
         }
 
         $quotation = Quotation::create([

@@ -155,4 +155,18 @@ class LpoAndRequestTest extends TestCase
         // now locked
         $this->assertFalse($admin->can('editLpo', $doc->fresh()));
     }
+
+    public function test_a_site_from_another_customer_is_refused(): void
+    {
+        $this->actingAs($this->admin());
+        $site = CustomerSite::firstOrFail();
+        $otherCustomer = Customer::where('id', '!=', $site->customer_id)->firstOrFail();
+
+        Livewire::test('quotations.create')->set('customerId', (string) $otherCustomer->id)->set('siteId', (string) $site->id)
+            ->set('scope', 'Wrong site scope')->set('items.0.description', 'Part')->set('items.0.rate', '10')
+            ->call('submit')->assertHasErrors(['siteId']);
+
+        Livewire::test('requests.create')->set('customer_id', (string) $otherCustomer->id)->set('customer_site_id', (string) $site->id)
+            ->set('fault_description', 'Display shows error on start')->call('submit')->assertHasErrors(['customer_site_id']);
+    }
 }

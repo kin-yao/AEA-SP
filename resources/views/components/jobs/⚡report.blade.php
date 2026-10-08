@@ -15,6 +15,7 @@ new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Compon
 
     public WorkOrder $job;
 
+    #[\Livewire\Attributes\Locked]
     public ?int $documentId = null;
     public string $reportNumber = '';
     public string $statusNote = 'Not yet submitted';
@@ -133,6 +134,7 @@ new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Compon
 
             if ($d->parts->isNotEmpty()) {
                 $this->parts = $d->parts->map(fn ($p) => [
+                    'stockSearch' => '',
                     'inventoryItemId' => (string) $p->inventory_item_id,
                     'item' => $p->item,
                     'partNumber' => (string) $p->part_number,
@@ -144,27 +146,52 @@ new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Compon
         }
     }
 
-    // Choosing a stock item fills in the name, code and source so nothing is typed twice.
-    public function updatedParts($value, $key): void
+    /** A few stock items matching what the technician typed, from their own branch first. */
+    public function stockMatches(string $term): \Illuminate\Support\Collection
     {
-        [$index, $field] = array_pad(explode('.', (string) $key, 2), 2, null);
+        $term = trim($term);
 
-        if ($field !== 'inventoryItemId' || ! isset($this->parts[$index])) {
+        if (mb_strlen($term) < 2) {
+            return collect();
+        }
+
+        $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $term).'%';
+        $branch = auth()->user()->branch_id;
+
+        return \App\Models\InventoryItem::query()
+            ->where(fn ($q) => $q->where('name', 'like', $like)->orWhere('code', 'like', $like))
+            ->when($branch, fn ($q) => $q->orderByRaw('branch_id = ? desc', [$branch]))
+            ->orderBy('name')
+            ->limit(8)
+            ->get(['id', 'name', 'code', 'quantity', 'branch_id']);
+    }
+
+    public function pickStock(int $index, int $itemId): void
+    {
+        $item = \App\Models\InventoryItem::with('branch')->find($itemId);
+
+        if (! $item || ! isset($this->parts[$index])) {
             return;
         }
 
-        $item = $value !== '' ? \App\Models\InventoryItem::with('branch')->find($value) : null;
+        $this->parts[$index]['inventoryItemId'] = (string) $item->id;
+        $this->parts[$index]['item'] = $item->name;
+        $this->parts[$index]['partNumber'] = (string) $item->code;
+        $this->parts[$index]['source'] = (string) ($item->branch?->name ?? 'Store');
+        $this->parts[$index]['stockSearch'] = '';
+    }
 
-        if ($item) {
-            $this->parts[$index]['item'] = $item->name;
-            $this->parts[$index]['partNumber'] = (string) $item->code;
-            $this->parts[$index]['source'] = (string) ($item->branch?->name ?? 'Store');
+    public function clearStock(int $index): void
+    {
+        if (isset($this->parts[$index])) {
+            $this->parts[$index]['inventoryItemId'] = '';
+            $this->parts[$index]['stockSearch'] = '';
         }
     }
 
     protected function blankPart(): array
     {
-        return ['inventoryItemId' => '', 'item' => '', 'partNumber' => '', 'quantity' => 1, 'source' => '', 'returned' => 0];
+        return ['stockSearch' => '', 'inventoryItemId' => '', 'item' => '', 'partNumber' => '', 'quantity' => 1, 'source' => '', 'returned' => 0];
     }
 
     public function addPart(): void
@@ -240,17 +267,21 @@ new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Compon
 
         return DB::transaction(function () use ($status, $existingVoucher) {
             if ($this->deliveryNote) {
-                $this->deliveryNotePath = $this->deliveryNote->store('service-reports', 'public');
+                $this->deliveryNotePath = \App\Support\Files::put($this->deliveryNote, 'service-reports');
                 $this->deliveryNote = null;
             }
 
             if ($this->incidentPhoto) {
-                $this->incidentPhotoPath = $this->incidentPhoto->store('service-reports', 'public');
+                $this->incidentPhotoPath = \App\Support\Files::put($this->incidentPhoto, 'service-reports');
                 $this->incidentPhoto = null;
             }
 
             if ($this->documentId) {
-                $document = Document::findOrFail($this->documentId);
+                // Only this technician's own report for this job, never another record picked by id.
+                $document = Document::where('type', Document::TYPE_REPORT)
+                    ->where('work_order_id', $this->job->id)
+                    ->where('filed_by', auth()->id())
+                    ->findOrFail($this->documentId);
                 $document->update(['status' => $status]);
             } else {
                 $reference = $this->reportNumber;
@@ -438,7 +469,6 @@ new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Compon
     {
         return [
             'sources' => setting('part_sources'),
-            'stockItems' => \App\Models\InventoryItem::with('branch')->orderBy('name')->get(),
         ];
     }
 };
@@ -638,20 +668,24 @@ new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Compon
                             @endif
                         </div>
                         <div class="space-y-3">
-                            @if ($stockItems->isNotEmpty())
-                                <div>
-                                    <label class="label">Take from stock</label>
-                                    <select wire:model.live="parts.{{ $index }}.inventoryItemId" class="input">
-                                        <option value="">Not from stock, I will type it</option>
-                                        @foreach ($stockItems as $si)
-                                            <option value="{{ $si->id }}">{{ $si->name }} ({{ $si->code }}), {{ $si->branch?->name }}, {{ $si->quantity }} in stock</option>
-                                        @endforeach
-                                    </select>
-                                    @if (($part['inventoryItemId'] ?? '') !== '')
-                                        <p class="mt-1 text-xs text-neutral-500">This comes off the stock count when you submit the report.</p>
-                                    @endif
-                                </div>
-                            @endif
+                            <div>
+                                <label class="label">Take from stock</label>
+                                @if (($part['inventoryItemId'] ?? '') !== '')
+                                    <p class="text-sm text-neutral-900">
+                                        {{ $part['item'] }} ({{ $part['partNumber'] }})
+                                        <button type="button" wire:click="clearStock({{ $index }})" class="ml-2 text-xs font-medium text-primary-600">Change</button>
+                                    </p>
+                                    <p class="mt-1 text-xs text-neutral-500">This comes off the stock count when you submit the report.</p>
+                                @else
+                                    <input type="text" wire:model.live.debounce.300ms="parts.{{ $index }}.stockSearch" placeholder="Type a name or code to find it in stock" autocomplete="off" class="input">
+                                    @foreach ($this->stockMatches($part['stockSearch'] ?? '') as $match)
+                                        <button type="button" wire:click="pickStock({{ $index }}, {{ $match->id }})" class="mt-1 block w-full rounded border border-neutral-200 px-3 py-2 text-left text-sm hover:bg-neutral-50">
+                                            {{ $match->name }} ({{ $match->code }}) <span class="text-neutral-500">{{ $match->quantity }} in stock</span>
+                                        </button>
+                                    @endforeach
+                                    <p class="mt-1 text-xs text-neutral-400">Leave this empty if the part is not in stock, and type it below instead.</p>
+                                @endif
+                            </div>
                             <div>
                                 <label class="label">Item</label>
                                 <input type="text" wire:model="parts.{{ $index }}.item" class="input">

@@ -338,7 +338,7 @@ new #[Layout('layouts.app', ['title' => 'LPOs'])] class extends Component
                             <div>
                                 <p class="text-xs text-neutral-500">Uploaded document</p>
                                 @if ($file)
-                                    <a href="{{ Storage::url($file) }}" target="_blank" class="text-sm font-semibold text-neutral-900 underline">{{ basename($file) }}</a>
+                                    <a href="{{ \App\Support\Files::url($file) }}" target="_blank" class="text-sm font-semibold text-neutral-900 underline">{{ basename($file) }}</a>
                                 @else
                                     <p class="text-sm text-neutral-400">Not attached yet</p>
                                 @endif

@@ -163,6 +163,11 @@ Route::livewire('/users/{account}', 'users.show')
     ->middleware(['auth', 'password.current'])
     ->name('users.show');
 
+Route::get('/files/{path}', [\App\Http\Controllers\FileController::class, 'show'])
+    ->where('path', '.*')
+    ->middleware(['auth', 'password.current'])
+    ->name('files.show');
+
 Route::post('/logout', function () {
     Auth::logout();
     request()->session()->invalidate();

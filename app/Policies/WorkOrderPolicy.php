@@ -63,4 +63,18 @@ class WorkOrderPolicy
     {
         return false;
     }
+
+    // Who may attach a scanned certificate, maintenance voucher or delivery
+    // note to a job. Certificates and other documents: Service Admin, Supervisor and the
+    // job's technician. Signed hard copy, voucher and delivery note: Service Admin and the technician.
+    public function attach(User $user, WorkOrder $workOrder, string $kind): bool
+    {
+        $mine = $user->hasRole('Technician') && $workOrder->assigned_technician_id === $user->id;
+
+        return match ($kind) {
+            \App\Models\Document::TYPE_CERTIFICATE, \App\Models\Document::TYPE_OTHER => $mine || $user->hasAnyRole(['Service Admin', 'Supervisor']),
+            \App\Models\Document::TYPE_VOUCHER, \App\Models\Document::TYPE_DELIVERY_NOTE, \App\Models\Document::TYPE_SCAN => $mine || $user->hasRole('Service Admin'),
+            default => false,
+        };
+    }
 }

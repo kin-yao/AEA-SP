@@ -61,6 +61,19 @@ class DocumentPolicy
             && $document->status === 'Checked, ready to post';
     }
 
+    // The LPO is the binding agreement, so its prices can be corrected after a
+    // negotiation, by whoever manages the work, until an invoice has been raised.
+    public function editLpo(User $user, Document $document): bool
+    {
+        if ($document->type !== Document::TYPE_LPO || ! $user->hasAnyRole(['Service Admin', 'Supervisor', 'Manager'])) {
+            return false;
+        }
+
+        $job = $document->lpoDetail?->quotation?->workOrder;
+
+        return ! ($job && $job->invoices()->exists());
+    }
+
     public function delete(User $user, Document $document): bool
     {
         return false;

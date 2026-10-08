@@ -14,12 +14,25 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
     public string $labour = '';
     public string $validityDays = '';
     public array $items = [];
+    public ?int $requestId = null;
+    public string $currency = '';
 
     public function mount(): void
     {
         $this->authorize('create', Quotation::class);
         $this->validityDays = (string) setting('quotation_validity_days');
         $this->items = [['description' => '', 'quantity' => 1, 'rate' => '']];
+
+        // Coming from a service request: carry its details over so nothing is typed twice.
+        $rid = (int) request()->query('request');
+        $source = $rid ? \App\Models\ServiceRequest::with('quotation')->find($rid) : null;
+        if ($source && auth()->user()->can('view', $source) && ! $source->quotation) {
+            $this->requestId = $source->id;
+            $this->customerId = (string) $source->customer_id;
+            $this->siteId = (string) ($source->customer_site_id ?? '');
+            $this->scope = $source->fault_description;
+            $this->currency = $source->customer?->currencyCode() ?? '';
+        }
     }
 
     protected function customerRecord(): ?Customer
@@ -29,7 +42,19 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
 
     public function getCurrencyCodeProperty(): string
     {
-        return $this->customerRecord()?->currencyCode() ?? currency();
+        return $this->currency !== '' ? $this->currency : ($this->customerRecord()?->currencyCode() ?? currency());
+    }
+
+    // Picking a customer proposes their usual currency. It can still be changed.
+    public function updatedCustomerId(): void
+    {
+        $this->currency = $this->customerRecord()?->currencyCode() ?? '';
+        $this->siteId = '';
+    }
+
+    public function getCurrenciesProperty(): array
+    {
+        return \App\Models\Currency::codes();
     }
 
     public function getVatFractionProperty(): float
@@ -87,8 +112,13 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
 
     public function submit(): void
     {
+        if ($this->currency === '') {
+            $this->currency = $this->currencyCode;
+        }
+
         $this->validate([
             'customerId' => ['required', 'exists:customers,id'],
+            'currency' => ['required', \Illuminate\Validation\Rule::in(\App\Models\Currency::codes())],
             'scope' => ['required', 'string', 'min:5', 'max:5000'],
             'labour' => \App\Support\Rules::money(false),
             'validityDays' => ['required', 'integer', 'min:1', 'max:365'],
@@ -117,6 +147,7 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
             'reference' => \App\Models\ReferenceSeries::next('quotation'),
             'customer_id' => $this->customerId,
             'customer_site_id' => $this->siteId ?: null,
+            'source_service_request_id' => $this->requestId,
             'scope' => $this->scope,
             'labour_minor' => (int) round(((float) ($this->labour ?: 0)) * 100),
             'validity_days' => $this->validityDays,
@@ -135,6 +166,10 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
                 'quantity' => (int) ($item['quantity'] ?: 1),
                 'rate_minor' => (int) round(((float) ($item['rate'] ?: 0)) * 100),
             ]);
+        }
+
+        if ($this->requestId) {
+            \App\Models\ServiceRequest::whereKey($this->requestId)->where('status', 'Open')->update(['status' => 'Quoted']);
         }
 
         $quotation->load(['items', 'customer']);
@@ -164,7 +199,12 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
         Back to quotations
     </a>
 
-    <h1 class="mb-6 text-xl font-semibold text-neutral-900">New quotation</h1>
+    <h1 class="mb-2 text-xl font-semibold text-neutral-900">New quotation</h1>
+    @if ($requestId)
+        <p class="mb-6 text-sm text-neutral-500">Pre-filled from the service request. Check the details, add the prices and submit.</p>
+    @else
+        <div class="mb-4"></div>
+    @endif
 
     <form wire:submit="submit" class="space-y-4">
         <div class="card">
@@ -188,6 +228,17 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
                         @endforeach
                     </select>
                 </div>
+            </div>
+            <div class="mb-3">
+                <label class="label">Currency</label>
+                <select wire:model.live="currency" class="input">
+                    <option value="">{{ $this->customerId ? 'Customer default ('.$this->currencyCode.')' : 'Pick a customer first, or choose here' }}</option>
+                    @foreach ($this->currencies as $code)
+                        <option value="{{ $code }}">{{ $code }}</option>
+                    @endforeach
+                </select>
+                <p class="mt-1 text-xs text-neutral-400">Prices, totals, the PDF and the invoice all use this currency.</p>
+                @error('currency') <p class="field-error">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="label">Scope of work</label>

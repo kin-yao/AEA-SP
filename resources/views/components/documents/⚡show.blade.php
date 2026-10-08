@@ -3,11 +3,20 @@
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 use App\Models\Document;
+use App\Services\Audit;
 use App\Services\WorkflowNotifier;
+use App\Support\Rules;
 
 new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
 {
     public Document $document;
+
+    // Editing the LPO's prices
+    public bool $editingLpo = false;
+    public array $lpoItems = [];
+    public string $lpoLabour = '';
+    public string $lpoVat = '';
+    public string $lpoNote = '';
 
     public array $typeLabels = [
         Document::TYPE_REPORT => 'Service report',
@@ -15,12 +24,19 @@ new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
         Document::TYPE_LPO => 'LPO',
         Document::TYPE_VOUCHER => 'Maintenance voucher',
         Document::TYPE_DELIVERY_NOTE => 'Delivery note',
+        Document::TYPE_SCAN => 'Signed service report (hard copy)',
+        Document::TYPE_OTHER => 'Other document',
     ];
 
     public function mount(Document $document): void
     {
         $this->authorize('view', $document);
+        $document->lpoDetail?->ensureLines();
         $this->document = $document->load([
+            'lpoDetail.items',
+            'lpoDetail.editor',
+            'lpoDetail.quotation.items',
+            'lpoDetail.quotation.workOrder',
             'reportDetail.parts',
             'certificateDetail.equipment',
             'lpoDetail.quotation',
@@ -31,6 +47,103 @@ new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
             'workOrder',
             'filedBy',
         ]);
+    }
+
+    public function startEditLpo(): void
+    {
+        $this->authorize('editLpo', $this->document);
+        $lpo = $this->document->lpoDetail;
+
+        $this->lpoItems = $lpo->items->map(fn ($i) => [
+            'description' => $i->description,
+            'quantity' => rtrim(rtrim(number_format($i->quantity, 2, '.', ''), '0'), '.'),
+            'rate' => number_format($i->rate_minor / 100, 2, '.', ''),
+        ])->all();
+        $this->lpoLabour = number_format($lpo->labour_minor / 100, 2, '.', '');
+        $this->lpoVat = rtrim(rtrim(number_format((float) $lpo->vat_rate * 100, 3, '.', ''), '0'), '.');
+        $this->lpoNote = '';
+        $this->editingLpo = true;
+        $this->resetValidation();
+    }
+
+    public function cancelEditLpo(): void
+    {
+        $this->editingLpo = false;
+        $this->resetValidation();
+    }
+
+    public function addLpoItem(): void
+    {
+        $this->lpoItems[] = ['description' => '', 'quantity' => '1', 'rate' => ''];
+    }
+
+    public function removeLpoItem(int $index): void
+    {
+        unset($this->lpoItems[$index]);
+        $this->lpoItems = array_values($this->lpoItems);
+    }
+
+    public function lpoDraftMinor(): array
+    {
+        $sub = (int) min(collect($this->lpoItems)->sum(fn ($i) => round((float) ($i['quantity'] ?: 0) * (int) round((float) ($i['rate'] ?: 0) * 100))) + (int) round((float) ($this->lpoLabour ?: 0) * 100), 9.0e15);
+        $vat = (int) round($sub * ((float) ($this->lpoVat ?: 0) / 100));
+
+        return [$sub, $vat, $sub + $vat];
+    }
+
+    public function saveLpo(): void
+    {
+        $this->authorize('editLpo', $this->document);
+
+        $this->validate([
+            'lpoItems' => ['required', 'array', 'min:1', 'max:100'],
+            'lpoItems.*.description' => ['required', 'string', 'min:2', 'max:500'],
+            'lpoItems.*.quantity' => ['required', 'numeric', 'min:0.01', 'max:1000000', 'decimal:0,2'],
+            'lpoItems.*.rate' => Rules::money(),
+            'lpoLabour' => Rules::money(false),
+            'lpoVat' => ['required', 'numeric', 'min:0', 'max:100'],
+            'lpoNote' => Rules::text(500, true, 3),
+        ], [
+            'lpoNote.required' => 'Say briefly why the prices changed, for example "price agreed by phone on 8 Oct".',
+        ], ['lpoNote' => 'reason']);
+
+        [, , $total] = $this->lpoDraftMinor();
+        if ($total > Rules::MAX_TOTAL_MINOR) {
+            $this->addError('lpoItems', 'The LPO total is too large. Keep it under '.number_format(Rules::MAX_TOTAL_MINOR / 100, 2).'.');
+
+            return;
+        }
+
+        $lpo = $this->document->lpoDetail;
+        $before = $lpo->totalMinor();
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($lpo, $total) {
+            $lpo->items()->delete();
+            foreach (array_values($this->lpoItems) as $i => $item) {
+                $lpo->items()->create([
+                    'description' => $item['description'],
+                    'quantity' => $item['quantity'],
+                    'rate_minor' => (int) round((float) $item['rate'] * 100),
+                    'sort_order' => $i,
+                ]);
+            }
+            $lpo->update([
+                'labour_minor' => (int) round((float) ($this->lpoLabour ?: 0) * 100),
+                'vat_rate' => ((float) $this->lpoVat) / 100,
+                'change_note' => trim($this->lpoNote),
+                'edited_by' => auth()->id(),
+                'edited_at' => now(),
+            ]);
+
+            // The job's agreed value follows the LPO.
+            $lpo->quotation?->workOrder?->update(['value_minor' => $total]);
+        });
+
+        $cur = $lpo->currency_code;
+        Audit::record('updated', 'Changed LPO '.$this->document->reference.' prices: '.$cur.' '.number_format($before / 100, 2).' to '.$cur.' '.number_format($total / 100, 2), $this->document);
+
+        $this->editingLpo = false;
+        $this->document->refresh()->load(['lpoDetail.items', 'lpoDetail.editor', 'lpoDetail.quotation.items', 'lpoDetail.quotation.workOrder']);
     }
 
     public function approve(): void
@@ -70,7 +183,7 @@ new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
 
         if ($this->document->workOrder) {
             WorkflowNotifier::role(
-                'Service Admin',
+                'Finance',
                 'Job ready to invoice',
                 [
                     "The report for job {$this->document->workOrder->reference} has been released; it can now be invoiced.",
@@ -311,21 +424,136 @@ new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
             @endif
         </div>
     @elseif ($document->lpoDetail)
+        @php
+            $lpo = $document->lpoDetail;
+            $cur = $lpo->currency_code;
+            $qt = $lpo->quotation;
+            $diff = $qt ? $lpo->totalMinor() - $qt->totalMinor() : 0;
+            $invoiced = (bool) ($qt?->workOrder?->invoices()->exists());
+        @endphp
         <div class="card mb-4">
             <dl class="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                    <dt class="text-neutral-500">Quotation</dt>
-                    <dd class="text-neutral-900">{{ $document->lpoDetail->quotation->reference ?? '—' }}</dd>
+                    <dt class="text-neutral-500">Original quotation</dt>
+                    <dd class="text-neutral-900">
+                        @if ($qt)
+                            @can('view', $qt)
+                                <a href="/quotations/{{ $qt->id }}" wire:navigate class="font-medium text-info-700 hover:text-info-800">{{ $qt->reference }}</a>
+                            @else
+                                {{ $qt->reference }}
+                            @endcan
+                        @else
+                            —
+                        @endif
+                    </dd>
                 </div>
                 <div>
                     <dt class="text-neutral-500">Received via</dt>
-                    <dd class="text-neutral-900">{{ $document->lpoDetail->received_via }}</dd>
+                    <dd class="text-neutral-900">{{ $lpo->received_via }}</dd>
                 </div>
             </dl>
-            @if ($document->lpoDetail->file_path)
-                <a href="{{ Storage::url($document->lpoDetail->file_path) }}" target="_blank" class="mt-4 inline-block text-xs font-medium text-info-700 hover:text-info-800">
+            @if ($lpo->file_path)
+                <a href="{{ Storage::url($lpo->file_path) }}" target="_blank" class="mt-4 inline-block text-xs font-medium text-info-700 hover:text-info-800">
                     View LPO file
                 </a>
+            @endif
+        </div>
+
+        <div class="card mb-4">
+            <div class="mb-1 flex flex-wrap items-center justify-between gap-2">
+                <h2 class="text-sm font-semibold text-neutral-900">Agreed prices</h2>
+                @can('editLpo', $document)
+                    @if (! $editingLpo)
+                        <button type="button" wire:click="startEditLpo" class="btn-outline" style="padding: 0.35rem 0.75rem; min-height: 0">Edit prices</button>
+                    @endif
+                @endcan
+            </div>
+            <p class="mb-3 text-xs text-neutral-500">This is what the customer agreed to pay. Invoices are raised from these prices.</p>
+
+            @if (! $editingLpo)
+                <div class="text-sm">
+                    @foreach ($lpo->items as $item)
+                        <div class="flex justify-between gap-3 border-b border-neutral-100 py-1.5">
+                            <span class="text-neutral-900">{{ $item->description }} <span class="text-neutral-400">x {{ rtrim(rtrim(number_format($item->quantity, 2), '0'), '.') }}</span></span>
+                            <span class="shrink-0 text-neutral-900">{{ number_format($item->amountMinor() / 100, 2) }}</span>
+                        </div>
+                    @endforeach
+                    @if ($lpo->labour_minor > 0)
+                        <div class="flex justify-between gap-3 border-b border-neutral-100 py-1.5"><span class="text-neutral-900">Labour</span><span>{{ number_format($lpo->labour_minor / 100, 2) }}</span></div>
+                    @endif
+                    <div class="flex justify-between py-1.5"><span class="text-neutral-500">Subtotal</span><span>{{ number_format($lpo->subtotalMinor() / 100, 2) }}</span></div>
+                    <div class="flex justify-between py-1.5"><span class="text-neutral-500">VAT, {{ rtrim(rtrim(number_format((float) $lpo->vat_rate * 100, 3), '0'), '.') }}%</span><span>{{ number_format($lpo->vatMinor() / 100, 2) }}</span></div>
+                    <div class="flex justify-between border-t border-neutral-200 py-2 font-semibold"><span>Total</span><span>{{ $cur }} {{ number_format($lpo->totalMinor() / 100, 2) }}</span></div>
+                </div>
+
+                @if ($qt)
+                    <p class="mt-1 text-xs {{ $diff === 0 ? 'text-neutral-400' : 'text-amber-700' }}">
+                        @if ($diff === 0)
+                            Same as the quotation ({{ $cur }} {{ number_format($qt->totalMinor() / 100, 2) }}).
+                        @else
+                            Quotation was {{ $cur }} {{ number_format($qt->totalMinor() / 100, 2) }}. The LPO is {{ $diff > 0 ? 'higher' : 'lower' }} by {{ $cur }} {{ number_format(abs($diff) / 100, 2) }}.
+                        @endif
+                    </p>
+                @endif
+
+                @if ($lpo->edited_at)
+                    <p class="mt-2 text-xs text-neutral-500">Prices changed {{ $lpo->edited_at->format('d M Y, H:i') }}@if ($lpo->editor) by {{ $lpo->editor->name }}@endif: {{ $lpo->change_note }}</p>
+                @endif
+
+                @if ($invoiced)
+                    <p class="mt-2 text-xs text-neutral-400">An invoice has been raised from this LPO, so its prices are locked.</p>
+                @endif
+            @else
+                <div class="mb-3 space-y-2">
+                    @foreach ($lpoItems as $index => $item)
+                        <div class="flex gap-2" wire:key="lpo-line-{{ $index }}">
+                            <input wire:model.live.debounce.400ms="lpoItems.{{ $index }}.description" type="text" placeholder="Description" class="input flex-1">
+                            <input wire:model.live.debounce.400ms="lpoItems.{{ $index }}.quantity" type="text" inputmode="decimal" placeholder="Qty" class="input w-16">
+                            <input wire:model.live.debounce.400ms="lpoItems.{{ $index }}.rate" type="text" inputmode="decimal" placeholder="Rate" class="input w-24">
+                            @if (count($lpoItems) > 1)
+                                <button type="button" wire:click="removeLpoItem({{ $index }})" class="px-2 text-neutral-400 hover:text-critical-700">&times;</button>
+                            @endif
+                        </div>
+                        @foreach (['description', 'quantity', 'rate'] as $col)
+                            @error("lpoItems.$index.$col") <p class="field-error" style="margin:-0.25rem 0 0.5rem">{{ $message }}</p> @enderror
+                        @endforeach
+                    @endforeach
+                </div>
+                @error('lpoItems') <p class="field-error">{{ $message }}</p> @enderror
+                <button type="button" wire:click="addLpoItem" class="mb-4 text-xs font-medium text-info-700 hover:text-info-800">+ Add line</button>
+
+                <div class="mb-3 grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="label">Labour, {{ $cur }}</label>
+                        <input wire:model.live.debounce.400ms="lpoLabour" type="text" inputmode="decimal" class="input">
+                        @error('lpoLabour') <p class="field-error">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="label">VAT rate, %</label>
+                        <input wire:model.live.debounce.400ms="lpoVat" type="text" inputmode="decimal" class="input">
+                        @error('lpoVat') <p class="field-error">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+
+                @php [$dSub, $dVat, $dTot] = $this->lpoDraftMinor(); @endphp
+                <div class="mb-3 flex justify-end text-sm">
+                    <div class="w-56">
+                        <div class="flex justify-between py-1"><span class="text-neutral-500">Subtotal</span><span>{{ number_format($dSub / 100, 2) }}</span></div>
+                        <div class="flex justify-between py-1"><span class="text-neutral-500">VAT</span><span>{{ number_format($dVat / 100, 2) }}</span></div>
+                        <div class="flex justify-between border-t border-neutral-200 py-2 font-semibold"><span>Total</span><span>{{ $cur }} {{ number_format($dTot / 100, 2) }}</span></div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="label">Why did the prices change?</label>
+                    <input wire:model="lpoNote" type="text" maxlength="500" class="input" placeholder="e.g. Discount agreed with the customer by phone">
+                    @error('lpoNote') <p class="field-error">{{ $message }}</p> @enderror
+                </div>
+
+                <div class="flex gap-2">
+                    <button type="button" wire:click="saveLpo" wire:loading.attr="disabled" wire:target="saveLpo" class="btn-primary">Save prices</button>
+                    <button type="button" wire:click="cancelEditLpo" class="btn-outline">Cancel</button>
+                </div>
             @endif
         </div>
     @elseif ($document->voucherDetail)
@@ -361,6 +589,16 @@ new #[Layout('layouts.app', ['title' => 'Document'])] class extends Component
                     <dd class="text-neutral-900">{{ $document->deliveryNoteDetail->recipient_note }}</dd>
                 </div>
             </dl>
+        </div>
+    @endif
+
+    @if ($document->file_path && ! $document->reportDetail && ! $document->certificateDetail)
+        <div class="card mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div style="min-width: 0">
+                <p class="text-sm font-medium text-neutral-900">Attached file</p>
+                <p class="text-xs text-neutral-500">{{ $document->title ?: ($document->file_name ?: 'Scanned copy') }}</p>
+            </div>
+            <a href="{{ Storage::url($document->file_path) }}" target="_blank" rel="noopener" class="btn-primary">Open file</a>
         </div>
     @endif
 

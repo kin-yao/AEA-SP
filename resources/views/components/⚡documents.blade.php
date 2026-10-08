@@ -16,6 +16,8 @@ new #[Layout('layouts.app', ['title' => 'Documents'])] class extends Component
         Document::TYPE_LPO => 'LPO',
         Document::TYPE_VOUCHER => 'Maintenance voucher',
         Document::TYPE_DELIVERY_NOTE => 'Delivery note',
+        Document::TYPE_SCAN => 'Signed service report (hard copy)',
+        Document::TYPE_OTHER => 'Other document',
     ];
 
     public function mount(): void

@@ -693,7 +693,7 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
             </div>
             <div class="card" style="flex: 1 1 320px; min-width: 0">
                 <h3 class="mb-1 text-sm font-semibold text-neutral-900">Documents</h3>
-                @php $docLabels = ['rep' => 'Service report', 'cert' => 'Calibration certificate', 'mv' => 'Maintenance voucher', 'dn' => 'Delivery note']; @endphp
+                @php $docLabels = ['rep' => 'Service report', 'cert' => 'Calibration certificate', 'mv' => 'Maintenance voucher', 'dn' => 'Delivery note', 'scan' => 'Signed service report (hard copy)', 'oth' => 'Other document']; @endphp
                 <div class="divide-y divide-neutral-100">
                     @forelse ($s['recentDocuments'] as $d)
                         <x-dash.row :href="'/documents/'.$d->id" :title="$d->reference" :meta="$docLabels[$d->type] ?? ucfirst($d->type)" />

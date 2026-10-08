@@ -129,6 +129,10 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
         </div>
     </div>
 
+    @if ($invoice->workOrder)
+        <x-journey :job="$invoice->workOrder" />
+    @endif
+
     <button wire:click="downloadPdf" wire:loading.attr="disabled" wire:target="downloadPdf" class="btn-outline mb-4">
         <x-icon name="folder" class="h-3.5 w-3.5" />
         Download PDF
@@ -165,7 +169,11 @@ new #[Layout('layouts.app', ['title' => 'Invoice'])] class extends Component
                     @if ($invoice->workOrder->sourceQuotation->lpoDetail)
                         <div class="flex items-center justify-between">
                             <span class="flex items-center gap-1 text-neutral-500"><x-icon name="cart-check" class="h-3 w-3" /> LPO</span>
-                            <span class="font-semibold text-neutral-900">{{ $invoice->workOrder->sourceQuotation->lpo_reference }}</span>
+                            @if ($invoice->lpo_document_id && ! auth()->user()->hasRole('Customer'))
+                                <a href="/documents/{{ $invoice->lpo_document_id }}" wire:navigate class="font-semibold text-info-700 hover:text-info-800">{{ $invoice->workOrder->sourceQuotation->lpo_reference }}</a>
+                            @else
+                                <span class="font-semibold text-neutral-900">{{ $invoice->workOrder->sourceQuotation->lpo_reference }}</span>
+                            @endif
                         </div>
                     @endif
                 @endif

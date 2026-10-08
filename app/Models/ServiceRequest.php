@@ -60,6 +60,11 @@ class ServiceRequest extends Model
         return $this->belongsTo(User::class, 'logged_by_id');
     }
 
+    public function quotation(): HasOne
+    {
+        return $this->hasOne(Quotation::class, 'source_service_request_id')->latestOfMany();
+    }
+
     public function workOrder(): HasOne
     {
         return $this->hasOne(WorkOrder::class, 'source_service_request_id');

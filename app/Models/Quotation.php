@@ -110,6 +110,20 @@ class Quotation extends Model
         return $this->subtotalMinor() + $this->vatMinor();
     }
 
+    /** What the customer has actually agreed to pay: the LPO's total once it is on file, else this quotation's. */
+    public function bindingTotalMinor(): int
+    {
+        $lpo = $this->lpoDetail;
+        if ($lpo) {
+            $lpo->ensureLines();
+            $lpo->load('items');
+
+            return $lpo->totalMinor();
+        }
+
+        return $this->totalMinor();
+    }
+
     public function routeApproval(): void
     {
         $limitMinor = $this->customer ? (int) round($this->customer->approvalLimit() * 100) : \App\Support\Settings::approvalThresholdMinor();
@@ -145,11 +159,12 @@ class Quotation extends Model
             'filed_by' => $loggedById,
         ]);
 
-        $document->lpoDetail()->create([
+        $lpo = $document->lpoDetail()->create([
             'quotation_id' => $this->id,
             'received_via' => $receivedVia,
             'file_path' => $filePath,
         ]);
+        $lpo->ensureLines(); // the LPO starts as a copy of this quotation, and can then be edited
 
         $this->update([
             'lpo_status' => 'On file',
@@ -171,7 +186,7 @@ class Quotation extends Model
             'due_date' => $dueDate,
             'source_quotation_id' => $this->id,
             'value_type' => 'chargeable',
-            'value_minor' => $this->totalMinor(),
+            'value_minor' => $this->bindingTotalMinor(),
             'currency_code' => $this->currency_code,
         ]);
 
@@ -179,6 +194,13 @@ class Quotation extends Model
             'converted_work_order_id' => $workOrder->id,
             'status' => 'Converted',
         ]);
+
+        if ($this->source_service_request_id) {
+            ServiceRequest::whereKey($this->source_service_request_id)->update([
+                'assigned_technician_id' => $technicianId,
+                'status' => 'Converted',
+            ]);
+        }
 
         return $workOrder;
     }

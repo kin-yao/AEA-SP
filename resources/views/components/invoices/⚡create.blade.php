@@ -11,10 +11,15 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
     public array $items = [];
     public string $vatRate = '';
     public string $dueAt = '';
+    public ?int $lpoDocumentId = null;   // set when the prices come from the customer's LPO
+    public string $lpoReference = '';
 
     public function getCurrencyCodeProperty(): string
     {
-        return $this->job->sourceQuotation?->currency_code ?? $this->job->customer?->currencyCode() ?? currency();
+        return $this->job->sourceQuotation?->lpoDetail?->currency_code
+            ?? $this->job->sourceQuotation?->currency_code
+            ?? $this->job->customer?->currencyCode()
+            ?? currency();
     }
 
     public function mount(WorkOrder $job): void
@@ -31,7 +36,12 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
         $this->dueAt = now()->addDays((int) setting('invoice_due_days'))->toDateString();
         $this->vatRate = rtrim(rtrim(number_format((float) ($job->customer?->vatPercent() ?? setting('vat_rate')), 3, '.', ''), '0'), '.');
 
-        if ($job->sourceQuotation) {
+        $lpo = $job->sourceQuotation?->lpoDetail;
+
+        if ($lpo) {
+            // The LPO is the binding agreement, so the invoice is raised from its prices.
+            $this->fillFromLpo($lpo);
+        } elseif ($job->sourceQuotation) {
             $job->sourceQuotation->load('items');
 
             $this->items = $job->sourceQuotation->items->map(fn ($item) => [
@@ -48,14 +58,32 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
                 ];
             }
 
-            // Real default, the same rate the quotation was actually
-            // priced at, still fully editable, never assumed unchanging.
             $this->vatRate = number_format((float) $job->sourceQuotation->vat_rate * 100, 0, '.', '');
         }
 
         if (empty($this->items)) {
             $this->items = [['description' => '', 'quantity' => '1', 'rate' => '']];
         }
+    }
+
+    protected function fillFromLpo(\App\Models\LpoDetail $lpo): void
+    {
+        $lpo->ensureLines();
+        $lpo->load('items');
+
+        $this->items = $lpo->items->map(fn ($item) => [
+            'description' => $item->description,
+            'quantity' => rtrim(rtrim(number_format($item->quantity, 2, '.', ''), '0'), '.'),
+            'rate' => number_format($item->rate_minor / 100, 2, '.', ''),
+        ])->toArray();
+
+        if ($lpo->labour_minor > 0) {
+            $this->items[] = ['description' => 'Labour', 'quantity' => '1', 'rate' => number_format($lpo->labour_minor / 100, 2, '.', '')];
+        }
+
+        $this->vatRate = rtrim(rtrim(number_format((float) $lpo->vat_rate * 100, 3, '.', ''), '0'), '.');
+        $this->lpoDocumentId = $lpo->document_id;
+        $this->lpoReference = (string) $lpo->document?->reference;
     }
 
     public function addItem(): void
@@ -94,6 +122,14 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
 
     public function submit(): void
     {
+        // Lines that came from an LPO cannot be altered here, whatever the browser sends back.
+        // To change a price, change the LPO.
+        if ($this->lpoDocumentId) {
+            $lpo = $this->job->sourceQuotation?->lpoDetail;
+            abort_unless($lpo && $lpo->document_id === $this->lpoDocumentId, 403);
+            $this->fillFromLpo($lpo);
+        }
+
         $this->validate([
             'items' => ['required', 'array', 'min:1', 'max:100'],
             'items.*.description' => ['required', 'string', 'min:2', 'max:500'],
@@ -119,6 +155,7 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
             'vat_rate' => ((float) $this->vatRate) / 100,
             'currency_code' => $this->currencyCode,
             'raised_by' => auth()->id(),
+            'lpo_document_id' => $this->lpoDocumentId,
         ]);
 
         foreach ($this->items as $item) {
@@ -143,9 +180,14 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
     <h1 class="mb-1 text-xl font-semibold text-neutral-900">New invoice</h1>
     <p class="mb-6 text-sm text-neutral-500">{{ $job->reference }} &middot; {{ $job->customer->name }}</p>
 
-    @if ($job->sourceQuotation)
+    @if ($lpoDocumentId)
         <div class="card mb-4 text-xs text-info-800" style="background-color: var(--color-info-50); border-color: var(--color-info-200)">
-            Pre-filled from {{ $job->sourceQuotation->reference }}, the quotation the LPO approved. Adjust anything before saving.
+            Raised from the customer's LPO {{ $lpoReference }}, which is the agreed price. To change a price, edit the LPO first.
+            <a href="/documents/{{ $lpoDocumentId }}" wire:navigate class="font-semibold underline">Open the LPO</a>
+        </div>
+    @elseif ($job->sourceQuotation)
+        <div class="card mb-4 text-xs text-info-800" style="background-color: var(--color-info-50); border-color: var(--color-info-200)">
+            Pre-filled from {{ $job->sourceQuotation->reference }}. There is no LPO on file for it, so adjust anything before saving.
         </div>
     @endif
 
@@ -155,10 +197,10 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
         <div class="mb-3 space-y-2">
             @foreach ($items as $index => $item)
                 <div class="flex gap-2">
-                    <input wire:model="items.{{ $index }}.description" type="text" placeholder="Description" class="input flex-1">
-                    <input wire:model="items.{{ $index }}.quantity" type="text" inputmode="decimal" placeholder="Qty" class="input w-16">
-                    <input wire:model="items.{{ $index }}.rate" type="text" inputmode="decimal" placeholder="Rate" class="input w-24">
-                    @if (count($items) > 1)
+                    <input wire:model="items.{{ $index }}.description" type="text" placeholder="Description" class="input flex-1" @readonly($lpoDocumentId)>
+                    <input wire:model="items.{{ $index }}.quantity" type="text" inputmode="decimal" placeholder="Qty" class="input w-16" @readonly($lpoDocumentId)>
+                    <input wire:model="items.{{ $index }}.rate" type="text" inputmode="decimal" placeholder="Rate" class="input w-24" @readonly($lpoDocumentId)>
+                    @if (count($items) > 1 && ! $lpoDocumentId)
                         <button type="button" wire:click="removeItem({{ $index }})" class="px-2 text-neutral-400 hover:text-critical-700">
                             &times;
                         </button>
@@ -171,13 +213,15 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
         </div>
         @error('items') <p class="field-error">{{ $message }}</p> @enderror
 
-        <button type="button" wire:click="addItem" class="mb-4 text-xs font-medium text-info-700 hover:text-info-800">
-            + Add line
-        </button>
+        @unless ($lpoDocumentId)
+            <button type="button" wire:click="addItem" class="mb-4 text-xs font-medium text-info-700 hover:text-info-800">
+                + Add line
+            </button>
+        @endunless
 
         <div class="mb-4 flex items-center justify-end gap-2 border-t border-neutral-100 pt-4">
             <label class="text-sm text-neutral-600">VAT rate</label>
-            <input wire:model.live="vatRate" type="text" inputmode="decimal" class="input w-16 text-right">
+            <input wire:model.live="vatRate" type="text" inputmode="decimal" class="input w-16 text-right" @readonly($lpoDocumentId)>
             <span class="text-sm text-neutral-600">%</span>
         </div>
         @error('vatRate') <p class="field-error">{{ $message }}</p> @enderror

@@ -106,6 +106,27 @@ new #[Layout('layouts.app', ['title' => 'Job'])] class extends Component
         </div>
     </div>
 
+    <x-journey :job="$job" />
+
+    @if ($job->status === 'On site' && auth()->id() === $job->assigned_technician_id)
+        <a href="/jobs/{{ $job->id }}/report" wire:navigate class="btn-primary mb-4 w-full">
+            File service report
+        </a>
+    @elseif ($this->pendingReport)
+        <a href="/documents/{{ $this->pendingReport->id }}" wire:navigate class="btn-outline mb-4 w-full">
+            View report awaiting review
+        </a>
+    @elseif ($this->nextStatus)
+        <div class="card mb-4">
+            <p class="mb-3 text-sm text-neutral-600">
+                Next stage: <span class="font-medium text-neutral-900">{{ $this->nextStatus }}</span>
+            </p>
+            <button wire:click="advanceStatus" wire:loading.attr="disabled" wire:target="advanceStatus" class="btn-primary">
+                Move to {{ $this->nextStatus }}
+            </button>
+        </div>
+    @endif
+
     <div class="card mb-4">
         <dl class="grid grid-cols-2 gap-4 text-sm">
             <div>
@@ -157,22 +178,5 @@ new #[Layout('layouts.app', ['title' => 'Job'])] class extends Component
         </div>
     @endif
 
-    @if ($job->status === 'On site' && auth()->id() === $job->assigned_technician_id)
-        <a href="/jobs/{{ $job->id }}/report" wire:navigate class="btn-primary w-full">
-            File service report
-        </a>
-    @elseif ($this->pendingReport)
-        <a href="/documents/{{ $this->pendingReport->id }}" wire:navigate class="btn-outline w-full">
-            View report awaiting review
-        </a>
-    @elseif ($this->nextStatus)
-        <div class="card">
-            <p class="mb-3 text-sm text-neutral-600">
-                Next stage: <span class="font-medium text-neutral-900">{{ $this->nextStatus }}</span>
-            </p>
-            <button wire:click="advanceStatus" wire:loading.attr="disabled" wire:target="advanceStatus" class="btn-primary">
-                Move to {{ $this->nextStatus }}
-            </button>
-        </div>
-    @endif
+    <livewire:jobs.attachments :job="$job" :key="'att-'.$job->id" />
 </div>

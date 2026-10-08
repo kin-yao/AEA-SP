@@ -25,6 +25,7 @@ class Settings
             'finance' => ['Money and tax', 'Defaults. Each country can override them.'],
             'documents' => ['Documents and terms', 'Due dates, validity and pick lists.'],
             'numbering' => ['Reference numbers', 'Prefix and counter for each document number.'],
+            'certificates' => ['Certificate types', 'The three kinds of calibration certificate staff can attach to a job.'],
             'alerts' => ['Alerts and targets', 'When things count as due soon.'],
             'system' => ['Security and region', 'Password rule and time zone.'],
         ];
@@ -64,6 +65,11 @@ class Settings
                 'part_sources' => ['Where parts come from', 'list', "Vehicle stock\nNairobi store\nCustomer supplied\nOrdered", 'One per line.', null],
                 'stock_categories' => ['Stock categories', 'list', "Spare part\nEquipment\nTest equipment\nConsumable", 'One per line.', null],
             ],
+            'certificates' => [
+                'cert_type_1' => ['Certificate type 1', 'text', 'Certificate type 1', null, null],
+                'cert_type_2' => ['Certificate type 2', 'text', 'Certificate type 2', null, null],
+                'cert_type_3' => ['Certificate type 3', 'text', 'Certificate type 3', null, null],
+            ],
             'alerts' => [
                 'visit_due_days' => ['Machine visit due soon', 'number', 30, null, 'days'],
                 'certificate_warn_days' => ['Certificate expiring soon', 'number', 30, null, 'days'],
@@ -79,6 +85,20 @@ class Settings
                 'timezone' => ['Time zone', 'timezone', 'Africa/Nairobi', null, null],
             ],
         ];
+    }
+
+    /** The names ICT gave the three certificate types, in order. */
+    public static function certificateTypes(): array
+    {
+        $names = [];
+        foreach (['cert_type_1', 'cert_type_2', 'cert_type_3'] as $k) {
+            $v = trim((string) self::get($k));
+            if ($v !== '') {
+                $names[] = $v;
+            }
+        }
+
+        return array_values(array_unique($names));
     }
 
     public static function meta(string $key): ?array

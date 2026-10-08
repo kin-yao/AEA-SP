@@ -133,6 +133,7 @@ new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Compon
 
             if ($d->parts->isNotEmpty()) {
                 $this->parts = $d->parts->map(fn ($p) => [
+                    'inventoryItemId' => (string) $p->inventory_item_id,
                     'item' => $p->item,
                     'partNumber' => (string) $p->part_number,
                     'quantity' => $p->quantity,
@@ -143,9 +144,27 @@ new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Compon
         }
     }
 
+    // Choosing a stock item fills in the name, code and source so nothing is typed twice.
+    public function updatedParts($value, $key): void
+    {
+        [$index, $field] = array_pad(explode('.', (string) $key, 2), 2, null);
+
+        if ($field !== 'inventoryItemId' || ! isset($this->parts[$index])) {
+            return;
+        }
+
+        $item = $value !== '' ? \App\Models\InventoryItem::with('branch')->find($value) : null;
+
+        if ($item) {
+            $this->parts[$index]['item'] = $item->name;
+            $this->parts[$index]['partNumber'] = (string) $item->code;
+            $this->parts[$index]['source'] = (string) ($item->branch?->name ?? 'Store');
+        }
+    }
+
     protected function blankPart(): array
     {
-        return ['item' => '', 'partNumber' => '', 'quantity' => 1, 'source' => '', 'returned' => 0];
+        return ['inventoryItemId' => '', 'item' => '', 'partNumber' => '', 'quantity' => 1, 'source' => '', 'returned' => 0];
     }
 
     public function addPart(): void
@@ -207,6 +226,7 @@ new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Compon
             'incidentType' => ['required', 'in:None,Near miss,Damage,Safety issue'],
             'customerSignoffName' => ['nullable', 'string', 'max:255'],
             'voucherNumber' => ['nullable', 'string', 'max:100'],
+            'parts.*.inventoryItemId' => ['nullable', 'exists:inventory_items,id'],
             'parts.*.quantity' => ['nullable', 'integer', 'min:0'],
             'parts.*.returned' => ['nullable', 'integer', 'min:0'],
         ];
@@ -294,6 +314,7 @@ new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Compon
                 }
 
                 $detail->parts()->create([
+                    'inventory_item_id' => ($part['inventoryItemId'] ?? '') !== '' ? (int) $part['inventoryItemId'] : null,
                     'item' => $part['item'],
                     'part_number' => $part['partNumber'] ?: null,
                     'quantity' => (int) ($part['quantity'] ?: 1),
@@ -369,6 +390,20 @@ new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Compon
         // Only a real filed report moves the job to Awaiting review.
         $this->job->update(['status' => 'Awaiting review']);
 
+        // Parts taken from stock come off the shelf now, with no separate stock entry to make.
+        $problems = \App\Services\PartsIssue::forReport($this->job, $document->reportDetail, auth()->id());
+
+        if ($problems) {
+            WorkflowNotifier::role(
+                'Service Admin',
+                'Stock needs attention after a service report',
+                array_merge(["Job {$this->job->reference}: some parts could not be taken out of stock automatically."], $problems),
+                url("/jobs/{$this->job->id}"),
+                'Open job',
+            );
+            session()->flash('status', 'Report submitted. Some parts were not in stock, so the Service Admin has been told.');
+        }
+
         WorkflowNotifier::role(
             'Supervisor',
             'Service report submitted for review',
@@ -403,6 +438,7 @@ new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Compon
     {
         return [
             'sources' => setting('part_sources'),
+            'stockItems' => \App\Models\InventoryItem::with('branch')->orderBy('name')->get(),
         ];
     }
 };
@@ -602,6 +638,20 @@ new #[Layout('layouts.app', ['title' => 'Service report'])] class extends Compon
                             @endif
                         </div>
                         <div class="space-y-3">
+                            @if ($stockItems->isNotEmpty())
+                                <div>
+                                    <label class="label">Take from stock</label>
+                                    <select wire:model.live="parts.{{ $index }}.inventoryItemId" class="input">
+                                        <option value="">Not from stock, I will type it</option>
+                                        @foreach ($stockItems as $si)
+                                            <option value="{{ $si->id }}">{{ $si->name }} ({{ $si->code }}), {{ $si->branch?->name }}, {{ $si->quantity }} in stock</option>
+                                        @endforeach
+                                    </select>
+                                    @if (($part['inventoryItemId'] ?? '') !== '')
+                                        <p class="mt-1 text-xs text-neutral-500">This comes off the stock count when you submit the report.</p>
+                                    @endif
+                                </div>
+                            @endif
                             <div>
                                 <label class="label">Item</label>
                                 <input type="text" wire:model="parts.{{ $index }}.item" class="input">

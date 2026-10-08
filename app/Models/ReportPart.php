@@ -9,6 +9,7 @@ class ReportPart extends Model
 {
     protected $fillable = [
         'service_report_detail_id',
+        'inventory_item_id',
         'item',
         'part_number',
         'quantity',

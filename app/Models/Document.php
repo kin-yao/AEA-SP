@@ -14,6 +14,8 @@ class Document extends Model
     public const TYPE_LPO = 'lpo';
     public const TYPE_VOUCHER = 'mv';
     public const TYPE_DELIVERY_NOTE = 'dn';
+    public const TYPE_SCAN = 'scan';   // signed hard copy of the service report
+    public const TYPE_OTHER = 'oth';   // any other paperwork attached to a job
 
     protected $fillable = [
         'reference',
@@ -22,6 +24,9 @@ class Document extends Model
         'customer_id',
         'status',
         'filed_by',
+        'file_path',
+        'file_name',
+        'title',
     ];
 
     public function workOrder(): BelongsTo
@@ -72,9 +77,9 @@ class Document extends Model
         return match ($role) {
             'Manager', 'Supervisor', 'Service Admin' => [
                 self::TYPE_REPORT, self::TYPE_CERTIFICATE, self::TYPE_LPO,
-                self::TYPE_VOUCHER, self::TYPE_DELIVERY_NOTE,
+                self::TYPE_VOUCHER, self::TYPE_DELIVERY_NOTE, self::TYPE_SCAN, self::TYPE_OTHER,
             ],
-            'Technician' => [self::TYPE_REPORT, self::TYPE_VOUCHER, self::TYPE_DELIVERY_NOTE],
+            'Technician' => [self::TYPE_REPORT, self::TYPE_CERTIFICATE, self::TYPE_VOUCHER, self::TYPE_DELIVERY_NOTE, self::TYPE_SCAN, self::TYPE_OTHER],
             'Finance' => [self::TYPE_LPO],
             'Customer' => [self::TYPE_REPORT, self::TYPE_CERTIFICATE, self::TYPE_VOUCHER, self::TYPE_DELIVERY_NOTE],
             default => [],

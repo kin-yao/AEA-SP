@@ -23,6 +23,7 @@ class Invoice extends Model
         'documents_required_before_send',
         'documents_attached',
         'raised_by',
+        'lpo_document_id',
     ];
 
     protected $casts = [

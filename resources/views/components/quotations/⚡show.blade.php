@@ -173,6 +173,10 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
         </span>
     </div>
 
+    @if (! auth()->user()->hasRole('Customer'))
+        <x-flow :quotation="$quotation" here="quotation" />
+    @endif
+
     <button wire:click="downloadPdf" wire:loading.attr="disabled" wire:target="downloadPdf" class="btn-outline mb-4">
         <x-icon name="folder" class="h-3.5 w-3.5" />
         Download PDF
@@ -260,6 +264,19 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
             <p class="mb-1 flex items-center gap-1 text-xs text-neutral-500"><x-icon name="cart-check" class="h-3 w-3" /> LPO on file</p>
             <p class="text-sm font-semibold text-neutral-900">{{ $quotation->lpo_reference }}</p>
             <p class="text-xs text-neutral-500">Received via {{ $quotation->lpoDetail->received_via }}</p>
+            @php
+                $lpoD = $quotation->lpoDetail;
+                $lpoD->ensureLines();
+                $lpoD->load('items');
+                $lpoDiff = $lpoD->totalMinor() - $quotation->totalMinor();
+            @endphp
+            <p class="mt-2 text-sm text-neutral-900">Agreed total: <strong>{{ $lpoD->currency_code }} {{ number_format($lpoD->totalMinor() / 100, 2) }}</strong></p>
+            @if ($lpoDiff !== 0)
+                <p class="text-xs text-amber-700">{{ $lpoDiff > 0 ? 'Higher' : 'Lower' }} than this quotation by {{ $lpoD->currency_code }} {{ number_format(abs($lpoDiff) / 100, 2) }}.</p>
+            @endif
+            @if ($lpoD->document_id && ! auth()->user()->hasRole('Customer'))
+                <a href="/documents/{{ $lpoD->document_id }}" wire:navigate class="mt-2 inline-block text-xs font-medium text-info-700 hover:text-info-800">See or edit the agreed prices</a>
+            @endif
             @if ($quotation->lpoDetail->file_path)
                 <a href="{{ Storage::url($quotation->lpoDetail->file_path) }}" target="_blank" class="mt-2 inline-block text-xs font-medium text-info-700 hover:text-info-800">
                     View uploaded document

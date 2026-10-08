@@ -90,6 +90,7 @@ new #[Layout('layouts.app', ['title' => 'System settings'])] class extends Compo
             $key === 'company_email' => \App\Support\Rules::email(false),
             $key === 'company_phone' => \App\Support\Rules::phone(),
             $key === 'company_kra_pin' => \App\Support\Rules::kraPin(),
+            str_starts_with($key, 'cert_type_') => \App\Support\Rules::text(40, true, 2),
             $key === 'password_min' => ['required', 'integer', 'min:6', 'max:64'],
             in_array($key, ['invoice_due_days', 'quotation_validity_days'], true) => ['required', 'integer', 'min:1', 'max:3650'],
             in_array($key, ['stage_warn_pct', 'stage_urgent_pct', 'response_target_pct'], true) => ['required', 'integer', 'min:1', 'max:100'],
@@ -112,6 +113,15 @@ new #[Layout('layouts.app', ['title' => 'System settings'])] class extends Compo
         }
 
         $this->validate($rules, [], $names);
+
+        if ($this->tab === 'certificates') {
+            $given = array_map(fn ($k) => mb_strtolower(trim((string) $this->values[$k])), array_keys($defs));
+            if (count(array_unique($given)) < count($given)) {
+                $this->addError('values.cert_type_2', 'Give each certificate type a different name.');
+
+                return;
+            }
+        }
 
         if ($this->tab === 'alerts' && (int) $this->values['stage_urgent_pct'] <= (int) $this->values['stage_warn_pct']) {
             $this->addError('values.stage_urgent_pct', 'The second warning must come after the first.');

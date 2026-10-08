@@ -15,6 +15,7 @@ new #[Layout('layouts.app', ['title' => 'Request'])] class extends Component
     public string $natureOfVisit = 'Service';
     public string $dueDate = '';
     public ?string $generatedReference = null;
+    public bool $showDirect = false;
 
     public function mount(ServiceRequest $request): void
     {
@@ -92,6 +93,39 @@ new #[Layout('layouts.app', ['title' => 'Request'])] class extends Component
         $this->validate([
             'dueDate' => ['required', 'date', 'after_or_equal:today'],
         ]);
+
+        $this->makeJob();
+    }
+
+    // One click for the Service Admin: pick the technician and the date, and the job exists.
+    public function assignAndCreate(): void
+    {
+        $this->authorize('assign', $this->request);
+        $this->authorize('create', WorkOrder::class);
+
+        abort_if(in_array($this->request->status, ['Converted', 'Declined'], true), 403);
+
+        $this->validate([
+            'technicianId' => ['required', 'exists:users,id'],
+            'natureOfVisit' => ['required', \Illuminate\Validation\Rule::in(setting('nature_of_visit'))],
+            'dueDate' => ['required', 'date', 'after_or_equal:today'],
+        ], [
+            'technicianId.required' => 'Choose the technician who will do the visit.',
+        ]);
+
+        $this->request->assignTechnician(User::findOrFail($this->technicianId), $this->natureOfVisit);
+        $this->request->refresh();
+
+        $this->makeJob();
+    }
+
+    protected function makeJob(): void
+    {
+        if ($this->request->workOrder()->exists()) {
+            $this->addError('job', 'A job has already been created for this request.');
+
+            return;
+        }
 
         $reference = \App\Models\ReferenceSeries::next('work_order');
 
@@ -171,6 +205,8 @@ new #[Layout('layouts.app', ['title' => 'Request'])] class extends Component
         <span class="{{ $pill }}">{{ $request->status }}</span>
     </div>
 
+    <x-flow :request="$request" here="request" />
+
     @if ($generatedReference)
         <div class="card mb-4" style="background-color: var(--color-fresh-50); border-color: #bfe3c7">
             <p class="text-sm text-fresh-700">
@@ -215,58 +251,72 @@ new #[Layout('layouts.app', ['title' => 'Request'])] class extends Component
         @endif
     </div>
 
-    @can('assign', $request)
+    @php
+        $quote = $request->quotation;
+        $canQuote = auth()->user()->can('create', \App\Models\Quotation::class);
+        $open = ! in_array($request->status, ['Converted', 'Declined'], true) && ! $generatedReference;
+        $chargeableNoQuote = $request->cover === 'Chargeable' && ! $quote;
+    @endphp
+
+    @if ($open && $quote)
         <div class="card mb-4">
-            <h2 class="mb-3 text-sm font-semibold text-neutral-900">Assign a technician</h2>
-
-            <div class="mb-3">
-                <label class="label">Technician</label>
-                <select wire:model="technicianId" class="input">
-                    <option value="">Select a technician</option>
-                    @foreach ($this->technicians as $technician)
-                        <option value="{{ $technician->id }}">{{ $technician->name }}</option>
-                    @endforeach
-                </select>
-                @error('technicianId') <p class="field-error">{{ $message }}</p> @enderror
-            </div>
-
-            <div class="mb-4">
-                <label class="label">Nature of visit</label>
-                <select wire:model="natureOfVisit" class="input">
-                    @foreach (setting('nature_of_visit') as $nature)
-                        <option>{{ $nature }}</option>
-                    @endforeach
-                </select>
-                @error('natureOfVisit') <p class="field-error">{{ $message }}</p> @enderror
-            </div>
-
-            <div class="flex gap-2">
-                <button wire:click="assign" wire:loading.attr="disabled" wire:target="assign" class="btn-primary">
-                    Assign technician
-                </button>
-                <button wire:click="decline" wire:loading.attr="disabled" wire:target="decline" class="btn-outline">
-                    Decline
-                </button>
-            </div>
+            <h2 class="mb-1 text-sm font-semibold text-neutral-900">Quotation {{ $quote->reference }}</h2>
+            <p class="mb-3 text-sm text-neutral-600">Status: {{ $quote->status }}. The job is created from the quotation once the customer's LPO is filed.</p>
+            <a href="/quotations/{{ $quote->id }}" wire:navigate class="btn-primary">Open the quotation</a>
         </div>
-    @endcan
-
-    @can('create', \App\Models\WorkOrder::class)
-        @if ($request->status === 'Assigned' && ! $generatedReference)
-            <div class="card">
-                <h2 class="mb-3 text-sm font-semibold text-neutral-900">Generate the job</h2>
-                @error('job') <p class="field-error">{{ $message }}</p> @enderror
-
-                <div class="mb-4">
-                    <label class="label">Due date</label>
-                    <input type="date" wire:model="dueDate" class="input">
-                    @error('dueDate') <p class="field-error">{{ $message }}</p> @enderror
+    @elseif ($open)
+        @can('assign', $request)
+            @if ($chargeableNoQuote && ! $showDirect)
+                <div class="card mb-4">
+                    <h2 class="mb-1 text-sm font-semibold text-neutral-900">This work is chargeable</h2>
+                    <p class="mb-3 text-sm text-neutral-600">Prepare a quotation first. It is pre-filled from this request. The job is created after the customer's LPO is filed.</p>
+                    <div class="flex flex-wrap gap-2">
+                        @if ($canQuote)
+                            <a href="/quotations/create?request={{ $request->id }}" wire:navigate class="btn-primary">Prepare quotation</a>
+                        @endif
+                        <button type="button" wire:click="$set('showDirect', true)" class="btn-outline">Skip the quotation</button>
+                        <button wire:click="decline" wire:loading.attr="disabled" wire:target="decline" class="btn-outline">Decline</button>
+                    </div>
                 </div>
+            @else
+                <div class="card mb-4">
+                    <h2 class="mb-3 text-sm font-semibold text-neutral-900">Create the job</h2>
+                    @error('job') <p class="field-error">{{ $message }}</p> @enderror
 
-                <button wire:click="generateJob" wire:loading.attr="disabled" wire:target="generateJob" class="btn-primary">
-                    Generate job
-                </button>
-            </div>
-        @endif
-    @endcan
+                    <div class="mb-3">
+                        <label class="label">Technician</label>
+                        <select wire:model="technicianId" class="input">
+                            <option value="">Select a technician</option>
+                            @foreach ($this->technicians as $technician)
+                                <option value="{{ $technician->id }}">{{ $technician->name }}</option>
+                            @endforeach
+                        </select>
+                        @error('technicianId') <p class="field-error">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div class="mb-3 grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="label">Nature of visit</label>
+                            <select wire:model="natureOfVisit" class="input">
+                                @foreach (setting('nature_of_visit') as $nature)
+                                    <option>{{ $nature }}</option>
+                                @endforeach
+                            </select>
+                            @error('natureOfVisit') <p class="field-error">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="label">Due date</label>
+                            <input type="date" wire:model="dueDate" class="input">
+                            @error('dueDate') <p class="field-error">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2">
+                        <button wire:click="assignAndCreate" wire:loading.attr="disabled" wire:target="assignAndCreate" class="btn-primary">Create job</button>
+                        <button wire:click="decline" wire:loading.attr="disabled" wire:target="decline" class="btn-outline">Decline</button>
+                    </div>
+                </div>
+            @endif
+        @endcan
+    @endif
 </div>

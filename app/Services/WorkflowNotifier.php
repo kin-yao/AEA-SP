@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Mail\WorkflowNotificationMail;
 use App\Models\Customer;
+use App\Models\InboxNotification;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -18,7 +19,16 @@ class WorkflowNotifier
 {
     public static function customer(?Customer $customer, string $subject, array $lines, ?string $ctaUrl = null, ?string $ctaLabel = null): void
     {
-        if (! $customer || ! $customer->main_contact_email) {
+        if (! $customer) {
+            return;
+        }
+
+        // People with a portal login for this customer see it in their bell too.
+        foreach (User::where('customer_id', $customer->id)->get() as $portalUser) {
+            self::inbox($portalUser, $subject, $lines, $ctaUrl, $ctaLabel);
+        }
+
+        if (! $customer->main_contact_email) {
             return;
         }
 
@@ -31,7 +41,11 @@ class WorkflowNotifier
             return;
         }
 
-        self::send($user->email, $user->name, $subject, $lines, $ctaUrl, $ctaLabel);
+        self::inbox($user, $subject, $lines, $ctaUrl, $ctaLabel);
+
+        if ($user->email_notifications) {
+            self::send($user->email, $user->name, $subject, $lines, $ctaUrl, $ctaLabel);
+        }
     }
 
     /**
@@ -41,7 +55,22 @@ class WorkflowNotifier
     public static function role(string $role, string $subject, array $lines, ?string $ctaUrl = null, ?string $ctaLabel = null): void
     {
         foreach (User::role($role)->get() as $user) {
-            self::send($user->email, $user->name, $subject, $lines, $ctaUrl, $ctaLabel);
+            self::user($user, $subject, $lines, $ctaUrl, $ctaLabel);
+        }
+    }
+
+    private static function inbox(User $user, string $subject, array $lines, ?string $ctaUrl, ?string $ctaLabel): void
+    {
+        try {
+            InboxNotification::create([
+                'user_id' => $user->id,
+                'title' => $subject,
+                'lines' => array_values($lines),
+                'url' => InboxNotification::safeUrl($ctaUrl),
+                'label' => $ctaLabel,
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Inbox notification failed', ['user' => $user->id, 'error' => $e->getMessage()]);
         }
     }
 

@@ -88,7 +88,7 @@ new #[Layout('layouts.app', ['title' => 'Finance watch'])] class extends Compone
             'quotations' => $quotations,
             'statuses' => $this->tab === 'invoices'
                 ? ['All', 'Overdue', 'Unpaid', 'Part paid', 'Draft', 'Paid']
-                : ['All', 'Awaiting', 'Approved', 'Sent back'],
+                : ['All', 'Awaiting', 'Approved', 'Rejected'],
         ];
     }
 };
@@ -206,12 +206,12 @@ new #[Layout('layouts.app', ['title' => 'Finance watch'])] class extends Compone
                 @php
                     $stripe = match (true) {
                         str_starts_with($q->status, 'Awaiting') => '#d9a21b',
-                        $q->status === 'Sent back' => '#d62828',
+                        $q->status === 'Rejected' => '#d62828',
                         default => '#15803d',
                     };
                     $pill = match (true) {
                         str_starts_with($q->status, 'Awaiting') => 'pill-amber',
-                        $q->status === 'Sent back' => 'pill-danger',
+                        $q->status === 'Rejected' => 'pill-danger',
                         default => 'pill-success',
                     };
                 @endphp

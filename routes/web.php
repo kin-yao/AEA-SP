@@ -22,6 +22,14 @@ Route::livewire('/dashboard', 'dashboard')
     ->middleware(['auth', 'password.current'])
     ->name('dashboard');
 
+Route::livewire('/profile', 'profile')
+    ->middleware(['auth', 'password.current'])
+    ->name('profile');
+
+Route::livewire('/notifications', 'notifications')
+    ->middleware(['auth', 'password.current'])
+    ->name('notifications');
+
 Route::livewire('/change-password', 'auth.change-password')
     ->middleware('auth')
     ->name('change-password');
@@ -162,6 +170,9 @@ Route::livewire('/users/create', 'users.create')
 Route::livewire('/users/{account}', 'users.show')
     ->middleware(['auth', 'password.current'])
     ->name('users.show');
+
+Route::get('/share/invoice/{invoice}', [\App\Http\Controllers\ShareController::class, 'invoice'])->middleware(['signed', 'throttle:30,1'])->name('share.invoice');
+Route::get('/share/receipt/{payment}', [\App\Http\Controllers\ShareController::class, 'receipt'])->middleware(['signed', 'throttle:30,1'])->name('share.receipt');
 
 Route::get('/files/{path}', [\App\Http\Controllers\FileController::class, 'show'])
     ->where('path', '.*')

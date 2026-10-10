@@ -34,48 +34,11 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
         return User::role('Technician')->orderBy('name')->get();
     }
 
-    public function approve(): void
+    #[\Livewire\Attributes\On('quotation-decided')]
+    public function refreshAfterDecision(): void
     {
-        $this->authorize('approve', $this->quotation);
-
-        $this->quotation->approve();
         $this->quotation->refresh();
-
-        WorkflowNotifier::customer(
-            $this->quotation->customer,
-            'Your quotation is ready',
-            [
-                "Quotation {$this->quotation->reference} has been approved and is ready for your review.",
-            ],
-        );
-
-        WorkflowNotifier::user(
-            $this->quotation->createdBy,
-            'Your quotation was approved',
-            [
-                "Quotation {$this->quotation->reference} for {$this->quotation->customer->name} has been approved.",
-            ],
-            url("/quotations/{$this->quotation->id}"),
-            'View quotation',
-        );
-    }
-
-    public function sendBack(): void
-    {
-        $this->authorize('sendBack', $this->quotation);
-
-        $this->quotation->sendBack();
-        $this->quotation->refresh();
-
-        WorkflowNotifier::user(
-            $this->quotation->createdBy,
-            'Quotation sent back for changes',
-            [
-                "Quotation {$this->quotation->reference} for {$this->quotation->customer->name} was sent back.",
-            ],
-            url("/quotations/{$this->quotation->id}"),
-            'View quotation',
-        );
+        $this->quotation->load(['customer', 'site', 'items', 'lpoDetail', 'workOrder', 'createdBy']);
     }
 
     public function logLpo(): void
@@ -167,7 +130,7 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
             'pill-neutral' => str_starts_with($quotation->status, 'Awaiting'),
             'pill-info' => in_array($quotation->status, ['Approved', 'Accepted']),
             'pill-success' => $quotation->status === 'Converted',
-            'pill-danger' => $quotation->status === 'Sent back',
+            'pill-danger' => $quotation->status === 'Rejected',
         ])>
             {{ $quotation->status }}
         </span>
@@ -248,16 +211,9 @@ new #[Layout('layouts.app', ['title' => 'Quotation'])] class extends Component
         </dl>
     </div>
 
-    @can('approve', $quotation)
-        <div class="mb-4 flex gap-2">
-            <button wire:click="approve" wire:loading.attr="disabled" wire:target="approve" class="btn-primary flex-1">
-                Approve
-            </button>
-            <button wire:click="sendBack" wire:loading.attr="disabled" wire:target="sendBack" class="btn-outline flex-1">
-                Send back
-            </button>
-        </div>
-    @endcan
+    @unless (auth()->user()->hasRole('Customer'))
+        <livewire:quotations.decision :quotation="$quotation" :key="'dec-'.$quotation->id" />
+    @endunless
 
     @if ($quotation->lpoDetail)
         <div class="card mb-4">

@@ -22,13 +22,36 @@ new #[Layout('layouts.app', ['title' => 'Invoices'])] class extends Component
         $this->limit = 40;
     }
 
+    /** One click: invoice a finished job from its agreed prices and send it. */
+    public function quickInvoice(int $jobId): void
+    {
+        $this->authorize('create', Invoice::class);
+        $job = WorkOrder::with('sourceQuotation.lpoDetail')->findOrFail($jobId);
+
+        if (! \App\Services\InvoiceBuilder::canRaiseDirectly($job)) {
+            $this->redirect('/invoices/create/'.$job->id, navigate: true);
+
+            return;
+        }
+
+        try {
+            $invoice = \App\Services\InvoiceBuilder::raise($job, auth()->id());
+        } catch (\DomainException $e) {
+            $this->addError('quick', $e->getMessage());
+
+            return;
+        }
+
+        $this->redirect('/invoices/'.$invoice->id, navigate: true);
+    }
+
     public function with(): array
     {
         $user = auth()->user();
 
         // Only Finance sees this list, so nobody else pays for the query.
         $readyToInvoice = $user->hasRole('Finance')
-            ? WorkOrder::with('customer')
+            ? WorkOrder::with(['customer', 'sourceQuotation.lpoDetail'])
                 ->whereHas('documents', fn ($q) => $q->where('type', 'rep')->where('status', 'Released'))
                 ->whereDoesntHave('invoices')
                 ->latest()
@@ -44,13 +67,22 @@ new #[Layout('layouts.app', ['title' => 'Invoices'])] class extends Component
 
         if ($this->statusFilter === 'Overdue') {
             $query->where('due_at', '<', now())->whereNotIn('status', ['Draft', 'Paid']);
+        } elseif ($this->statusFilter === 'Unpaid') {
+            $query->whereIn('status', ['Unpaid', 'Part paid']);
         } elseif ($this->statusFilter !== 'All') {
             $query->where('status', $this->statusFilter);
         }
 
         $total = (clone $query)->count();
 
+        $money = $user->hasRole('Customer') ? null : [
+            'owed' => (int) Invoice::whereIn('status', ['Unpaid', 'Part paid'])->selectRaw('COALESCE(SUM(amount_minor - paid_minor), 0) as d')->value('d'),
+            'overdue' => Invoice::where('due_at', '<', now())->whereIn('status', ['Unpaid', 'Part paid'])->count(),
+            'drafts' => Invoice::where('status', 'Draft')->count(),
+        ];
+
         return [
+            'money' => $money,
             'readyToInvoice' => $readyToInvoice,
             'total' => $total,
             'invoices' => $query->limit($this->limit)->get(),
@@ -65,26 +97,39 @@ new #[Layout('layouts.app', ['title' => 'Invoices'])] class extends Component
         <p class="text-sm text-neutral-500">{{ number_format($total) }} {{ $statusFilter === 'All' ? 'total' : 'matching' }}</p>
     </div>
 
+    @if ($money)
+        <div class="mb-5 grid gap-3" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+            <div class="card"><p class="text-xs text-neutral-500">Waiting to be invoiced</p><p class="mt-1 font-mono text-2xl font-bold text-neutral-900">{{ $readyToInvoice->count() }}</p></div>
+            <div class="card"><p class="text-xs text-neutral-500">Customers owe us</p><p class="mt-1 font-mono text-xl font-bold text-neutral-900">{{ currency() }} {{ number_format($money['owed'] / 100, 0) }}</p></div>
+            <div class="card"><p class="text-xs text-neutral-500">Overdue invoices</p><p @class(['mt-1 font-mono text-2xl font-bold', 'text-critical-700' => $money['overdue'] > 0, 'text-neutral-900' => $money['overdue'] === 0])>{{ $money['overdue'] }}</p></div>
+        </div>
+    @endif
+
+    @error('quick') <div class="card mb-4 text-sm text-critical-700">{{ $message }}</div> @enderror
+
     @if ($readyToInvoice->isNotEmpty())
         <div class="mb-6">
-            <h2 class="mb-3 text-sm font-semibold text-neutral-900">Ready to invoice</h2>
+            <h2 class="mb-1 text-sm font-semibold text-neutral-900">Completed jobs to invoice</h2>
+            <p class="mb-3 text-xs text-neutral-500">One click makes the invoice from the agreed prices and sends it to the customer. Jobs with no quotation open a short form.</p>
             <div class="space-y-3">
                 @foreach ($readyToInvoice as $job)
-                    <a href="/invoices/create/{{ $job->id }}" wire:navigate
-                       class="card flex items-center justify-between" style="background-color: var(--color-info-50); border-color: var(--color-info-200)">
+                    @php $direct = \App\Services\InvoiceBuilder::canRaiseDirectly($job); @endphp
+                    <div class="card flex flex-wrap items-center justify-between gap-3" style="background-color: var(--color-info-50); border-color: var(--color-info-200)" wire:key="ready-{{ $job->id }}">
                         <div>
                             <p class="text-sm font-semibold text-neutral-900">{{ $job->reference }}</p>
-                            <p class="text-sm text-neutral-600">{{ $job->customer->name }}</p>
+                            <p class="text-sm text-neutral-600">{{ $job->customer->name }}@if ($job->sourceQuotation) &middot; {{ $job->sourceQuotation->reference }}@endif</p>
                         </div>
-                        <span class="text-xs font-semibold text-info-700">Raise invoice &rarr;</span>
-                    </a>
+                        <button type="button" wire:click="quickInvoice({{ $job->id }})" wire:loading.attr="disabled" wire:target="quickInvoice({{ $job->id }})" class="btn-primary">
+                            {{ $direct ? 'Create invoice' : 'Fill in invoice' }}
+                        </button>
+                    </div>
                 @endforeach
             </div>
         </div>
     @endif
 
     <div class="mb-5 flex flex-wrap gap-1 border-b border-neutral-200">
-        @foreach (['All', 'Draft', 'Unpaid', 'Part paid', 'Paid', 'Overdue'] as $status)
+        @foreach (['All', 'Unpaid', 'Overdue', 'Paid', 'Draft'] as $status)
             <button
                 wire:click="setFilter('{{ $status }}')"
                 @class([

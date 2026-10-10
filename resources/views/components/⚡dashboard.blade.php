@@ -159,7 +159,7 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
             'overdueJobsList' => WorkOrder::with('customer')->where('due_date', '<', now())->whereNotIn('status', ['Closed'])->orderBy('due_date')->get(),
             'jobsReadyToClose' => WorkOrder::where('status', 'Approved')->count(),
             'approvalsThisWeek' => Quotation::where('updated_at', '>=', now()->startOfWeek())
-                ->whereIn('status', ['Approved', 'Sent back', 'Accepted', 'Converted'])
+                ->whereIn('status', ['Approved', 'Rejected', 'Accepted', 'Converted'])
                 ->count(),
             'contractsNeedingAttention' => $this->contractsNeedingAttention(),
         ];

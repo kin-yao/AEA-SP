@@ -60,4 +60,11 @@ class InvoicePolicy
     {
         return false;
     }
+
+    // Sending an invoice or receipt out, or making a share link. Finance does it, and so can the
+    // people who manage them. Never for a draft, and never the customer.
+    public function share(User $user, Invoice $invoice): bool
+    {
+        return $user->hasAnyRole(['Finance', 'Manager', 'Supervisor']);
+    }
 }

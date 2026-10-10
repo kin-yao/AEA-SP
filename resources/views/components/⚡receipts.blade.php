@@ -45,6 +45,15 @@ new #[Layout('layouts.app', ['title' => 'Receipts'])] class extends Component
         $this->open = $id;
     }
 
+    public function download(int $id)
+    {
+        abort_unless(auth()->user()->hasRole('Finance'), 403);
+        $payment = Payment::findOrFail($id);
+        $bytes = \App\Services\FinancePdf::receipt($payment);
+
+        return response()->streamDownload(fn () => print($bytes), $payment->reference.'.pdf');
+    }
+
     public function close(): void
     {
         $this->open = null;
@@ -177,6 +186,7 @@ new #[Layout('layouts.app', ['title' => 'Receipts'])] class extends Component
                             <td>{{ $p->recordedBy?->name ?? '-' }}</td>
                             <td class="whitespace-nowrap text-right font-mono text-xs font-semibold">{{ $kes($p->amount_minor) }}</td>
                             <td class="text-right">
+                                <button type="button" wire:click="download({{ $p->id }})" class="btn-primary" style="padding: 0.35rem 0.9rem">PDF</button>
                                 <button type="button" wire:click="show({{ $p->id }})" class="btn-outline" style="padding: 0.35rem 0.9rem">Open</button>
                             </td>
                         </tr>
@@ -257,6 +267,7 @@ new #[Layout('layouts.app', ['title' => 'Receipts'])] class extends Component
                     </div>
 
                     <div class="mt-4 flex flex-wrap gap-2">
+                        <button type="button" wire:click="download({{ $detail->id }})" class="btn-primary">Download receipt</button>
                         <button type="button" wire:click="close" class="btn-outline">Close</button>
                         @if ($inv)
                             <a href="/invoices/{{ $inv->id }}" wire:navigate class="btn-outline">Open invoice</a>

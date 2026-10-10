@@ -28,7 +28,7 @@ class QuotationPolicy
     }
 
     // Line items, labour, and scope only editable while still awaiting a
-    // decision, not after someone's approved, sent back, or the customer's
+    // decision, not after someone's approved, rejected, or the customer's
     // accepted it.
     public function update(User $user, Quotation $quotation): bool
     {
@@ -47,9 +47,23 @@ class QuotationPolicy
         };
     }
 
-    public function sendBack(User $user, Quotation $quotation): bool
+    public function reject(User $user, Quotation $quotation): bool
     {
         return $this->approve($user, $quotation);
+    }
+
+    // A Supervisor can pass a quotation waiting on them up to the Manager.
+    public function escalate(User $user, Quotation $quotation): bool
+    {
+        return $user->hasRole('Supervisor')
+            && $quotation->approval_threshold === 'Supervisor'
+            && $quotation->status === 'Awaiting Supervisor';
+    }
+
+    // Staff who can open the quotation can read why it was rejected. Customers never see internal reasons.
+    public function seeDecisionNotes(User $user, Quotation $quotation): bool
+    {
+        return ! $user->hasRole('Customer') && $this->view($user, $quotation);
     }
 
     // Logging the customer's LPO against an approved quotation, Service

@@ -17,12 +17,35 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
     #[\Livewire\Attributes\Locked]
     public ?int $requestId = null;
     public string $currency = '';
+    public string $revising = '';
+    public string $revisionNote = '';
 
     public function mount(): void
     {
         $this->authorize('create', Quotation::class);
         $this->validityDays = (string) setting('quotation_validity_days');
         $this->items = [['description' => '', 'quantity' => 1, 'rate' => '']];
+
+        // Correcting a rejected quotation: start from its lines so only the problem needs fixing.
+        $revise = (int) request()->query('revise');
+        $rejected = $revise ? Quotation::with('items')->find($revise) : null;
+        if ($rejected && $rejected->status === 'Rejected' && auth()->user()->can('view', $rejected)) {
+            $this->customerId = (string) $rejected->customer_id;
+            $this->siteId = (string) ($rejected->customer_site_id ?? '');
+            $this->scope = $rejected->scope;
+            $this->currency = (string) $rejected->currency_code;
+            $this->labour = $rejected->labour_minor ? number_format($rejected->labour_minor / 100, 2, '.', '') : '';
+            $this->requestId = $rejected->source_service_request_id;
+            $this->items = $rejected->items->map(fn ($i) => [
+                'description' => $i->description,
+                'quantity' => $i->quantity,
+                'rate' => number_format($i->rate_minor / 100, 2, '.', ''),
+            ])->all() ?: $this->items;
+            $this->revising = $rejected->reference;
+            $this->revisionNote = (string) $rejected->rejection_reason;
+
+            return;
+        }
 
         // Coming from a service request: carry its details over so nothing is typed twice.
         $rid = (int) request()->query('request');
@@ -145,9 +168,14 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
             return;
         }
 
-        // The link to a service request only holds while the quotation is for that request's customer.
-        if ($this->requestId && ! \App\Models\ServiceRequest::whereKey($this->requestId)->where('customer_id', $this->customerId)->doesntHave('quotation')->exists()) {
-            $this->requestId = null;
+        // The link to a service request only holds while the quotation is for that request's customer,
+        // and the request has no live quotation yet (a rejected one can be replaced).
+        if ($this->requestId) {
+            $linked = \App\Models\ServiceRequest::with('quotation')->find($this->requestId);
+
+            if (! $linked || $linked->customer_id !== (int) $this->customerId || ($linked->quotation && $linked->quotation->status !== 'Rejected')) {
+                $this->requestId = null;
+            }
         }
 
         $quotation = Quotation::create([
@@ -207,7 +235,11 @@ new #[Layout('layouts.app', ['title' => 'New quotation'])] class extends Compone
     </a>
 
     <h1 class="mb-2 text-xl font-semibold text-neutral-900">New quotation</h1>
-    @if ($requestId)
+    @if ($revising)
+        <div class="mb-4 rounded-[var(--radius-md)] border px-4 py-3 text-sm" style="background: #fef2f2; border-color: #fecaca; color: #7f1d1d">
+            Correcting <strong>{{ $revising }}</strong>, which was rejected. Reason given: {{ $revisionNote ?: 'none recorded' }}
+        </div>
+    @elseif ($requestId)
         <p class="mb-6 text-sm text-neutral-500">Pre-filled from the service request. Check the details, add the prices and submit.</p>
     @else
         <div class="mb-4"></div>

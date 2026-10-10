@@ -83,7 +83,12 @@
         <div x-show="open" x-transition style="display: none"
              class="absolute bottom-full left-3 right-3 mb-2 overflow-hidden rounded-[var(--radius-md)] border border-neutral-200 bg-white py-1 shadow-[var(--shadow-card-hover)]">
             <p class="truncate px-3 py-2 text-xs text-neutral-400">{{ $u->email }}</p>
-            <a href="/change-password" wire:navigate @click="open = false"
+            <a href="/profile" wire:navigate @click="open = false"
+               class="flex items-center gap-2 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50">
+                <x-icon name="person-circle" class="h-4 w-4" />
+                My profile and settings
+            </a>
+            <a href="/profile#password" wire:navigate @click="open = false"
                class="flex items-center gap-2 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50">
                 <x-icon name="lock" class="h-4 w-4" />
                 Change password

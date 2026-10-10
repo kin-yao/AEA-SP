@@ -42,6 +42,12 @@ class Equipment extends Model
         return $this->belongsTo(CustomerSite::class, 'customer_site_id');
     }
 
+    /** Contracts that cover this machine. */
+    public function contracts(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Contract::class, 'contract_equipment')->withTimestamps();
+    }
+
     public function visitStatus(): string
     {
         if (! $this->next_visit_due_at) {

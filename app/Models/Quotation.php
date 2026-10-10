@@ -12,8 +12,6 @@ class Quotation extends Model
 {
     use SoftDeletes;
 
-    public const APPROVAL_THRESHOLD_MINOR = 300_000_000; // KES 3,000,000 in minor units
-
     protected $fillable = [
         'reference',
         'customer_id',
@@ -31,10 +29,18 @@ class Quotation extends Model
         'status',
         'converted_work_order_id',
         'created_by',
+        'rejection_reason',
+        'decided_by',
+        'decided_at',
+        'escalated_by',
+        'escalated_at',
+        'escalation_note',
     ];
 
     protected $casts = [
         'vat_rate' => 'decimal:3',
+        'decided_at' => 'datetime',
+        'escalated_at' => 'datetime',
     ];
 
     public function __construct(array $attributes = [])
@@ -133,16 +139,44 @@ class Quotation extends Model
         $this->status = $manager ? 'Awaiting Manager' : 'Awaiting Supervisor';
     }
 
-    public function approve(): void
+    public function approve(?int $byId = null): void
     {
         $this->status = 'Approved';
+        $this->rejection_reason = null;
+        $this->decided_by = $byId;
+        $this->decided_at = now();
         $this->save();
     }
 
-    public function sendBack(): void
+    /** A rejection always carries the reason, so the person who wrote the quote knows what to change. */
+    public function reject(string $reason, ?int $byId = null): void
     {
-        $this->status = 'Sent back';
+        $this->status = 'Rejected';
+        $this->rejection_reason = $reason;
+        $this->decided_by = $byId;
+        $this->decided_at = now();
         $this->save();
+    }
+
+    /** A Supervisor passes the decision up to the Manager. */
+    public function escalate(int $byId, ?string $note = null): void
+    {
+        $this->approval_threshold = 'Manager';
+        $this->status = 'Awaiting Manager';
+        $this->escalated_by = $byId;
+        $this->escalated_at = now();
+        $this->escalation_note = $note ?: null;
+        $this->save();
+    }
+
+    public function decider(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'decided_by');
+    }
+
+    public function escalator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'escalated_by');
     }
 
     // Now takes an actual uploaded file path, nullable, since a customer

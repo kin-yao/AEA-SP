@@ -59,7 +59,7 @@ new #[Layout('layouts.app', ['title' => 'Quotations'])] class extends Component
     </div>
 
     <div class="mb-5 flex flex-wrap gap-1 border-b border-neutral-200">
-        @foreach (['All', 'Awaiting Supervisor', 'Awaiting Manager', 'Approved', 'Accepted', 'Sent back', 'Converted'] as $status)
+        @foreach (['All', 'Awaiting Supervisor', 'Awaiting Manager', 'Approved', 'Accepted', 'Rejected', 'Converted'] as $status)
             <button
                 wire:click="setFilter('{{ $status }}')"
                 @class([
@@ -88,7 +88,7 @@ new #[Layout('layouts.app', ['title' => 'Quotations'])] class extends Component
                         'pill-neutral' => str_starts_with($quotation->status, 'Awaiting'),
                         'pill-info' => in_array($quotation->status, ['Approved', 'Accepted']),
                         'pill-success' => $quotation->status === 'Converted',
-                        'pill-danger' => $quotation->status === 'Sent back',
+                        'pill-danger' => $quotation->status === 'Rejected',
                     ])>
                         {{ $quotation->status }}
                     </span>

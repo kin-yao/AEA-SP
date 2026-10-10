@@ -19,7 +19,7 @@
         <div class="mb-3">
             <label class="label">Machine it was issued for</label>
             <select wire:model="equipmentId" class="input">
-                <option value="">Not sure / not listed</option>
+                <option value="">Choose the machine</option>
                 @foreach ($machines as $m)
                     <option value="{{ $m->id }}">{{ $m->model }} ({{ $m->serial_number }})</option>
                 @endforeach
@@ -37,6 +37,12 @@
                 <input wire:model="expiresAt" type="date" class="input">
                 @error('expiresAt') <p class="field-error">{{ $message }}</p> @enderror
             </div>
+        </div>
+        <div class="mb-3 flex flex-wrap items-center gap-2" style="margin-top: -0.25rem">
+            <span class="text-xs text-neutral-500">Valid for:</span>
+            @foreach ([3 => '3 months', 6 => '6 months', 12 => '1 year', 24 => '2 years', 36 => '3 years'] as $m => $lbl)
+                <button type="button" wire:click="validFor({{ $m }})" class="btn-outline" style="padding: 0.2rem 0.6rem; font-size: 0.75rem">{{ $lbl }}</button>
+            @endforeach
         </div>
     @endif
 

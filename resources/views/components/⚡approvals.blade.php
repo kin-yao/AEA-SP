@@ -2,6 +2,7 @@
 
 use Livewire\Component;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use App\Models\Quotation;
 use App\Services\WorkflowNotifier;
 
@@ -18,46 +19,23 @@ new #[Layout('layouts.app', ['title' => 'Approvals'])] class extends Component
         return auth()->user()->hasRole('Manager') ? 'Manager' : 'Supervisor';
     }
 
-    public function approve(int $id): void
+    public ?int $reviewId = null;
+
+    // Clicking a request opens it here, in full, so it can be checked before deciding.
+    public function review(int $id): void
     {
-        $quotation = Quotation::with(['customer', 'createdBy'])->findOrFail($id);
-        $this->authorize('approve', $quotation);
+        $q = Quotation::findOrFail($id);
+        $this->authorize('view', $q);
+        abort_unless($q->approval_threshold === $this->role() || auth()->user()->hasRole('Supervisor'), 403);
 
-        $quotation->approve();
-
-        WorkflowNotifier::customer(
-            $quotation->customer,
-            'Your quotation is ready',
-            ["Quotation {$quotation->reference} has been approved and is ready for your review."],
-        );
-
-        WorkflowNotifier::user(
-            $quotation->createdBy,
-            'Your quotation was approved',
-            ["Quotation {$quotation->reference} for {$quotation->customer->name} has been approved."],
-            url("/quotations/{$quotation->id}"),
-            'View quotation',
-        );
-
-        session()->flash('approvals-message', "{$quotation->reference} approved.");
+        $this->reviewId = $this->reviewId === $id ? null : $id;
     }
 
-    public function sendBack(int $id): void
+    #[\Livewire\Attributes\On('quotation-decided')]
+    public function decided(string $message = ''): void
     {
-        $quotation = Quotation::with(['customer', 'createdBy'])->findOrFail($id);
-        $this->authorize('sendBack', $quotation);
-
-        $quotation->sendBack();
-
-        WorkflowNotifier::user(
-            $quotation->createdBy,
-            'Quotation sent back for changes',
-            ["Quotation {$quotation->reference} for {$quotation->customer->name} was sent back."],
-            url("/quotations/{$quotation->id}"),
-            'View quotation',
-        );
-
-        session()->flash('approvals-message', "{$quotation->reference} sent back.");
+        $this->reviewId = null;
+        session()->flash('approvals-message', $message);
     }
 
     public function with(): array
@@ -72,7 +50,7 @@ new #[Layout('layouts.app', ['title' => 'Approvals'])] class extends Component
 
         $decided = Quotation::with(['customer', 'items'])
             ->where('approval_threshold', $role)
-            ->whereIn('status', ['Approved', 'Accepted', 'Converted', 'Sent back'])
+            ->whereIn('status', ['Approved', 'Accepted', 'Converted', 'Rejected'])
             ->where('updated_at', '>=', now()->subDays(60))
             ->latest('updated_at')
             ->take(25)
@@ -131,8 +109,15 @@ new #[Layout('layouts.app', ['title' => 'Approvals'])] class extends Component
         </div>
     </div>
 
+    @if ($reviewId)
+        <div class="mb-5" id="review">
+            <livewire:quotations.decision :quotation="$reviewId" :details="true" :key="'review-'.$reviewId" />
+        </div>
+    @endif
+
     <div class="card mb-5" style="padding: 0">
         <h2 class="px-5 pt-5 text-sm font-semibold text-neutral-900">Awaiting your decision</h2>
+        <p class="px-5 pt-1 text-xs text-neutral-500">Click a quotation to open it and decide.</p>
         <div class="mt-3 overflow-x-auto">
             <table class="table-clean" style="min-width: 760px">
                 <thead>
@@ -140,18 +125,13 @@ new #[Layout('layouts.app', ['title' => 'Approvals'])] class extends Component
                 </thead>
                 <tbody>
                     @forelse ($waiting as $q)
-                        <tr wire:key="w-{{ $q->id }}">
-                            <td><a href="/quotations/{{ $q->id }}" wire:navigate class="font-mono text-xs font-bold text-neutral-900 hover:text-primary-600">{{ $q->reference }}</a></td>
+                        <tr wire:key="w-{{ $q->id }}" wire:click="review({{ $q->id }})" style="cursor: pointer; {{ $reviewId === $q->id ? 'background: #fff7f7' : '' }}">
+                            <td class="font-mono text-xs font-bold text-neutral-900">{{ $q->reference }}</td>
                             <td class="font-medium text-neutral-900">{{ $q->customer->name }}</td>
                             <td class="text-neutral-600" style="max-width: 18rem">{{ \Illuminate\Support\Str::limit($q->scope, 70) }}</td>
                             <td class="whitespace-nowrap text-right font-mono text-xs font-semibold">{{ $q->currency_code }} {{ number_format($q->totalMinor() / 100, 0) }}</td>
                             <td class="whitespace-nowrap text-neutral-500">{{ $q->created_at->format('d M Y') }}</td>
-                            <td>
-                                <div class="flex justify-end gap-2">
-                                    <button type="button" wire:click="sendBack({{ $q->id }})" wire:confirm="Send {{ $q->reference }} back for changes?" class="btn-outline" style="padding: 0.4rem 0.8rem">Send back</button>
-                                    <button type="button" wire:click="approve({{ $q->id }})" wire:confirm="Approve {{ $q->reference }} for {{ $q->currency_code }} {{ number_format($q->totalMinor() / 100, 0) }}?" class="btn-primary" style="padding: 0.4rem 0.8rem">Approve</button>
-                                </div>
-                            </td>
+                            <td class="text-right"><span class="btn-outline" style="padding: 0.4rem 0.8rem">{{ $reviewId === $q->id ? 'Close' : 'Review' }}</span></td>
                         </tr>
                     @empty
                         <tr><td colspan="6" class="py-8 text-center text-neutral-500">Nothing is waiting for you. You are all caught up.</td></tr>
@@ -164,9 +144,9 @@ new #[Layout('layouts.app', ['title' => 'Approvals'])] class extends Component
     <div class="card @if ($role === 'Supervisor') mb-5 @endif" style="padding: 0">
         <h2 class="px-5 pt-5 text-sm font-semibold text-neutral-900">Decided in the last 60 days</h2>
         <div class="mt-3 overflow-x-auto">
-            <table class="table-clean" style="min-width: 640px">
+            <table class="table-clean" style="min-width: 760px">
                 <thead>
-                    <tr><th>Reference</th><th>Customer</th><th class="text-right">Amount</th><th>Decided</th><th>Outcome</th></tr>
+                    <tr><th>Reference</th><th>Customer</th><th class="text-right">Amount</th><th>Decided</th><th>Outcome</th><th>Reason</th></tr>
                 </thead>
                 <tbody>
                     @forelse ($decided as $q)
@@ -176,14 +156,15 @@ new #[Layout('layouts.app', ['title' => 'Approvals'])] class extends Component
                             <td class="whitespace-nowrap text-right font-mono text-xs">{{ $q->currency_code }} {{ number_format($q->totalMinor() / 100, 0) }}</td>
                             <td class="whitespace-nowrap text-neutral-500">{{ $q->updated_at->format('d M Y') }}</td>
                             <td>
-                                <span class="{{ $q->status === 'Sent back' ? 'pill-amber' : 'pill-success' }}">{{ $q->status === 'Sent back' ? 'Sent back' : 'Approved' }}</span>
+                                <span class="{{ $q->status === 'Rejected' ? 'pill-danger' : 'pill-success' }}">{{ $q->status === 'Rejected' ? 'Rejected' : 'Approved' }}</span>
                                 @if (in_array($q->status, ['Accepted', 'Converted']))
                                     <span class="ml-1 text-xs text-neutral-400">{{ strtolower($q->status) }}</span>
                                 @endif
                             </td>
+                            <td class="text-xs text-neutral-600" style="max-width: 18rem">{{ $q->status === 'Rejected' ? \Illuminate\Support\Str::limit($q->rejection_reason, 90) : '' }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="py-8 text-center text-neutral-500">No decisions yet.</td></tr>
+                        <tr><td colspan="6" class="py-8 text-center text-neutral-500">No decisions yet.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -205,7 +186,7 @@ new #[Layout('layouts.app', ['title' => 'Approvals'])] class extends Component
                                 <td>{{ $q->customer->name }}</td>
                                 <td class="whitespace-nowrap text-right font-mono text-xs">{{ $q->currency_code }} {{ number_format($q->totalMinor() / 100, 0) }}</td>
                                 <td class="whitespace-nowrap text-neutral-500">{{ $q->created_at->format('d M Y') }}</td>
-                                <td><span class="{{ str_starts_with($q->status, 'Awaiting') ? 'pill-amber' : ($q->status === 'Sent back' ? 'pill-danger' : 'pill-success') }}">{{ $q->status }}</span></td>
+                                <td><span class="{{ str_starts_with($q->status, 'Awaiting') ? 'pill-amber' : ($q->status === 'Rejected' ? 'pill-danger' : 'pill-success') }}">{{ $q->status }}</span></td>
                             </tr>
                         @empty
                             <tr><td colspan="5" class="py-8 text-center text-neutral-500">Nothing has been escalated.</td></tr>

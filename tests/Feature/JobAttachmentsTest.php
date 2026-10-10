@@ -62,7 +62,8 @@ class JobAttachmentsTest extends TestCase
         $this->actingAs(User::findOrFail($job->assigned_technician_id));
         $c = Livewire::test('jobs.attachments', ['job' => $job]);
 
-        $c->call('openForm', Document::TYPE_CERTIFICATE, Settings::certificateTypes()[0])->call('save')->assertHasErrors(['file', 'number', 'expiresAt']);
+        $c->call('openForm', Document::TYPE_CERTIFICATE, Settings::certificateTypes()[0])->set('expiresAt', '')->set('equipmentId', '')->call('save')->assertHasErrors(['file', 'number', 'expiresAt', 'equipmentId']);
+        $c->set('equipmentId', (string) $job->equipment_id);
         $c->set('number', 'X1')->set('file', UploadedFile::fake()->create('virus.exe', 10))->set('expiresAt', today()->addYear()->toDateString())->call('save')->assertHasErrors(['file']);
         $c->set('file', $this->pdf())->set('expiresAt', today()->subYear()->toDateString())->call('save')->assertHasErrors(['expiresAt']);
         $c->set('expiresAt', today()->addYear()->toDateString())->set('issuedAt', today()->addDays(3)->toDateString())->call('save')->assertHasErrors(['issuedAt']);

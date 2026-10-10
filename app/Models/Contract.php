@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Contract extends Model
 {
     protected $fillable = [
-        'reference', 'customer_id', 'type', 'starts_at', 'ends_at',
+        'reference', 'customer_id', 'type', 'frequency', 'starts_at', 'ends_at',
         'visits_included', 'visits_used', 'value_minor', 'currency_code',
         'status', 'scan_file_path',
     ];
@@ -34,6 +34,18 @@ class Contract extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    /** The machines this contract covers. */
+    public function equipment(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Equipment::class, 'contract_equipment')->withTimestamps();
+    }
+
+    /** Planned service dates, soonest first. */
+    public function serviceDates(): HasMany
+    {
+        return $this->hasMany(ContractServiceDate::class)->orderBy('due_on');
     }
 
     public function workOrders(): HasMany

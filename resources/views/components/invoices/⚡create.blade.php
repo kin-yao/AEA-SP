@@ -121,7 +121,8 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
         return $this->subtotalMinor + $this->vatMinor;
     }
 
-    public function submit(): void
+    /** $send true: issue it to the customer now. false: keep it as a draft to check first. */
+    public function submit(bool $send = true): void
     {
         // Lines that came from an LPO cannot be altered here, whatever the browser sends back.
         // To change a price, change the LPO.
@@ -157,6 +158,7 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
             'currency_code' => $this->currencyCode,
             'raised_by' => auth()->id(),
             'lpo_document_id' => $this->lpoDocumentId,
+            'status' => $send ? 'Unpaid' : 'Draft',
         ]);
 
         foreach ($this->items as $item) {
@@ -165,6 +167,14 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
                 'quantity' => $item['quantity'],
                 'rate_minor' => (int) round((float) $item['rate'] * 100),
             ]);
+        }
+
+        if ($send) {
+            \App\Services\WorkflowNotifier::customer(
+                $this->job->customer,
+                'Invoice issued',
+                ["Invoice {$invoice->reference} for {$invoice->currency_code} ".number_format($invoice->amount_minor / 100, 2).' has been issued.', 'Due date: '.$invoice->due_at->format('d M Y')],
+            );
         }
 
         $this->redirect('/invoices/'.$invoice->id, navigate: true);
@@ -192,7 +202,7 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
         </div>
     @endif
 
-    <form wire:submit="submit" class="card">
+    <form wire:submit="submit(true)" class="card">
         <h2 class="mb-3 text-sm font-semibold text-neutral-900">What's being charged</h2>
 
         <div class="mb-3 space-y-2">
@@ -251,7 +261,10 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
         </div>
 
         <button type="submit" wire:loading.attr="disabled" wire:target="submit" class="btn-primary w-full">
-            Create invoice
+            Create invoice and send to customer
+        </button>
+        <button type="button" wire:click="submit(false)" wire:loading.attr="disabled" wire:target="submit" class="btn-outline mt-2 w-full">
+            Save as draft to check first
         </button>
     </form>
 </div>

@@ -482,7 +482,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
                                 <td><a href="/quotations/{{ $n['q']->id }}" wire:navigate class="font-mono text-xs font-bold text-neutral-900 hover:text-primary-600">{{ $n['q']->reference }}</a></td>
                                 <td>{{ $n['q']->customer?->name }}</td>
                                 <td class="whitespace-nowrap text-right font-mono text-xs">{{ $kes($n['q']->totalMinor()) }}</td>
-                                <td><span class="{{ $n['q']->status === 'Sent back' ? 'pill-danger' : ($n['q']->status === 'Approved' ? 'pill-info' : 'pill-amber') }}">{{ $n['what'] }}</span></td>
+                                <td><span class="{{ $n['q']->status === 'Rejected' ? 'pill-danger' : ($n['q']->status === 'Approved' ? 'pill-info' : 'pill-amber') }}">{{ $n['what'] }}</span></td>
                                 <td class="text-right font-bold">{{ $n['days'] }}</td>
                             </tr>
                         @empty

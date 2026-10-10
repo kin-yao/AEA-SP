@@ -27,6 +27,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'status',
         'on_leave',
         'must_change_password',
+        'email_notifications',
     ];
 
     protected $hidden = [
@@ -46,7 +47,13 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
             'must_change_password' => 'boolean',
             'on_leave' => 'boolean',
+            'email_notifications' => 'boolean',
         ];
+    }
+
+    public function inbox(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(InboxNotification::class)->latest('id');
     }
 
     public function branch(): BelongsTo

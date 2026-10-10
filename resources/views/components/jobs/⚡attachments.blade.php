@@ -62,6 +62,19 @@ new class extends Component
         $this->slot = $kind === Document::TYPE_CERTIFICATE ? $slot : '';
         $this->equipmentId = (string) ($this->job->equipment_id ?? '');
         $this->issuedAt = today()->toDateString();
+        $this->expiresAt = $kind === Document::TYPE_CERTIFICATE ? today()->addYear()->toDateString() : '';
+    }
+
+    /** Quick presets for how long the certificate is valid, counted from the issue date. */
+    public function validFor(int $months): void
+    {
+        abort_unless(in_array($months, [3, 6, 12, 24, 36], true), 422);
+
+        try {
+            $this->expiresAt = \Illuminate\Support\Carbon::parse($this->issuedAt)->addMonthsNoOverflow($months)->toDateString();
+        } catch (\Throwable $e) {
+            $this->expiresAt = today()->addMonthsNoOverflow($months)->toDateString();
+        }
     }
 
     public function cancel(): void
@@ -101,7 +114,7 @@ new class extends Component
         if ($kind === Document::TYPE_CERTIFICATE) {
             abort_unless(in_array($this->slot, Settings::certificateTypes(), true), 404);
             $rules += [
-                'equipmentId' => ['nullable', Rule::exists('equipment', 'id')->where('customer_id', $this->job->customer_id)],
+                'equipmentId' => ['required', Rule::exists('equipment', 'id')->where('customer_id', $this->job->customer_id)],
                 'issuedAt' => ['required', 'date', 'before_or_equal:today', 'after:2000-01-01'],
                 'expiresAt' => ['required', 'date', 'after:issuedAt', 'before:2100-01-01'],
             ];
@@ -114,6 +127,9 @@ new class extends Component
             'file.uploaded' => 'The file did not upload. Check your connection and choose it again.',
             'expiresAt.after' => 'The expiry date must come after the date it was issued.',
             'issuedAt.before_or_equal' => 'The issue date cannot be in the future.',
+            'equipmentId.required' => 'Choose the machine this certificate is for.',
+            'equipmentId.exists' => 'Choose one of this customer\'s machines.',
+            'expiresAt.required' => 'Enter the date the certificate expires.',
         ], [
             'file' => 'file',
             'number' => 'number',

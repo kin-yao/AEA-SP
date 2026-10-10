@@ -28,18 +28,16 @@ use Illuminate\Support\Str;
  */
 class ServiceAdminReports
 {
-    public const DOC_WARN_DAYS = 60;
 
     public const REQUEST_ORDER = ['Open', 'Assigned', 'Quoted', 'Converted', 'Declined'];
     public const REQUEST_COLORS = ['Open' => '#e0ac2e', 'Assigned' => '#475569', 'Quoted' => '#1f2937', 'Converted' => '#15803d', 'Declined' => '#d62828'];
 
-    public const QUOTE_ORDER = ['Awaiting Supervisor', 'Awaiting Manager', 'Approved', 'Accepted', 'Converted', 'Sent back'];
-    public const QUOTE_COLORS = ['Awaiting Supervisor' => '#e0ac2e', 'Awaiting Manager' => '#c2410c', 'Approved' => '#475569', 'Accepted' => '#15803d', 'Converted' => '#0f766e', 'Sent back' => '#d62828'];
+    public const QUOTE_ORDER = ['Awaiting Supervisor', 'Awaiting Manager', 'Approved', 'Accepted', 'Converted', 'Rejected'];
+    public const QUOTE_COLORS = ['Awaiting Supervisor' => '#e0ac2e', 'Awaiting Manager' => '#c2410c', 'Approved' => '#475569', 'Accepted' => '#15803d', 'Converted' => '#0f766e', 'Rejected' => '#d62828'];
 
     public const REPORT_ORDER = ['Draft', 'Awaiting review', 'Checked, ready to post', 'Released'];
     public const REPORT_COLORS = ['Draft' => '#9ca3af', 'Awaiting review' => '#e0ac2e', 'Checked, ready to post' => '#475569', 'Released' => '#15803d'];
 
-    public const CATEGORY_ORDER = ['Spare part', 'Equipment', 'Test equipment', 'Consumable'];
     public const PALETTE = ['#8f1d1d', '#e0ac2e', '#1f2937', '#15803d', '#475569', '#d62828', '#0f766e', '#9ca3af'];
 
     /* ------------------------------------------------------------ filters */
@@ -373,7 +371,7 @@ class ServiceAdminReports
                 $q->status === 'Awaiting Supervisor' => ['q' => $q, 'what' => 'Waiting for Supervisor approval', 'days' => self::days($q->created_at)],
                 $q->status === 'Awaiting Manager' => ['q' => $q, 'what' => 'Waiting for Manager approval', 'days' => self::days($q->created_at)],
                 $q->status === 'Approved' && $q->lpo_status !== 'On file' => ['q' => $q, 'what' => 'Waiting for the customer LPO', 'days' => self::days($q->updated_at)],
-                $q->status === 'Sent back' => ['q' => $q, 'what' => 'Sent back, needs your changes', 'days' => self::days($q->updated_at)],
+                $q->status === 'Rejected' => ['q' => $q, 'what' => 'Rejected, needs your changes', 'days' => self::days($q->updated_at)],
                 default => null,
             };
         })->filter()->sortByDesc('days')->values();

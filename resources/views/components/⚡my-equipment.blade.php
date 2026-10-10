@@ -5,39 +5,51 @@ use Livewire\Attributes\Layout;
 use App\Models\Equipment;
 use App\Models\WorkOrder;
 
-new #[Layout('layouts.app', ['title' => 'My equipment'])] class extends Component
+new #[Layout('layouts.app', ['title' => 'Equipment'])] class extends Component
 {
     use \App\Support\ShowsMore;
 
     public string $search = '';
     public string $statusFilter = 'All';
+    public string $scope = 'all';   // all machines, or only those the technician has a job on
 
     public function mount(): void
     {
         abort_unless(auth()->user()->hasRole('Technician'), 403);
     }
 
-    public function filter(): void
+    public function updatedScope(): void
     {
-        // Livewire syncs $search and $statusFilter on this round trip
-        // regardless; this method just gives the "Filter" button something
-        // to call.
+        $this->scope = $this->scope === 'mine' ? 'mine' : 'all';
+    }
+
+    /** Narrow a query to one visit status, using the same rule as Equipment::visitStatus(). */
+    protected function byStatus($query, string $status): void
+    {
+        $soon = today()->addDays((int) setting('visit_due_days'))->toDateString();
+        $today = today()->toDateString();
+
+        match ($status) {
+            'Overdue' => $query->where(fn ($q) => $q->whereNull('next_visit_due_at')->orWhereDate('next_visit_due_at', '<', $today)),
+            'Due soon' => $query->whereDate('next_visit_due_at', '>=', $today)->whereDate('next_visit_due_at', '<=', $soon),
+            'Active' => $query->whereDate('next_visit_due_at', '>', $soon),
+            default => null,
+        };
     }
 
     public function with(): array
     {
-        // Every machine that appears on a job assigned to this technician.
-        $jobs = WorkOrder::where('assigned_technician_id', auth()->id())
-            ->whereNotNull('equipment_id')
-            ->get(['id', 'equipment_id', 'status', 'due_date']);
+        $mineIds = WorkOrder::where('assigned_technician_id', auth()->id())->whereNotNull('equipment_id')->distinct()->pluck('equipment_id');
 
-        $byMachine = $jobs->groupBy('equipment_id');
+        $base = Equipment::query();
 
-        $query = Equipment::with(['customer', 'site'])->whereIn('id', $byMachine->keys());
+        if ($this->scope === 'mine') {
+            $base->whereIn('id', $mineIds);
+        }
 
         if ($this->search !== '') {
             $term = '%'.$this->search.'%';
-            $query->where(function ($q) use ($term) {
+            $base->where(function ($q) use ($term) {
                 $q->where('serial_number', 'like', $term)
                     ->orWhere('model', 'like', $term)
                     ->orWhereHas('customer', fn ($c) => $c->where('name', 'like', $term))
@@ -45,32 +57,34 @@ new #[Layout('layouts.app', ['title' => 'My equipment'])] class extends Componen
             });
         }
 
-        $machines = $query->orderBy('model')->get()->map(function (Equipment $e) use ($byMachine) {
-            $mine = $byMachine[$e->id];
-            $past = $mine->filter(fn ($j) => $j->due_date->lte(today()))->sortByDesc('due_date')->first();
-
-            return [
-                'equipment' => $e,
-                'status' => $e->visitStatus(),
-                'visits' => $mine->count(),
-                'last' => $past?->due_date,
-            ];
-        });
-
         $kpi = [
-            'machines' => $machines->count(),
-            'dueSoon' => $machines->where('status', 'Due soon')->count(),
-            'overdue' => $machines->where('status', 'Overdue')->count(),
-            'visits' => $machines->sum('visits'),
+            'machines' => (clone $base)->count(),
+            'dueSoon' => tap(clone $base, fn ($q) => $this->byStatus($q, 'Due soon'))->count(),
+            'overdue' => tap(clone $base, fn ($q) => $this->byStatus($q, 'Overdue'))->count(),
+            'mine' => $mineIds->count(),
         ];
 
-        if ($this->statusFilter !== 'All') {
-            $machines = $machines->where('status', $this->statusFilter);
-        }
+        $list = clone $base;
+        $this->byStatus($list, $this->statusFilter);
+        $total = (clone $list)->count();
+
+        $machines = $list->with(['customer', 'site'])->orderBy('model')->orderBy('id')->take($this->limit)->get();
+
+        $visits = WorkOrder::where('assigned_technician_id', auth()->id())
+            ->whereIn('equipment_id', $machines->pluck('id'))
+            ->get(['equipment_id', 'due_date'])
+            ->groupBy('equipment_id');
+
+        $rows = $machines->map(function (Equipment $e) use ($visits) {
+            $mine = $visits[$e->id] ?? collect();
+            $past = $mine->filter(fn ($j) => $j->due_date->lte(today()))->sortByDesc('due_date')->first();
+
+            return ['equipment' => $e, 'status' => $e->visitStatus(), 'visits' => $mine->count(), 'last' => $past?->due_date];
+        });
 
         return [
-            'machineTotal' => $machines->count(),
-            'machines' => $machines->values()->take($this->limit),
+            'machineTotal' => $total,
+            'machines' => $rows,
             'kpi' => $kpi,
         ];
     }
@@ -79,7 +93,8 @@ new #[Layout('layouts.app', ['title' => 'My equipment'])] class extends Componen
 
 <div>
     <div class="mb-5">
-        <h1 class="text-xl font-semibold text-neutral-900">My equipment</h1>
+        <h1 class="text-xl font-semibold text-neutral-900">Equipment</h1>
+        <p class="mt-1 text-sm text-neutral-500">Every machine, with its contracts, visits, reports, parts and certificates.</p>
     </div>
 
     <div class="mb-5 grid gap-3" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
@@ -96,20 +111,24 @@ new #[Layout('layouts.app', ['title' => 'My equipment'])] class extends Componen
             <p @class(['mt-1 font-mono text-2xl font-bold', 'text-critical-700' => $kpi['overdue'] > 0, 'text-neutral-900' => $kpi['overdue'] === 0])>{{ $kpi['overdue'] }}</p>
         </div>
         <div class="card">
-            <p class="text-xs text-neutral-500">Your visits</p>
-            <p class="mt-1 font-mono text-2xl font-bold text-neutral-900">{{ $kpi['visits'] }}</p>
+            <p class="text-xs text-neutral-500">Machines you have worked on</p>
+            <p class="mt-1 font-mono text-2xl font-bold text-neutral-900">{{ $kpi['mine'] }}</p>
         </div>
     </div>
 
     <div class="mb-5 flex flex-wrap items-center gap-3">
         <input wire:model="search" type="text" placeholder="Search serial, model, customer or site" class="input" style="flex: 1 1 240px; font-size: 16px; min-height: 46px">
+        <select wire:model.live="scope" class="input" style="width: auto; font-size: 16px; min-height: 46px">
+            <option value="all">All machines</option>
+            <option value="mine">Only machines I worked on</option>
+        </select>
         <select wire:model="statusFilter" class="input" style="width: auto; font-size: 16px; min-height: 46px">
             <option value="All">All</option>
             <option value="Active">Active</option>
             <option value="Due soon">Due soon</option>
             <option value="Overdue">Overdue</option>
         </select>
-        <button type="button" wire:click="filter" class="btn-primary" style="min-height: 46px">Filter</button>
+        <button type="button" wire:click="$refresh" class="btn-primary" style="min-height: 46px">Filter</button>
     </div>
 
     <div class="space-y-3">
@@ -161,7 +180,7 @@ new #[Layout('layouts.app', ['title' => 'My equipment'])] class extends Componen
                 @if ($search !== '' || $statusFilter !== 'All')
                     No machines match this filter.
                 @else
-                    No machines yet. They appear here once a job with a registered machine is assigned to you.
+                    No machines have been registered yet.
                 @endif
             </div>
         @endforelse

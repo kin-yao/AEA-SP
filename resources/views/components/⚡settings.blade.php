@@ -43,10 +43,96 @@ new #[Layout('layouts.app', ['title' => 'System settings'])] class extends Compo
     public string $sDigits = '4';
     public string $sNext = '1';
 
+    // Contracts tab
+    public array $ctTypes = [];
+    public array $ctFreqs = [];
+
     public function mount(): void
     {
         abort_unless(auth()->user()->hasAnyRole(['ICT', 'Super Admin']), 403);
         $this->load();
+        $this->loadContracts();
+    }
+
+    protected function loadContracts(): void
+    {
+        $this->ctTypes = Settings::contractTypes();
+        $this->ctFreqs = collect(Settings::maintenanceFrequencies())
+            ->map(fn ($f, $name) => ['name' => $name, 'every' => (string) $f['every'], 'unit' => $f['unit']])
+            ->values()->all();
+    }
+
+    public function addCtType(): void
+    {
+        $this->ctTypes[] = '';
+    }
+
+    public function removeCtType(int $i): void
+    {
+        unset($this->ctTypes[$i]);
+        $this->ctTypes = array_values($this->ctTypes);
+    }
+
+    public function addCtFreq(): void
+    {
+        $this->ctFreqs[] = ['name' => '', 'every' => '1', 'unit' => 'm'];
+    }
+
+    public function removeCtFreq(int $i): void
+    {
+        unset($this->ctFreqs[$i]);
+        $this->ctFreqs = array_values($this->ctFreqs);
+    }
+
+    public function saveContracts(): void
+    {
+        $this->ctTypes = array_values(array_filter(array_map('trim', $this->ctTypes), fn ($t) => $t !== ''));
+        $this->ctFreqs = array_values(array_filter($this->ctFreqs, fn ($f) => trim((string) ($f['name'] ?? '')) !== ''));
+
+        $this->validate([
+            'ctTypes' => ['required', 'array', 'min:1', 'max:30'],
+            'ctTypes.*' => \App\Support\Rules::text(60, true, 2),
+            'ctFreqs' => ['array', 'max:30'],
+            'ctFreqs.*.name' => [...\App\Support\Rules::text(60, true, 2), 'not_regex:/\|/'],
+            'ctFreqs.*.every' => ['required', 'integer', 'min:1', 'max:520'],
+            'ctFreqs.*.unit' => ['required', Rule::in(['d', 'w', 'm'])],
+        ], [
+            'ctTypes.required' => 'Keep at least one contract type.',
+            'ctTypes.min' => 'Keep at least one contract type.',
+            'ctFreqs.*.name.not_regex' => 'Leave out the | character in the name.',
+        ], ['ctTypes.*' => 'contract type', 'ctFreqs.*.name' => 'frequency name', 'ctFreqs.*.every' => 'number']);
+
+        if (count(array_unique(array_map('mb_strtolower', $this->ctTypes))) < count($this->ctTypes)) {
+            $this->addError('ctTypes', 'Each contract type needs a different name.');
+
+            return;
+        }
+
+        $names = array_map(fn ($f) => mb_strtolower(trim($f['name'])), $this->ctFreqs);
+        if (count(array_unique($names)) < count($names)) {
+            $this->addError('ctFreqs', 'Each frequency needs a different name.');
+
+            return;
+        }
+
+        $oldTypes = Settings::raw('contract_types');
+        $oldFreq = Settings::raw('maintenance_frequencies');
+
+        $newTypes = implode("\n", $this->ctTypes);
+        $newFreq = implode("\n", array_map(fn ($f) => trim($f['name']).'|'.(int) $f['every'].'|'.$f['unit'], $this->ctFreqs));
+
+        Settings::set('contract_types', $newTypes === Settings::meta('contract_types')[2] ? null : $newTypes, auth()->id());
+        Settings::set('maintenance_frequencies', $newFreq === Settings::meta('maintenance_frequencies')[2] ? null : $newFreq, auth()->id());
+
+        if ($oldTypes !== $newTypes || $oldFreq !== $newFreq) {
+            Audit::record('updated', 'Changed system settings: Contracts', null, [
+                'Contract types' => [mb_substr(str_replace("\n", ', ', $oldTypes), 0, 120), mb_substr(str_replace("\n", ', ', $newTypes), 0, 120)],
+                'Maintenance frequencies' => [mb_substr(str_replace("\n", ', ', $oldFreq), 0, 120), mb_substr(str_replace("\n", ', ', $newFreq), 0, 120)],
+            ]);
+        }
+
+        $this->notice = 'Saved. New contracts use these straight away.';
+        $this->loadContracts();
     }
 
     protected function load(): void
@@ -69,6 +155,7 @@ new #[Layout('layouts.app', ['title' => 'System settings'])] class extends Compo
         $this->notice = null;
         $this->resetValidation();
         $this->load();
+        $this->loadContracts();
     }
 
     protected function rulesFor(string $key, array $meta): array
@@ -448,6 +535,45 @@ new #[Layout('layouts.app', ['title' => 'System settings'])] class extends Compo
                 </table>
             </div>
         </div>
+    @elseif ($tab === 'contracts')
+        <div class="card mb-4">
+            <h2 class="text-base font-semibold text-neutral-900">Contract types</h2>
+            <p class="mb-3 text-sm text-neutral-500">The kinds of contract staff can choose from when they create one.</p>
+            @foreach ($ctTypes as $i => $t)
+                <div class="mb-2 flex items-center gap-2" wire:key="ct-{{ $i }}">
+                    <input wire:model="ctTypes.{{ $i }}" type="text" class="input" maxlength="60" placeholder="e.g. Full service">
+                    <button type="button" wire:click="removeCtType({{ $i }})" class="btn-outline" style="padding: 0.4rem 0.8rem" aria-label="Remove">&times;</button>
+                </div>
+                @error('ctTypes.'.$i) <p class="field-error">{{ $message }}</p> @enderror
+            @endforeach
+            @error('ctTypes') <p class="field-error">{{ $message }}</p> @enderror
+            <button type="button" wire:click="addCtType" class="btn-outline mt-1">+ Add a contract type</button>
+        </div>
+
+        <div class="card mb-4">
+            <h2 class="text-base font-semibold text-neutral-900">Maintenance frequencies</h2>
+            <p class="mb-3 text-sm text-neutral-500">How often a machine is serviced. When a contract has a start and end date, service dates are made from the frequency chosen. They can still be edited.</p>
+            @foreach ($ctFreqs as $i => $f)
+                <div class="mb-2 flex flex-wrap items-center gap-2" wire:key="cf-{{ $i }}">
+                    <input wire:model="ctFreqs.{{ $i }}.name" type="text" class="input" style="flex: 1 1 10rem" maxlength="60" placeholder="e.g. Quarterly">
+                    <span class="text-sm text-neutral-500">every</span>
+                    <input wire:model="ctFreqs.{{ $i }}.every" type="number" min="1" class="input" style="width: 5rem">
+                    <select wire:model="ctFreqs.{{ $i }}.unit" class="input" style="width: 7rem">
+                        <option value="d">days</option>
+                        <option value="w">weeks</option>
+                        <option value="m">months</option>
+                    </select>
+                    <button type="button" wire:click="removeCtFreq({{ $i }})" class="btn-outline" style="padding: 0.4rem 0.8rem" aria-label="Remove">&times;</button>
+                </div>
+                @foreach (['name', 'every', 'unit'] as $col)
+                    @error('ctFreqs.'.$i.'.'.$col) <p class="field-error">{{ $message }}</p> @enderror
+                @endforeach
+            @endforeach
+            @error('ctFreqs') <p class="field-error">{{ $message }}</p> @enderror
+            <button type="button" wire:click="addCtFreq" class="btn-outline mt-1">+ Add a frequency</button>
+        </div>
+
+        <button type="button" wire:click="saveContracts" wire:loading.attr="disabled" wire:target="saveContracts" class="btn-primary">Save contract settings</button>
     @elseif ($tab === 'numbering')
         <div class="card" style="padding: 0">
             <div class="flex flex-wrap items-center justify-between gap-3" style="padding: 1.25rem 1.25rem 0">

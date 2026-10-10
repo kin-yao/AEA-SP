@@ -25,6 +25,7 @@ class Settings
             'finance' => ['Money and tax', 'Defaults. Each country can override them.'],
             'documents' => ['Documents and terms', 'Due dates, validity and pick lists.'],
             'numbering' => ['Reference numbers', 'Prefix and counter for each document number.'],
+            'contracts' => ['Contracts', 'Contract types and how often each machine is serviced.'],
             'certificates' => ['Certificate types', 'The three kinds of calibration certificate staff can attach to a job.'],
             'alerts' => ['Alerts and targets', 'When things count as due soon.'],
             'system' => ['Security and region', 'Password rule and time zone.'],
@@ -34,7 +35,7 @@ class Settings
     /** Tabs that have their own screen instead of a list of fields. */
     public static function customTab(string $tab): bool
     {
-        return in_array($tab, ['banks', 'numbering'], true);
+        return in_array($tab, ['banks', 'numbering', 'contracts'], true);
     }
 
     /** group => key => [label, type, default, help, suffix] */
@@ -64,6 +65,10 @@ class Settings
                 'nature_of_visit' => ['Nature of visit', 'list', "Planned maintenance\nService\nRepairs\nNormal customer visit", 'One per line.', null],
                 'part_sources' => ['Where parts come from', 'list', "Vehicle stock\nNairobi store\nCustomer supplied\nOrdered", 'One per line.', null],
                 'stock_categories' => ['Stock categories', 'list', "Spare part\nEquipment\nTest equipment\nConsumable", 'One per line.', null],
+            ],
+            'contracts' => [
+                'contract_types' => ['Contract types', 'list', "Full service\nCall out\nMaintenance only", 'One per line.', null],
+                'maintenance_frequencies' => ['Maintenance frequencies', 'list', "Monthly|1|m\nEvery 2 months|2|m\nQuarterly|3|m\nEvery 4 months|4|m\nTwice a year|6|m\nYearly|12|m", 'Name|number|unit, one per line. Unit is d, w or m.', null],
             ],
             'certificates' => [
                 'cert_type_1' => ['Certificate type 1', 'text', 'Certificate type 1', null, null],
@@ -99,6 +104,28 @@ class Settings
         }
 
         return array_values(array_unique($names));
+    }
+
+    /** The contract types ICT has set up, in order. */
+    public static function contractTypes(): array
+    {
+        return array_values(array_unique(self::get('contract_types')));
+    }
+
+    /** Maintenance frequencies as name => ['every' => 3, 'unit' => 'm']. */
+    public static function maintenanceFrequencies(): array
+    {
+        $out = [];
+
+        foreach (self::get('maintenance_frequencies') as $line) {
+            $parts = array_map('trim', explode('|', $line));
+
+            if (count($parts) === 3 && $parts[0] !== '' && ctype_digit($parts[1]) && (int) $parts[1] >= 1 && in_array($parts[2], ['d', 'w', 'm'], true)) {
+                $out[$parts[0]] = ['every' => (int) $parts[1], 'unit' => $parts[2]];
+            }
+        }
+
+        return $out;
     }
 
     public static function meta(string $key): ?array

@@ -42,6 +42,12 @@ class ContractPolicy
         return $user->hasRole('Service Admin') && $contract->status === 'Active';
     }
 
+    // The terms are fixed, but the planned service dates are a schedule and can be moved.
+    public function manageSchedule(User $user, Contract $contract): bool
+    {
+        return $user->hasRole('Service Admin') && $contract->status === 'Active';
+    }
+
     public function delete(User $user, Contract $contract): bool
     {
         return false;

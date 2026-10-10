@@ -17,12 +17,6 @@ new #[Layout('layouts.app', ['title' => 'Equipment'])] class extends Component
     {
         abort_unless(auth()->user()->hasRole('Technician'), 403);
 
-        $worked = WorkOrder::where('assigned_technician_id', auth()->id())
-            ->where('equipment_id', $equipment->id)
-            ->exists();
-
-        abort_unless($worked, 403, 'You have no job on this machine.');
-
         $this->equipment = $equipment->load(['customer', 'site']);
     }
 
@@ -62,7 +56,20 @@ new #[Layout('layouts.app', ['title' => 'Equipment'])] class extends Component
             ->orderByDesc('expires_at')
             ->get();
 
+        $contracts = $this->equipment->contracts()
+            ->with(['serviceDates' => fn ($q) => $q->orderBy('due_on')])
+            ->orderByDesc('ends_at')
+            ->get();
+
+        $reports = ServiceReportDetail::with(['document.workOrder.technician'])
+            ->whereHas('document', fn ($q) => $this->reportScope($q))
+            ->latest()
+            ->take(15)
+            ->get();
+
         return [
+            'contracts' => $contracts,
+            'reports' => $reports,
             'jobs' => $jobs,
             'uid' => $uid,
             'myVisits' => $jobs->where('assigned_technician_id', $uid)->count(),
@@ -78,7 +85,7 @@ new #[Layout('layouts.app', ['title' => 'Equipment'])] class extends Component
 <div class="mx-auto" style="max-width: 56rem">
     <a href="/my-equipment" wire:navigate class="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-neutral-500 hover:text-neutral-900" style="min-height: 36px">
         <x-icon name="arrow-right" class="h-3.5 w-3.5 rotate-180" />
-        Back to my equipment
+        Back to equipment
     </a>
 
     @php
@@ -230,6 +237,26 @@ new #[Layout('layouts.app', ['title' => 'Equipment'])] class extends Component
         </div>
     @endif
 
+    {{-- Contracts --}}
+    <div class="card mb-4">
+        <h2 class="mb-3 text-sm font-semibold text-neutral-900">Contracts covering this machine</h2>
+        @forelse ($contracts as $c)
+            @php $upcoming = $c->serviceDates->filter(fn ($d) => $d->due_on->gte(today()))->take(3); @endphp
+            <div class="border-b border-neutral-100 py-2.5 last:border-0" wire:key="con-{{ $c->id }}">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <p class="text-sm font-semibold text-neutral-900">{{ $c->reference }} <span class="font-normal text-neutral-500">&middot; {{ $c->type }}@if ($c->frequency), {{ strtolower($c->frequency) }}@endif</span></p>
+                    <span class="{{ $c->status === 'Active' && $c->ends_at->gte(today()) ? 'pill-success' : 'pill-neutral' }}">{{ $c->status === 'Active' && $c->ends_at->lt(today()) ? 'Ended' : $c->status }}</span>
+                </div>
+                <p class="text-xs text-neutral-500">{{ $c->starts_at->format('d M Y') }} to {{ $c->ends_at->format('d M Y') }}</p>
+                @if ($upcoming->isNotEmpty())
+                    <p class="mt-1 text-xs text-neutral-600">Next planned visits: {{ $upcoming->map(fn ($d) => $d->due_on->format('d M Y'))->implode(', ') }}</p>
+                @endif
+            </div>
+        @empty
+            <p class="text-sm text-neutral-500">No contract covers this machine.</p>
+        @endforelse
+    </div>
+
     {{-- Service history --}}
     <div class="card mb-4">
         <h2 class="mb-3 text-sm font-semibold text-neutral-900">Service history</h2>
@@ -271,6 +298,23 @@ new #[Layout('layouts.app', ['title' => 'Equipment'])] class extends Component
                 <p class="text-sm text-neutral-500">No visits on file.</p>
             @endforelse
         </div>
+    </div>
+
+    {{-- Earlier reports --}}
+    <div class="card mb-4">
+        <h2 class="mb-3 text-sm font-semibold text-neutral-900">Earlier service reports</h2>
+        @forelse ($reports as $r)
+            <div class="border-b border-neutral-100 py-2.5 last:border-0" wire:key="rep-{{ $r->id }}">
+                <p class="text-xs text-neutral-500">
+                    {{ $r->document->workOrder?->reference }} &middot; {{ ($r->report_date ?? $r->created_at)->format('d M Y') }}
+                    @if ($r->document->workOrder?->technician) &middot; {{ $r->document->workOrder->technician->name }} @endif
+                </p>
+                <p class="mt-0.5 text-sm text-neutral-900"><span class="text-neutral-500">Fault:</span> {{ $r->fault_description ?: '-' }}</p>
+                <p class="text-sm text-neutral-900"><span class="text-neutral-500">Fixed by:</span> {{ $r->correction ?: '-' }}</p>
+            </div>
+        @empty
+            <p class="text-sm text-neutral-500">No reports filed for this machine yet.</p>
+        @endforelse
     </div>
 
     {{-- Parts fitted --}}

@@ -363,7 +363,7 @@ new #[Layout('layouts.app', ['title' => 'Reports'])] class extends Component
                         @php
                             $pill = match (true) {
                                 str_starts_with($q->status, 'Awaiting') => 'pill-amber',
-                                $q->status === 'Sent back' => 'pill-danger',
+                                $q->status === 'Rejected' => 'pill-danger',
                                 default => 'pill-success',
                             };
                         @endphp

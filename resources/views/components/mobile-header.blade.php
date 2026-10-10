@@ -17,6 +17,8 @@
         <span style="font-size: 0.7rem; font-weight: 700; line-height: 1.15; letter-spacing: 0.04em; color: #3f3f46">AEA Service<br>Operations Hub</span>
     </a>
 
+    <div class="flex items-center gap-2" style="margin-left: auto; margin-right: 0.5rem"><livewire:notification-bell :mobile="true" /></div>
+
     <button type="button" @click="open = ! open" aria-label="Open menu" :aria-expanded="open"
             class="flex items-center gap-2 rounded-full"
             style="height: 40px; padding: 0 0.75rem 0 0.25rem; background: var(--color-primary-500, #e31e24); color: #fff; border: 0">
@@ -52,7 +54,13 @@
         </nav>
 
         <div class="border-t border-neutral-100 p-2">
-            <a href="/change-password" wire:navigate @click="open = false"
+            <a href="/profile" wire:navigate @click="open = false"
+               class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+               style="min-height: 48px">
+                <x-icon name="person-circle" class="h-5 w-5" />
+                My profile and settings
+            </a>
+            <a href="/profile#password" wire:navigate @click="open = false"
                class="flex items-center gap-3 rounded-[var(--radius-md)] px-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
                style="min-height: 48px">
                 <x-icon name="lock" class="h-5 w-5" />

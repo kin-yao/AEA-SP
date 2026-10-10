@@ -101,4 +101,32 @@ class FinanceFlowTest extends TestCase
         $this->actingAs($f);
         Livewire::test('receipts')->call('download', $p->id)->assertFileDownloaded($p->reference.'.pdf');
     }
+
+    public function test_invoices_page_lists_closed_jobs_and_explains_when_empty(): void
+    {
+        $this->actingAs(User::role('Finance')->firstOrFail());
+        $job = WorkOrder::whereDoesntHave('invoices')->firstOrFail();
+        $job->update(['status' => 'Closed']);
+
+        $this->get('/invoices')->assertOk()->assertSee('Completed jobs to invoice')->assertSee($job->reference);
+
+        WorkOrder::query()->update(['status' => 'Assigned']);
+        \App\Models\Document::where('type', 'rep')->update(['status' => 'Draft']);
+        $this->get('/invoices')->assertOk()->assertSee('Completed jobs to invoice')->assertSee('No finished jobs are waiting');
+    }
+
+    public function test_invoice_form_shows_quotation_and_lpo_side_by_side(): void
+    {
+        $q = \App\Models\Quotation::create([
+            'reference' => 'QT-S'.uniqid(), 'customer_id' => Customer::firstOrFail()->id, 'scope' => 'Side by side',
+            'labour_minor' => 10000, 'validity_days' => 30, 'currency_code' => 'KES', 'vat_rate' => 0.16,
+            'created_by' => User::role('Service Admin')->firstOrFail()->id, 'status' => 'Approved',
+        ]);
+        $q->items()->create(['description' => 'Bearing kit', 'quantity' => 1, 'rate_minor' => 50000]);
+        $job = $q->convertToJob(User::role('Technician')->firstOrFail()->id, today()->addWeek()->toDateString(), 'WO-S'.uniqid());
+        \App\Models\Document::create(['reference' => 'RP-S'.uniqid(), 'type' => 'rep', 'work_order_id' => $job->id, 'customer_id' => $job->customer_id, 'status' => 'Released', 'filed_by' => User::role('Service Admin')->firstOrFail()->id]);
+        $this->actingAs(User::role('Finance')->firstOrFail());
+
+        Livewire::test('invoices.create', ['job' => $job])->assertSee($q->reference)->assertSee('Bearing kit')->assertSee('Customer LPO')->assertSee('No LPO has been logged');
+    }
 }

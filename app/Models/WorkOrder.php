@@ -95,6 +95,15 @@ class WorkOrder extends Model
         return $this->hasMany(Document::class);
     }
 
+    /** A finished job nobody has invoiced yet: closed, or its service report has been released. */
+    public function scopeReadyToInvoice($query)
+    {
+        return $query
+            ->where(fn ($q) => $q->where('status', 'Closed')
+                ->orWhereHas('documents', fn ($d) => $d->where('type', 'rep')->where('status', 'Released')))
+            ->whereDoesntHave('invoices');
+    }
+
     public function invoices(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Invoice::class);

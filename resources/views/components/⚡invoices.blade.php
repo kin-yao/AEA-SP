@@ -52,8 +52,7 @@ new #[Layout('layouts.app', ['title' => 'Invoices'])] class extends Component
         // Only Finance sees this list, so nobody else pays for the query.
         $readyToInvoice = $user->hasRole('Finance')
             ? WorkOrder::with(['customer', 'sourceQuotation.lpoDetail'])
-                ->whereHas('documents', fn ($q) => $q->where('type', 'rep')->where('status', 'Released'))
-                ->whereDoesntHave('invoices')
+                ->readyToInvoice()
                 ->latest()
                 ->limit(50)
                 ->get()
@@ -83,6 +82,7 @@ new #[Layout('layouts.app', ['title' => 'Invoices'])] class extends Component
 
         return [
             'money' => $money,
+            'user' => $user,
             'readyToInvoice' => $readyToInvoice,
             'total' => $total,
             'invoices' => $query->limit($this->limit)->get(),
@@ -107,23 +107,30 @@ new #[Layout('layouts.app', ['title' => 'Invoices'])] class extends Component
 
     @error('quick') <div class="card mb-4 text-sm text-critical-700">{{ $message }}</div> @enderror
 
-    @if ($readyToInvoice->isNotEmpty())
+    @if ($user->hasRole('Finance'))
         <div class="mb-6">
             <h2 class="mb-1 text-sm font-semibold text-neutral-900">Completed jobs to invoice</h2>
-            <p class="mb-3 text-xs text-neutral-500">One click makes the invoice from the agreed prices and sends it to the customer. Jobs with no quotation open a short form.</p>
+            <p class="mb-3 text-xs text-neutral-500">Review and create opens the quotation and the customer's LPO side by side with the invoice. Create now skips the review and sends it from the agreed prices.</p>
             <div class="space-y-3">
-                @foreach ($readyToInvoice as $job)
+                @forelse ($readyToInvoice as $job)
                     @php $direct = \App\Services\InvoiceBuilder::canRaiseDirectly($job); @endphp
                     <div class="card flex flex-wrap items-center justify-between gap-3" style="background-color: var(--color-info-50); border-color: var(--color-info-200)" wire:key="ready-{{ $job->id }}">
                         <div>
                             <p class="text-sm font-semibold text-neutral-900">{{ $job->reference }}</p>
                             <p class="text-sm text-neutral-600">{{ $job->customer->name }}@if ($job->sourceQuotation) &middot; {{ $job->sourceQuotation->reference }}@endif</p>
                         </div>
-                        <button type="button" wire:click="quickInvoice({{ $job->id }})" wire:loading.attr="disabled" wire:target="quickInvoice({{ $job->id }})" class="btn-primary">
-                            {{ $direct ? 'Create invoice' : 'Fill in invoice' }}
-                        </button>
+                        <div class="flex flex-wrap gap-2">
+                            <a href="/invoices/create/{{ $job->id }}" wire:navigate class="btn-primary">Review and create</a>
+                            @if ($direct)
+                                <button type="button" wire:click="quickInvoice({{ $job->id }})" wire:loading.attr="disabled" wire:target="quickInvoice({{ $job->id }})" class="btn-outline">Create now</button>
+                            @endif
+                        </div>
                     </div>
-                @endforeach
+                @empty
+                    <div class="card border-dashed text-center text-sm text-neutral-500">
+                        No finished jobs are waiting. A job shows here once it is closed or its service report is released, until it has an invoice.
+                    </div>
+                @endforelse
             </div>
         </div>
     @endif

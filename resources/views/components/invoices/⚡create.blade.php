@@ -27,9 +27,7 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
     {
         $this->authorize('create', Invoice::class);
 
-        $hasReleasedReport = $job->documents()->where('type', 'rep')->where('status', 'Released')->exists();
-
-        if (! $hasReleasedReport || $job->invoices()->exists()) {
+        if (\App\Services\InvoiceBuilder::blocker($job)) {
             abort(403, 'This job is not ready to invoice, or already has one.');
         }
 
@@ -85,6 +83,17 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
         $this->vatRate = rtrim(rtrim(number_format((float) $lpo->vat_rate * 100, 3, '.', ''), '0'), '.');
         $this->lpoDocumentId = $lpo->document_id;
         $this->lpoReference = (string) $lpo->document?->reference;
+    }
+
+    /** The quotation and the customer's LPO for this job, to read beside the invoice form. */
+    public function with(): array
+    {
+        $q = $this->job->sourceQuotation;
+        $q?->load('items');
+        $lpo = $q?->lpoDetail;
+        $lpo?->load(['items', 'document']);
+
+        return ['quote' => $q, 'lpo' => $lpo];
     }
 
     public function addItem(): void
@@ -199,6 +208,80 @@ new #[Layout('layouts.app', ['title' => 'New invoice'])] class extends Component
     @elseif ($job->sourceQuotation)
         <div class="card mb-4 text-xs text-info-800" style="background-color: var(--color-info-50); border-color: var(--color-info-200)">
             Pre-filled from {{ $job->sourceQuotation->reference }}. There is no LPO on file for it, so adjust anything before saving.
+        </div>
+    @endif
+
+    @if ($quote || $lpo)
+        @php
+            $cur = $this->currencyCode;
+            $fmt = fn ($minor) => number_format($minor / 100, 2);
+        @endphp
+        <div class="mb-4 grid gap-3" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: start">
+            {{-- Quotation --}}
+            <div class="card">
+                <div class="mb-2 flex items-center justify-between gap-2">
+                    <h2 class="text-sm font-semibold text-neutral-900">Quotation</h2>
+                    @if ($quote)
+                        <a href="/quotations/{{ $quote->id }}" wire:navigate target="_blank" class="text-xs font-semibold text-info-700 hover:text-info-800">{{ $quote->reference }}</a>
+                    @endif
+                </div>
+                @if ($quote)
+                    <table class="table-clean w-full text-xs">
+                        <thead><tr><th class="text-left">Item</th><th class="text-right">Qty</th><th class="text-right">Rate</th><th class="text-right">Amount</th></tr></thead>
+                        <tbody>
+                            @foreach ($quote->items as $it)
+                                <tr><td>{{ $it->description }}</td><td class="text-right">{{ rtrim(rtrim((string) $it->quantity, '0'), '.') }}</td><td class="text-right">{{ $fmt($it->rate_minor) }}</td><td class="text-right">{{ $fmt($it->amountMinor()) }}</td></tr>
+                            @endforeach
+                            @if ($quote->labour_minor > 0)
+                                <tr><td>Labour</td><td class="text-right">1</td><td class="text-right">{{ $fmt($quote->labour_minor) }}</td><td class="text-right">{{ $fmt($quote->labour_minor) }}</td></tr>
+                            @endif
+                        </tbody>
+                    </table>
+                    <div class="mt-2 space-y-0.5 text-xs">
+                        <div class="flex justify-between"><span class="text-neutral-500">Subtotal</span><span>{{ $fmt($quote->subtotalMinor()) }}</span></div>
+                        <div class="flex justify-between"><span class="text-neutral-500">VAT, {{ rtrim(rtrim(number_format($quote->vat_rate * 100, 2), '0'), '.') }}%</span><span>{{ $fmt($quote->vatMinor()) }}</span></div>
+                        <div class="flex justify-between border-t border-neutral-100 pt-1 font-semibold"><span>Total</span><span>{{ $quote->currency_code }} {{ $fmt($quote->totalMinor()) }}</span></div>
+                    </div>
+                @else
+                    <p class="text-sm text-neutral-500">This job did not come from a quotation.</p>
+                @endif
+            </div>
+
+            {{-- LPO --}}
+            <div class="card">
+                <div class="mb-2 flex items-center justify-between gap-2">
+                    <h2 class="text-sm font-semibold text-neutral-900">Customer LPO <span class="font-normal text-neutral-500">(the agreed price)</span></h2>
+                    @if ($lpo?->document)
+                        <a href="/documents/{{ $lpo->document->id }}" wire:navigate target="_blank" class="text-xs font-semibold text-info-700 hover:text-info-800">{{ $lpo->document->reference }}</a>
+                    @endif
+                </div>
+                @if ($lpo)
+                    <table class="table-clean w-full text-xs">
+                        <thead><tr><th class="text-left">Item</th><th class="text-right">Qty</th><th class="text-right">Rate</th><th class="text-right">Amount</th></tr></thead>
+                        <tbody>
+                            @foreach ($lpo->items as $it)
+                                <tr><td>{{ $it->description }}</td><td class="text-right">{{ rtrim(rtrim(number_format($it->quantity, 2, '.', ''), '0'), '.') }}</td><td class="text-right">{{ $fmt($it->rate_minor) }}</td><td class="text-right">{{ $fmt($it->amountMinor()) }}</td></tr>
+                            @endforeach
+                            @if ($lpo->labour_minor > 0)
+                                <tr><td>Labour</td><td class="text-right">1</td><td class="text-right">{{ $fmt($lpo->labour_minor) }}</td><td class="text-right">{{ $fmt($lpo->labour_minor) }}</td></tr>
+                            @endif
+                        </tbody>
+                    </table>
+                    <div class="mt-2 space-y-0.5 text-xs">
+                        <div class="flex justify-between"><span class="text-neutral-500">Subtotal</span><span>{{ $fmt($lpo->subtotalMinor()) }}</span></div>
+                        <div class="flex justify-between"><span class="text-neutral-500">VAT, {{ rtrim(rtrim(number_format($lpo->vat_rate * 100, 2), '0'), '.') }}%</span><span>{{ $fmt($lpo->vatMinor()) }}</span></div>
+                        <div class="flex justify-between border-t border-neutral-100 pt-1 font-semibold"><span>Total</span><span>{{ $lpo->currency_code ?: $cur }} {{ $fmt($lpo->totalMinor()) }}</span></div>
+                    </div>
+                    @if ($lpo->change_note)
+                        <p class="mt-2 text-xs text-neutral-500">Changed from the quotation: {{ $lpo->change_note }}</p>
+                    @endif
+                    @if ($quote && $lpo->totalMinor() !== $quote->totalMinor())
+                        <p class="mt-2 text-xs font-medium text-amber-700">The LPO total differs from the quotation by {{ $cur }} {{ $fmt(abs($lpo->totalMinor() - $quote->totalMinor())) }}. The invoice follows the LPO.</p>
+                    @endif
+                @else
+                    <p class="text-sm text-neutral-500">No LPO has been logged for this job. The invoice is filled in from the quotation, so check it before saving.</p>
+                @endif
+            </div>
         </div>
     @endif
 

@@ -113,9 +113,7 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
             'convertedThisWeek' => ServiceRequest::where('status', 'Converted')->where('updated_at', '>=', now()->startOfWeek())->count(),
             'reportsReadyToPost' => Document::where('type', 'rep')->where('status', 'Checked, ready to post')->count(),
             'quotationsAwaitingLpo' => Quotation::where('status', 'Approved')->whereDoesntHave('lpoDetail')->count(),
-            'readyToInvoice' => WorkOrder::whereHas('documents', fn ($q) => $q->where('type', 'rep')->where('status', 'Released'))
-                ->whereDoesntHave('invoices')
-                ->count(),
+            'readyToInvoice' => WorkOrder::readyToInvoice()->count(),
             'overdueJobs' => WorkOrder::where('due_date', '<', now())->whereNotIn('status', ['Closed'])->count(),
             'totalCustomers' => Customer::count(),
             'jobSegments' => $segments,
@@ -265,9 +263,7 @@ new #[Layout('layouts.app', ['title' => 'Overview'])] class extends Component
             }
         }
 
-        $readyJobs = WorkOrder::whereHas('documents', fn ($q) => $q->where('type', 'rep')->where('status', 'Released'))
-            ->whereDoesntHave('invoices')
-            ->get();
+        $readyJobs = WorkOrder::readyToInvoice()->get();
 
         return [
             'role' => 'Finance',

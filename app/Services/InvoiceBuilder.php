@@ -17,8 +17,8 @@ class InvoiceBuilder
             return 'This job already has an invoice.';
         }
 
-        if (! $job->documents()->where('type', 'rep')->where('status', 'Released')->exists()) {
-            return 'The service report for this job has not been released yet.';
+        if ($job->status !== 'Closed' && ! $job->documents()->where('type', 'rep')->where('status', 'Released')->exists()) {
+            return 'This job is not finished yet. It must be closed, or its service report released.';
         }
 
         return null;
